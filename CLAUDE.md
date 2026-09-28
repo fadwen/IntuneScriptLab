@@ -143,7 +143,7 @@ secret named `PSGallery-ApiKey`.
 ## Checks
 
 ```powershell
-Invoke-Pester ./Tests, ./Validation/Tests          # suites that need elevation, a lab account or Graph skip themselves
+Invoke-Pester ./Tests, ./Validation/Tests          # suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
 ./Build/Build-Help.ps1                             # rebuild MAML after editing docs/
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule

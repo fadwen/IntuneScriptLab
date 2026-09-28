@@ -41,7 +41,7 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 
 ```powershell
 Invoke-Pester ./Tests, ./Validation/Tests               # a few minutes; suites needing elevation,
-                                                        # a lab account or Graph skip themselves
+                                                        # a lab account or PSScriptAnalyzer skip themselves
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
 ./Build/Build-Help.ps1                                  # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule
