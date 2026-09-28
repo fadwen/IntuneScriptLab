@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     The Graph pre-flight against a fake tenant: the Graph seam (Invoke-IslGraphRequest) is mocked
@@ -304,6 +304,17 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '*/mobileApps/app-b*'
             } -Times 1 -Exactly
+        }
+        It 'selects by id alone when no name is given' {
+            @(Test-IntuneDeployedScript -Id 'rem-b').PolicyName | Sort-Object -Unique |
+                Should-BeCollection @('Report-Only')
+        }
+
+        It 'forwards -Settings to the script analysis' {
+            $withRule = @(Test-IntuneDeployedScript -Name 'Fix-Widget' -Kind Remediation)
+            $withRule.RuleName | Should-ContainCollection 'IslExitCodeIssue'
+            $settingsSplat = @{ Name = 'Fix-Widget'; Kind = 'Remediation'; Settings = @{ ExcludeRule = 'IslExitCodeIssue' } }
+            @(Test-IntuneDeployedScript @settingsSplat).RuleName | Should-NotContainCollection 'IslExitCodeIssue'
         }
 
         It 'applies the rule and severity filters to script findings and policy checks alike' {

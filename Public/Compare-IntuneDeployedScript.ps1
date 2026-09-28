@@ -34,6 +34,9 @@ function Compare-IntuneDeployedScript {
     $settingsCache = @{}
     $mapped = @{}
     $sha = [System.Security.Cryptography.SHA256]::Create()
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    $nameGiven = $PSBoundParameters.ContainsKey('Name')
+    $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     function Get-NameKey {
         param([string]$Value)
@@ -43,7 +46,8 @@ function Compare-IntuneDeployedScript {
     function Test-Wanted {
         param($Policy)
         $displayName = "$($Policy.displayName)"
-        $byName = @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
+        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
+        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
         $byId = $Id -and "$($Policy.id)" -in $Id
         $byName -or $byId
     }
@@ -189,7 +193,7 @@ function Compare-IntuneDeployedScript {
             }
         }
         $settingSplat = @{ Path = $File; Cache = $settingsCache }
-        if ($PSBoundParameters.ContainsKey('Settings')) { $settingSplat.Settings = $Settings }
+        if ($settingsGiven) { $settingSplat.Settings = $Settings }
         $fileSettings = Get-IslSetting @settingSplat
         $explicit = @{}
         foreach ($key in 'Context', 'Architecture', 'EnforceSignatureCheck') {
@@ -335,7 +339,7 @@ function Compare-IntuneDeployedScript {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
                 $policy = Invoke-IslGraphRequest -Uri "$remediations/$($summary.id)"
-                $settings = @{
+                $policySettings = @{
                     RunAsAccount = $policy.runAsAccount; RunAs32Bit = $policy.runAs32Bit
                     EnforceSignatureCheck = $policy.enforceSignatureCheck
                 }
@@ -344,13 +348,13 @@ function Compare-IntuneDeployedScript {
                     Content    = $policy.detectionScriptContent
                     Candidates = Find-LocalFile -Policy $policy -Role 'detection' -Pattern '^(?i)detect'
                 }
-                Compare-Role @detectSplat @settings
+                Compare-Role @detectSplat @policySettings
                 $remediateSplat = @{
                     PolicyKind = 'Remediation'; Policy = $policy; Role = 'remediation'
                     Content    = $policy.remediationScriptContent
                     Candidates = Find-LocalFile -Policy $policy -Role 'remediation' -Pattern '^(?i)remediat'
                 }
-                Compare-Role @remediateSplat @settings
+                Compare-Role @remediateSplat @policySettings
             }
         }
 

@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     Drift between a fake tenant (the Graph seam mocked) and a local folder laid out by the
@@ -220,6 +220,20 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '*mobileApps*'
             } -Times 0 -Exactly
+        }
+        It 'selects by id alone when no name is given' {
+            $results = @(Compare-IntuneDeployedScript -Path $script:Root -Id 'rem-c')
+            $results.PolicyName | Should-All { $_ -eq 'Ctx-Check' }
+            $results.Count | Should-Be 1
+        }
+
+        It 'uses -Settings for the settings comparison instead of the nearest settings file' {
+            # Set-Wallpaper's local file says nothing, so the settings hashtable is what gets compared
+            $compareSplat = @{ Path = $script:Root; Name = 'Set-Wallpaper'; Settings = @{ Context = 'System' } }
+            $wallpaper = @(Compare-IntuneDeployedScript @compareSplat)
+            $wallpaper.Count | Should-Be 1
+            @($wallpaper[0].Differences) | Should-ContainCollection 'Settings'
+            $wallpaper[0].Detail | Should-BeLikeString '*Context=System locally, the policy runs as User*'
         }
 
         It 'takes local files from -Map by role, relative to -Path, and reports an entry with no policy' {

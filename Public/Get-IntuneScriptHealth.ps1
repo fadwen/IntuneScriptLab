@@ -30,11 +30,14 @@ function Get-IntuneScriptHealth {
         [string]$MarkdownPath
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($Kind -join ', ')"
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    $nameGiven = $PSBoundParameters.ContainsKey('Name')
 
     function Test-Wanted {
         param($Policy)
         $displayName = "$($Policy.displayName)"
-        $byName = @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
+        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
+        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
         $byId = $Id -and "$($Policy.id)" -in $Id
         $byName -or $byId
     }
@@ -281,7 +284,9 @@ function Get-IntuneScriptHealth {
             }
             $lines.Add('')
         }
-        [System.IO.File]::WriteAllLines($MarkdownPath, $lines, [System.Text.UTF8Encoding]::new($false))
+        # Resolved against the PowerShell location: .NET's current directory is not $PWD
+        $markdownFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($MarkdownPath)
+        [System.IO.File]::WriteAllLines($markdownFile, $lines, [System.Text.UTF8Encoding]::new($false))
         Write-Verbose "Markdown report written to $MarkdownPath"
     }
 
