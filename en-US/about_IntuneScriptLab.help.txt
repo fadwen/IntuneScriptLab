@@ -1,0 +1,121 @@
+TOPIC
+    about_IntuneScriptLab
+
+SHORT DESCRIPTION
+    Checks PowerShell scripts for the mistakes Intune turns into silent failures, runs them the way
+    the Intune Management Extension does, and reads what a tenant and its devices actually did.
+
+LONG DESCRIPTION
+    Intune runs three kinds of PowerShell script through its agent, the Intune Management Extension:
+    remediations (a detection script and a remediation script), platform scripts, and the detection
+    and requirement scripts of Win32 apps. The agent's rules for exit codes, output, context,
+    bitness, encoding and timing are only partly documented and are easy to get wrong in a way that
+    nobody notices until the portal shows the wrong state. IntuneScriptLab encodes those rules as
+    they were observed on real devices and makes them available before a script is deployed, while
+    it runs, and after the fact.
+
+    EVIDENCE
+
+    Every rule, warning and verdict in the module is backed by an observation recorded in the
+    validation kit's Findings (Validation\Findings.md next to the module): a documented behaviour
+    checked against a real Entra joined or registered device, or an undocumented one measured there.
+    Each finding carries an Evidence string ending in experiment ids such as REM-EXIT-2 or
+    W32-DET-NOOUT; those are the names in Validation\Experiments.psd1, and the script body that ran
+    on the device is the exact thing the id refers to. Where Microsoft Learn and the device
+    disagree, the module follows the device and says so.
+
+    SCRIPT TYPE, CONTEXT AND ARCHITECTURE
+
+    The rules depend on what a script is and how the agent launches it: Detection, Remediation,
+    PlatformScript, Win32Detection or Win32Requirement; SYSTEM or the signed-in user; the 32-bit,
+    64-bit or ARM64 PowerShell host. Pass them as parameters, put a directive in the script
+
+        # IntuneScriptLab: ScriptType=Detection Context=System Architecture=x64
+
+    set them in an IntuneScriptLab.settings.psd1 in the script's folder or above it, or let the file
+    name and folder decide (Detect*.ps1 under a Remediations folder, Requirement*.ps1, and so on).
+    Parameters beat the directive, the directive beats the settings file, the settings file beats
+    inference, and inference follows the portal's defaults (32-bit, SYSTEM for remediations, the
+    user for platform scripts), which differ from what a script created through Graph gets.
+
+    THE COMMANDS
+
+    Before deployment
+
+        Test-IntuneScript            The rules against a file or folder: exit codes, output, context,
+                                     bitness, encoding, interactive calls, sleeps, reboots, relative
+                                     paths, execution policy calls, module dependencies, size and
+                                     the signature check. Findings carry the evidence.
+        Repair-IntuneScript          Applies the fixes that are mechanical (a missing exit, a BOM).
+        Get-IntuneAnalyzerRulePath   The same rules as PSScriptAnalyzer custom rules for -CustomRulePath.
+        Export-IntuneFindingSarif    Findings as SARIF for GitHub code scanning.
+        Assert-PassIntuneAnalysis    The Should-* assertions for a Pester suite (Should-PassIntuneAnalysis,
+                                     Should-HaveIntuneStatus, Should-BeIntuneDetected and the others).
+
+    Running the way the agent does
+
+        Invoke-IntuneDetectionTest, Invoke-IntuneRemediationTest, Invoke-IntunePlatformScriptTest,
+        Invoke-IntuneWin32AppTest, Invoke-IntuneRequirementTest
+                                     Run a script in a Windows PowerShell host launched as the agent
+                                     launches it (bitness, working directory, no -NonInteractive,
+                                     the timeout) and report what Intune would see: the exit code,
+                                     the last line, the detection state, the install outcome.
+                                     -Context System runs as SYSTEM; -Credential runs as another
+                                     account, in its session when it has one.
+        Test-IntuneWin32Rule         A file, registry, MSI or script detection or requirement rule
+        Test-IntuneWin32Requirement  against this device, with the agent's own semantics.
+        Test-IntuneAssignmentFilter  An assignment filter rule against this device or a described
+                                     one, with the service's syntax and matching.
+
+    Against the tenant (a Microsoft.Graph.Authentication session, nothing changed)
+
+        Test-IntuneDeployedScript    The rules on every script the tenant carries, with the settings
+                                     each policy has, plus the deployment checks: a file doesNotExist
+                                     rule, a user-context app on a device group, a detect-only
+                                     remediation, a filter no device matches, a policy assigned to
+                                     nobody, a run-once schedule that has passed.
+        Compare-IntuneDeployedScript The tenant's scripts against a folder or a git checkout, byte
+                                     for byte: content, line endings, BOM, whitespace and settings.
+        Get-IntuneScriptHealth       One line per policy: findings, drift, assignment and what the
+                                     devices reported, with a Health verdict and a Markdown report.
+
+    On a device, after the fact
+
+        Get-IntuneAgentLog           The agent's CMTrace logs as objects, with the event each known
+                                     line records.
+        Get-IntuneAgentTimeline      One timeline per policy or app: the steps, the duration, the
+                                     launches and how it ended.
+        Export-IntuneAgentDiagnostic The logs, the agent's registry state, the device facts and the
+                                     parsed timelines as one zip for a ticket.
+
+    WHAT THE DEVICES TAUGHT US
+
+    A few of the observations the rules rest on, from Validation\Findings.md:
+
+    - Any non-zero exit runs the remediation; "return" at script scope ends a script with exit 0.
+    - Intune reports only the last console line of a remediation, host streams included.
+    - A Win32 detection counts as installed only with exit 0 and something on stdout; anything on
+      stderr means not detected.
+    - Scripts run under Windows PowerShell 5.1; a file without a BOM is read as ANSI.
+    - User-context scripts run only on Entra joined or hybrid joined devices; a registered device
+      downloads them and skips them.
+    - The agent fetches script policy at start-up and then every 8 hours; a failed platform script
+      runs three times in all.
+    - A device-assigned platform script runs in the Enrollment Status Page's device phase before the
+      blocking apps; remediations never run during the page.
+    - A policy with no assignment, or only exclusions, is never resolved by any device.
+
+    THE VALIDATION KIT
+
+    The Validation folder next to the module holds the experiments (Experiments.psd1), the driver
+    that deploys and collects them (Invoke-ValidationRound.ps1), the probes and helpers, and
+    Findings.md, the documented-versus-observed record every rule cites. Run a round against your
+    own tenant and test device to re-check the observations, or add an experiment to answer a new
+    question.
+
+SEE ALSO
+    Test-IntuneScript
+    Test-IntuneDeployedScript
+    Get-IntuneScriptHealth
+    Get-IntuneAgentLog
+    https://github.com/fadwen/IntuneScriptLab

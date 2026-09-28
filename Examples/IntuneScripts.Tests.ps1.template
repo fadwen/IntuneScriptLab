@@ -1,0 +1,137 @@
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+
+<#
+    Template for testing a folder of Intune scripts with IntuneScriptLab. Copy it next to your
+    scripts as IntuneScripts.Tests.ps1, adjust the paths, run Invoke-Pester.
+
+    Layout it assumes:
+        .\Remediations\<Package>\Detect.ps1 and Remediate.ps1
+        .\Win32\<App>\Detect.ps1 and Package\ (the content that becomes the .intunewin), and for an
+        app detected by portal rules instead of a script, Rules.psd1 holding
+        @{ DetectionRules = @(@{ Type = 'File'; ... }); UninstallCommand = '...' }
+        .\PlatformScripts\*.ps1
+
+    Static checks run anywhere. The runtime checks start real Windows PowerShell 5.1 processes
+    and need Windows; -Context System additionally needs a session that can register a
+    scheduled task as SYSTEM (elevated).
+
+    A folder you do not have (no Win32 apps yet, say) yields an empty -ForEach, which Pester 6
+    treats as a discovery failure. -AllowNullOrEmptyForEach on each block turns that into
+    "nothing to test" instead; delete the switch where the folder must never be empty.
+#>
+
+BeforeAll {
+    Import-Module IntuneScriptLab
+    $script:IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
+        IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+Describe 'Static analysis' -Tag 'Static' {
+
+    It 'has no warnings or errors: <_.Name>' -AllowNullOrEmptyForEach -ForEach (
+        Get-ChildItem "$PSScriptRoot\Remediations" -Recurse -Filter *.ps1 -ErrorAction SilentlyContinue) {
+        # Detection/Remediation is inferred from the file name; use -ScriptType or a directive
+        # comment in the script if your names differ (see the README)
+        $_ | Should-PassIntuneAnalysis
+    }
+
+    It 'Win32 detection scripts survive the stdout/stderr rules: <_.Name>' -AllowNullOrEmptyForEach -ForEach (
+        Get-ChildItem "$PSScriptRoot\Win32" -Recurse -Filter Detect.ps1 -ErrorAction SilentlyContinue) {
+        $_ | Should-PassIntuneAnalysis -ScriptType Win32Detection
+    }
+}
+
+Describe 'Remediation packages' -Tag 'Runtime' {
+
+    Context '<_.Name>' -AllowNullOrEmptyForEach -ForEach (
+        Get-ChildItem "$PSScriptRoot\Remediations" -Directory -ErrorAction SilentlyContinue) {
+
+        It 'runs the detection cleanly in the 32-bit host' {
+            $result = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x86
+            ($result.Status -in 'Without issues', 'Issue detected (no remediation script)') | Should-BeTrue
+            @($result.Warnings).Count | Should-Be 0
+        }
+
+        It 'reports the same in the 64-bit host (no WOW64 dependence)' {
+            $x86 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x86
+            $x64 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x64
+            $x64.PreDetection.ExitCode | Should-Be $x86.PreDetection.ExitCode
+        }
+
+        # Only where the remediation is safe to run on the test machine
+        It 'fixes the issue as SYSTEM' -Skip:(-not $script:IsAdmin) {
+            $intuneRemediationTestSplat = @{
+                DetectionPath   = "$($_.FullName)\Detect.ps1"
+                RemediationPath = "$($_.FullName)\Remediate.ps1"
+                Context         = 'System'
+            }
+            Invoke-IntuneRemediationTest @intuneRemediationTestSplat |
+                Should-HaveIntuneStatus 'Fixed'
+        }
+    }
+}
+
+Describe 'Win32 apps' -Tag 'Runtime' {
+
+    Context '<_.Name>' -AllowNullOrEmptyForEach -ForEach (
+        Get-ChildItem "$PSScriptRoot\Win32" -Directory -ErrorAction SilentlyContinue) {
+
+        It 'is not detected before install' {
+            Invoke-IntuneDetectionTest -Path "$($_.FullName)\Detect.ps1" | Should-NotBeIntuneDetected
+        }
+
+        # Only where the app has a PowerShell requirement rule; mirror the rule configured in the portal
+        It 'meets its requirement rule' -Skip:(-not (Test-Path "$($_.FullName)\Requirement.ps1")) {
+            Invoke-IntuneRequirementTest -Path "$($_.FullName)\Requirement.ps1" -OutputType String -Value 'ok' |
+                Should-BeIntuneApplicable
+        }
+
+        It 'installs and is then detected' -Skip:(-not $script:IsAdmin) {
+            $intuneWin32AppTestSplat = @{
+                DetectionPath  = "$($_.FullName)\Detect.ps1"
+                ContentPath    = "$($_.FullName)\Package"
+                InstallCommand = 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'
+                Context        = 'System'
+            }
+            Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat |
+                Should-HaveIntuneStatus 'Installed after install'
+        }
+
+        # Only where the app is detected by file, registry or MSI rules: mirror the portal rules in
+        # Rules.psd1; all of them must be met, as under the agent
+        It 'meets every detection rule after install' -Skip:(-not ($script:IsAdmin -and
+                (Test-Path "$($_.FullName)\Rules.psd1"))) {
+            $rules = Import-PowerShellDataFile "$($_.FullName)\Rules.psd1"
+            $intuneWin32AppTestSplat = @{
+                DetectionRule  = $rules.DetectionRules
+                ContentPath    = "$($_.FullName)\Package"
+                InstallCommand = 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'
+                Context        = 'System'
+            }
+            Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat |
+                Should-HaveIntuneStatus 'Installed after install'
+        }
+
+        It 'uninstalls and is no longer detected' -Skip:(-not ($script:IsAdmin -and
+                (Test-Path "$($_.FullName)\Rules.psd1"))) {
+            $rules = Import-PowerShellDataFile "$($_.FullName)\Rules.psd1"
+            $intuneWin32AppTestSplat = @{
+                DetectionPath    = "$($_.FullName)\Detect.ps1"
+                ContentPath      = "$($_.FullName)\Package"
+                Intent           = 'Uninstall'
+                UninstallCommand = $rules.UninstallCommand
+                Context          = 'System'
+            }
+            Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat |
+                Should-HaveIntuneStatus 'Uninstalled'
+        }
+    }
+}
+
+Describe 'Platform scripts' -Tag 'Runtime' {
+
+    It 'succeeds: <_.Name>' -AllowNullOrEmptyForEach -ForEach (
+        Get-ChildItem "$PSScriptRoot\PlatformScripts" -Filter *.ps1 -ErrorAction SilentlyContinue) {
+        Invoke-IntunePlatformScriptTest -Path $_.FullName | Should-HaveIntuneRunState 'Success'
+    }
+}

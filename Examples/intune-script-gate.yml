@@ -1,0 +1,103 @@
+# IntuneScriptLab gate for a repository of Intune scripts. Copy to .github/workflows/ and set the
+# paths. On every pull request that touches a script it runs the analysis the way Intune will run
+# the scripts, annotates the changed files with the findings, writes a job summary and fails on
+# errors. The optional second job runs the runtime harness on a Windows runner.
+#
+# Where the module comes from: a copy checked into the repository when ISL_MODULE_PATH points at
+# its manifest (the copy is used as it is, never a Gallery version behind it), otherwise the
+# PowerShell Gallery.
+
+name: Intune script gate
+
+on:
+  pull_request:
+    paths:
+      - '**.ps1'
+  push:
+    branches: [main]
+    paths:
+      - '**.ps1'
+
+permissions:
+  contents: read
+  # Needed only for the SARIF upload below
+  security-events: write
+
+env:
+  # Folders holding the scripts: remediations, platform scripts, Win32 detection and requirement
+  # scripts. Folder and file names tell the analysis what each script is (Remediations\<name>\
+  # Detect.ps1, Win32\<app>\Detect.ps1, PlatformScripts\*.ps1); a directive comment overrides.
+  SCRIPT_PATHS: ./Intune
+  # Error fails the build; Warning is stricter; None reports only
+  FAIL_ON: Error
+  # A checked-in copy of the module, e.g. ./Tools/IntuneScriptLab/IntuneScriptLab.psd1; empty
+  # installs the module from the PowerShell Gallery instead
+  ISL_MODULE_PATH: ''
+  # Also publish the findings to code scanning (Security tab, PR checks). Code scanning is free on
+  # public repositories and needs GitHub Advanced Security on private ones.
+  UPLOAD_SARIF: 'false'
+
+jobs:
+  analyze:
+    name: Analyze Intune scripts
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install IntuneScriptLab from the Gallery
+        if: env.ISL_MODULE_PATH == ''
+        shell: pwsh
+        run: Install-PSResource -Name IntuneScriptLab -TrustRepository -Scope CurrentUser
+
+      - name: Analyze
+        shell: pwsh
+        run: |
+          # The gate script sits in the module's Examples folder and imports the module beside it
+          $manifest = if ($env:ISL_MODULE_PATH) { (Resolve-Path $env:ISL_MODULE_PATH).Path }
+          else {
+              (Get-Module -Name IntuneScriptLab -ListAvailable | Sort-Object Version -Descending |
+                  Select-Object -First 1).Path
+          }
+          $gate = Join-Path (Split-Path $manifest -Parent) 'Examples\Invoke-IntuneScriptGate.ps1'
+          $paths = $env:SCRIPT_PATHS -split ',' | ForEach-Object { $_.Trim() }
+          & $gate -Path $paths -FailOn $env:FAIL_ON -SarifPath "$env:RUNNER_TEMP\intune-script-lab.sarif"
+
+      - name: Upload SARIF to code scanning
+        if: always() && env.UPLOAD_SARIF == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ runner.temp }}/intune-script-lab.sarif
+          category: IntuneScriptLab
+
+  # Runtime checks: real Windows PowerShell 5.1 launches the way the agent does them, from a
+  # Pester suite built on Examples/IntuneScripts.Tests.ps1.template. Needs Windows; SYSTEM-context
+  # tests are skipped on a hosted runner (no elevation for a scheduled task).
+  runtime:
+    name: Run the scripts as Intune would
+    runs-on: windows-latest
+    needs: analyze
+    if: false   # switch on once IntuneScripts.Tests.ps1 exists next to the scripts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester, and IntuneScriptLab unless a checked-in copy is used
+        shell: pwsh
+        run: |
+          $modules = @('Pester')
+          if (-not $env:ISL_MODULE_PATH) { $modules += 'IntuneScriptLab' }
+          Install-PSResource -Name $modules -TrustRepository -Scope CurrentUser
+
+      - name: Invoke-Pester
+        shell: pwsh
+        run: |
+          # The suite's BeforeAll does Import-Module IntuneScriptLab; a checked-in copy is put on
+          # the module path so that line finds it
+          if ($env:ISL_MODULE_PATH) {
+              $root = Split-Path (Split-Path (Resolve-Path $env:ISL_MODULE_PATH).Path -Parent) -Parent
+              $env:PSModulePath = "$root$([IO.Path]::PathSeparator)$env:PSModulePath"
+          }
+          $config = New-PesterConfiguration
+          $config.Run.Path = $env:SCRIPT_PATHS
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config

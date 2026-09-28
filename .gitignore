@@ -1,0 +1,31 @@
+# Pester / coverage output
+coverage.xml
+testResults.xml
+*.trx
+
+# Raw validation results: every Collect writes Graph run states, device registry dumps, probe
+# records and log excerpts that name the tenant's users and devices. Findings.md is the
+# curated record; the raw JSON stays local.
+Validation/Results/
+
+# Microsoft Win32 Content Prep Tool binary, downloaded by Invoke-ValidationRound.ps1
+# (github.com/microsoft/Microsoft-Win32-Content-Prep-Tool)
+Validation/Tools/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Publish staging tree. Build/Publish-Module.ps1 wipes and rebuilds this on every run;
+# it holds only copies of files that are tracked elsewhere.
+out/
+
+# PlatyPS build intermediate. The Markdown under docs/ is the source and the packaged help
+# is en-US/IntuneScriptLab-Help.xml; maml/ is the staging folder Export-MamlCommandHelp
+# writes to on the way there.
+maml/
+
+# Update-MarkdownCommandHelp writes these next to the originals.
+*.md.bak

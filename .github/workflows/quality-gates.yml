@@ -1,0 +1,316 @@
+# Quality gates for IntuneScriptLab.
+#
+# Four jobs, because the module makes claims that can only fail on different hosts:
+#
+#   tests     Windows, PowerShell 7. PSScriptAnalyzer at Error and Warning over the module, the
+#             kit and the tests, the 115-character line limit, then the whole Pester suite (the
+#             module's unit and integration suites and the validation kit's unit suite) shuffled,
+#             with an 80% coverage gate over Public/ and Private/. Nothing here reaches a tenant:
+#             every Graph call in the suites goes through the mocked Invoke-IslGraphRequest seam,
+#             and the suites that need an elevated session, a lab account or a Graph connection
+#             skip themselves.
+#
+#   desktop   Windows PowerShell 5.1. The scripts the module analyzes run under 5.1 on the
+#             device, and so does the module: the manifest declares CompatiblePSEditions Desktop
+#             and the root module carries #Requires -Version 5.1. A ternary, a null-coalescing
+#             operator or a ForEach-Object -Parallel parses cleanly under 7 and breaks every
+#             command under 5.1, and nothing but a 5.1 host notices. The unit suites run here too.
+#
+#   arm64     Windows on ARM. The runtime harness picks a PowerShell host per architecture, and
+#             on an ARM64 device the answers differ from x64: the System32 host is native ARM64,
+#             the SysWOW64 host is emulated x86, and there is no x64 host at all. The x64 runner
+#             cannot exercise those branches, so the unit suites run again on GitHub's ARM64 image.
+#
+#   help      Ubuntu. The command help gate: the PlatyPS Markdown under docs/ is valid and
+#             complete, the committed MAML in en-US/ was built from it, the generated rule
+#             reference matches the rules, and Get-Help serves every command's full help on a
+#             case-sensitive filesystem - the only place the -Help.xml capital H can fail.
+#
+# There is no Linux test job on purpose: the harness launches Windows PowerShell hosts, reads
+# the registry and registers scheduled tasks, and the rules are about what happens on a Windows
+# device. The module imports on Linux, which the help job proves.
+
+name: 'Quality Gates'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+  # Callable so release.yml can run these exact gates before publishing. A tag can be pushed
+  # at any commit, including one that never passed a pull request, so the release re-runs the
+  # gates rather than trusting that they ran at some point.
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Style limit from .github/instructions/style-enforcement.instructions.md
+  MAX_LINE_LENGTH: '115'
+
+jobs:
+  tests:
+    name: 'Tests and analysis'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build modules
+        shell: pwsh
+        run: |
+          # Runners ship Pester 5.x. Pester 6 must be installed explicitly, and the version
+          # range keeps a future Pester 7 from silently changing the assertion surface. The
+          # floor is 6.2 to match the #Requires line every suite carries.
+          Install-PSResource -Name Pester -Version '[6.2.0,7.0.0)' -Scope CurrentUser -TrustRepository
+          Install-PSResource -Name PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+          $PSVersionTable | ConvertTo-Json -Depth 3
+
+      # The mirrored standards folder holds examples that are not this module's code; the
+      # module, the kit, the build scripts and the tests are what is gated.
+      - name: PSScriptAnalyzer and line length
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $folders = 'Public', 'Private', 'PSScriptAnalyzer', 'Examples', 'Build', 'Tests', 'Validation'
+          $files = @(Get-ChildItem -Path $folders -Recurse -Include *.ps1, *.psm1, *.psd1 -File) +
+              @(Get-Item ./IntuneScriptLab.psd1, ./IntuneScriptLab.psm1)
+          $issues = @($files | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Severity Error, Warning })
+          if ($issues) {
+              $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
+              throw "PSScriptAnalyzer reported $($issues.Count) issue(s)."
+          }
+          $long = foreach ($file in $files) {
+              $number = 0
+              foreach ($line in [System.IO.File]::ReadAllLines($file.FullName)) {
+                  $number++
+                  if ($line.Length -gt [int]$env:MAX_LINE_LENGTH) { "$($file.FullName):$number ($($line.Length))" }
+              }
+          }
+          if ($long) {
+              $long | ForEach-Object { Write-Host "Long line: $_" }
+              throw "$(@($long).Count) line(s) exceed $env:MAX_LINE_LENGTH characters."
+          }
+          Write-Host "PSScriptAnalyzer clean, no line over $env:MAX_LINE_LENGTH characters, in $($files.Count) files."
+
+      - name: Pester with coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 6.2.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests', './Validation/Tests'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          $cfg.Should.DisableV5 = $true
+          # Shuffled, so a test that only passes because of what ran before it fails here rather
+          # than on somebody's machine. The seed is printed so a failing order can be replayed
+          # locally with $cfg.Run.ShuffleSeed.
+          $seed = Get-Random -Minimum 1 -Maximum 2147483647
+          $cfg.Run.Shuffle = $true
+          $cfg.Run.ShuffleSeed = $seed
+          Write-Host "Pester shuffle seed: $seed"
+
+          $cfg.CodeCoverage.Enabled = $true
+          $cfg.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1', './Private/Rules/*.ps1'
+          # CoveragePercentTarget only reports; the gate below is what enforces it.
+          $cfg.CodeCoverage.CoveragePercentTarget = 80
+
+          $result = Invoke-Pester -Configuration $cfg
+
+          # A file that fails discovery contributes nothing to FailedCount, so both are checked.
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw ("$($result.FailedCount) test(s) and $($result.FailedContainersCount) " +
+                  "container(s) failed under shuffle seed $seed.")
+          }
+
+          $coverage = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
+          Write-Host "Code coverage: $coverage%"
+          "## Pester`n`nPassed $($result.PassedCount), failed $($result.FailedCount), skipped " +
+              "$($result.SkippedCount); coverage $coverage% (seed $seed)." |
+              Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          if ($coverage -lt 80) {
+              throw "Code coverage $coverage% is below the 80% gate."
+          }
+
+  desktop:
+    name: 'Windows PowerShell 5.1'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 'powershell' here is Windows PowerShell 5.1, not pwsh. Import, count the exports
+      # against the manifest, and confirm every command serves its compiled help: each export
+      # carries .EXTERNALHELP, so there is no comment block to fall back on and a description
+      # proves 5.1 read en-US/IntuneScriptLab-Help.xml. A 7-only construct anywhere in the
+      # module fails the import itself, which is the failure this job exists to surface.
+      - name: Import and verify exports
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          "PowerShell $($PSVersionTable.PSVersion) ($($PSVersionTable.PSEdition))" | Write-Host
+
+          Import-Module ./IntuneScriptLab.psd1 -Force
+          $declared = @((Import-PowerShellDataFile ./IntuneScriptLab.psd1).FunctionsToExport) | Sort-Object
+          $actual = @((Get-Module IntuneScriptLab).ExportedFunctions.Keys) | Sort-Object
+
+          if (($declared -join ',') -ne ($actual -join ',')) {
+              throw "Exports differ from the manifest. Declared: $($declared.Count); actual: $($actual.Count)."
+          }
+
+          $noHelp = @(foreach ($name in $actual) {
+              if (-not (Get-Help $name -ErrorAction SilentlyContinue).Description) { $name }
+          })
+          if ($noHelp) { throw "Commands serving no help under 5.1: $($noHelp -join ', ')" }
+          Write-Host "All $($actual.Count) commands exported with help under Windows PowerShell 5.1."
+
+      # Pester 6 declares PowerShellVersion 5.1 and runs the suite unchanged.
+      - name: Install Pester
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module -Name Pester -MinimumVersion 6.2.0 -MaximumVersion 6.99.99 -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
+          Import-Module Pester -MinimumVersion 6.2.0
+          "Pester $((Get-Module Pester).Version) on PowerShell $($PSVersionTable.PSVersion)" | Write-Host
+
+      - name: Pester under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 6.2.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests/Unit', './Validation/Tests/Unit'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Normal'
+          $cfg.Should.DisableV5 = $true
+          $result = Invoke-Pester -Configuration $cfg
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed under Windows PowerShell 5.1."
+          }
+          Write-Host "Passed $($result.PassedCount), skipped $($result.SkippedCount) under Windows PowerShell 5.1."
+
+  arm64:
+    name: 'Windows on ARM'
+    runs-on: windows-11-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-PSResource -Name Pester -Version '[6.2.0,7.0.0)' -Scope CurrentUser -TrustRepository
+          Import-Module Pester -MinimumVersion 6.2.0
+          "Pester $((Get-Module Pester).Version) on $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)" |
+              Write-Host
+
+      - name: Pester on ARM64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module Pester -MinimumVersion 6.2.0
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './Tests/Unit', './Validation/Tests/Unit'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Normal'
+          $cfg.Should.DisableV5 = $true
+          $result = Invoke-Pester -Configuration $cfg
+          "## Pester on Windows on ARM`n`nPassed $($result.PassedCount), failed $($result.FailedCount), " +
+              "skipped $($result.SkippedCount)." | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+              throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed on ARM64."
+          }
+
+  help:
+    name: 'Command help'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Pinned exactly, not by minimum. The staleness check below compares a rebuilt MAML
+      # against the committed one byte for byte, so a PlatyPS release that changes the
+      # emitted XML at all would fail the build for a reason nobody changed. Bump this
+      # deliberately, rebuild, and commit the result in the same change.
+      - name: Install PlatyPS
+        shell: pwsh
+        run: |
+          Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Version '1.0.3' -Scope CurrentUser -TrustRepository
+          $PSVersionTable | ConvertTo-Json -Depth 3
+
+      # Structure, unfilled templates and relative RELATED LINKS in the committed Markdown.
+      - name: Validate help Markdown
+        shell: pwsh
+        run: ./Build/Build-Help.ps1 -ValidateOnly
+
+      # Rebuild from the committed Markdown and compare against the committed MAML. If they
+      # differ, someone edited docs/ without running the build - and .EXTERNALHELP means
+      # users would be served the stale content rather than falling back to anything correct.
+      - name: Fail on stale committed MAML
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $committed = './en-US/IntuneScriptLab-Help.xml'
+          if (-not (Test-Path $committed)) { throw "No committed help at $committed." }
+          $before = (Get-FileHash $committed -Algorithm SHA256).Hash
+
+          ./Build/Build-Help.ps1 -SkipUpdate | Out-Null
+
+          $after = (Get-FileHash $committed -Algorithm SHA256).Hash
+          if ($before -ne $after) {
+              throw 'en-US/IntuneScriptLab-Help.xml is out of date. Run ./Build/Build-Help.ps1 and commit the result.'
+          }
+          Write-Host 'Committed MAML matches the Markdown.'
+
+      # The rule reference is generated from the rule files; a stale copy misleads the reader
+      # about what a rule reports.
+      - name: Fail on a stale rule reference
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $generated = ./Build/Build-RuleReference.ps1 -PassThru
+          $committed = [System.IO.File]::ReadAllText('./docs/Rules.md')
+          if (($generated -replace "`r`n", "`n") -ne ($committed -replace "`r`n", "`n")) {
+              throw 'docs/Rules.md is out of date. Run ./Build/Build-RuleReference.ps1 and commit the result.'
+          }
+          Write-Host 'docs/Rules.md matches the rules.'
+
+      # Get-Help resolves .EXTERNALHELP against the culture folder by exact filename, so a
+      # casing mismatch fails here and only here.
+      - name: Verify Get-Help on a case-sensitive filesystem
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./IntuneScriptLab.psd1 -Force
+
+          $failed = @()
+          foreach ($command in (Get-Module IntuneScriptLab).ExportedFunctions.Keys | Sort-Object) {
+              $help = Get-Help $command -Full
+
+              # An autogenerated stub is the symptom of MAML that was not found: PowerShell
+              # falls back to reflected syntax with no description and no examples.
+              if (-not $help.Description) { $failed += "$command : no description" ; continue }
+              if (@($help.Examples.Example).Count -lt 3) { $failed += "$command : fewer than 3 examples" ; continue }
+              if (-not $help.parameters.parameter) { $failed += "$command : no parameter help" ; continue }
+
+              Write-Host ("{0,-30} {1} examples, {2} parameters" -f
+                  $command, @($help.Examples.Example).Count, @($help.parameters.parameter).Count)
+          }
+
+          if (-not (Get-Help about_IntuneScriptLab -ErrorAction SilentlyContinue)) {
+              $failed += 'about_IntuneScriptLab : topic not found'
+          }
+
+          if ($failed) {
+              $failed | ForEach-Object { Write-Host "FAILED: $_" }
+              throw 'MAML help was not served on a case-sensitive filesystem.'
+          }
+          Write-Host 'All commands served full help from MAML.'
