@@ -299,7 +299,10 @@ jobs:
               # falls back to reflected syntax with no description and no examples.
               if (-not $help.Description) { $failed += "$command : no description" ; continue }
               if (@($help.Examples.Example).Count -lt 3) { $failed += "$command : fewer than 3 examples" ; continue }
-              if (-not $help.parameters.parameter) { $failed += "$command : no parameter help" ; continue }
+              # A command with no parameters of its own has no parameter help to serve
+              $common = [System.Management.Automation.Cmdlet]::CommonParameters
+              $own = @((Get-Command $command).Parameters.Keys | Where-Object { $_ -notin $common })
+              if ($own -and -not $help.parameters.parameter) { $failed += "$command : no parameter help" ; continue }
 
               Write-Host ("{0,-30} {1} examples, {2} parameters" -f
                   $command, @($help.Examples.Example).Count, @($help.parameters.parameter).Count)
