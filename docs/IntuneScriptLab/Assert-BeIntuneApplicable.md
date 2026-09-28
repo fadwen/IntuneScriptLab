@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
-HelpUri: ''
+HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-BeIntuneApplicable.md
 Locale: en-US
 Module Name: IntuneScriptLab
 ms.date: 09/28/2026

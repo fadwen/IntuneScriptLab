@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
-HelpUri: https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32
+HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneWin32Rule.md
 Locale: en-US
 Module Name: IntuneScriptLab
 ms.date: 09/28/2026

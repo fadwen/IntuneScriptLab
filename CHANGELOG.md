@@ -29,6 +29,8 @@ Nothing any command does has changed.
   coverage gate on PowerShell 7, the unit suites on Windows PowerShell 5.1 and on Windows on
   ARM, and on Linux fails when the help Markdown is invalid, the committed MAML or rule
   reference is stale, or `Get-Help` is not served on a case-sensitive filesystem.
+- **`Get-Help <command> -Online`** opens the command's Markdown page on GitHub: every help file
+  carries its `HelpUri` and the compiled MAML lists it as the Online Version.
 - `CHANGELOG.md`, `LICENSE` and the mirrored PowerShell standards.
 
 ### Changed

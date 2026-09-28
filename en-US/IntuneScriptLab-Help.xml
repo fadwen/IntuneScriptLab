@@ -129,7 +129,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-BeIntuneApplicable.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRequirementTest</maml:linkText>
@@ -269,7 +269,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-BeIntuneDetected.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneDetectionTest</maml:linkText>
@@ -427,7 +427,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-HaveIntuneRunState.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntunePlatformScriptTest</maml:linkText>
@@ -594,7 +594,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-HaveIntuneStatus.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRemediationTest</maml:linkText>
@@ -734,7 +734,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-NotBeIntuneApplicable.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRequirementTest</maml:linkText>
@@ -873,7 +873,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-NotBeIntuneDetected.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneDetectionTest</maml:linkText>
@@ -1058,7 +1058,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Assert-PassIntuneAnalysis.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneScript</maml:linkText>
@@ -1329,7 +1329,7 @@ how Windows PowerShell 5.1 reads a non-ASCII character.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Compare-IntuneDeployedScript.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneDeployedScript</maml:linkText>
@@ -1529,7 +1529,7 @@ sections describe this machine, so they are left out.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Export-IntuneAgentDiagnostic.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Get-IntuneAgentLog</maml:linkText>
@@ -1702,7 +1702,7 @@ Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -R
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri>https://docs.github.com/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github</maml:uri>
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Export-IntuneFindingSarif.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneScript</maml:linkText>
@@ -2004,7 +2004,7 @@ a line the agent writes that is not in the table has no event and passes through
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneAgentLog.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRemediationTest</maml:linkText>
@@ -2209,7 +2209,7 @@ timeline; Get-IntuneAgentLog -Log AgentExecutor shows them by time.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneAgentTimeline.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Get-IntuneAgentLog</maml:linkText>
@@ -2313,7 +2313,7 @@ file; the wrapper analyzes the file once at the root and answers from a cache fo
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneAnalyzerRulePath.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneScript</maml:linkText>
@@ -2627,7 +2627,7 @@ Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneScriptHealth.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneDeployedScript</maml:linkText>
@@ -2852,7 +2852,7 @@ and Program Files resolve to.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneDetectionTest.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneWin32AppTest</maml:linkText>
@@ -3066,7 +3066,7 @@ with the full output.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntunePlatformScriptTest.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRemediationTest</maml:linkText>
@@ -3311,7 +3311,7 @@ $r.PreDetection.StdOut</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRemediationTest.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntunePlatformScriptTest</maml:linkText>
@@ -3578,7 +3578,7 @@ why not if it would not.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRequirementTest.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneDetectionTest</maml:linkText>
@@ -4089,7 +4089,7 @@ package is uninstalled if it is present, then the app installs.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneWin32AppTest.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneDetectionTest</maml:linkText>
@@ -4325,7 +4325,7 @@ script already did, or changes the file's encoding, never what the script decide
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Repair-IntuneScript.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneScript</maml:linkText>
@@ -4570,7 +4570,7 @@ that clause matched.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri>https://learn.microsoft.com/en-us/intune/intune-service/fundamentals/filters-device-properties</maml:uri>
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneAssignmentFilter.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText />
@@ -4868,7 +4868,7 @@ groups.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneDeployedScript.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Test-IntuneScript</maml:linkText>
@@ -5234,7 +5234,7 @@ default 32-bit host on the former and someone wants to know what changes on the 
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri />
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneScript.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Invoke-IntuneRemediationTest</maml:linkText>
@@ -5466,7 +5466,7 @@ as the agent reports one reason.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri>https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32</maml:uri>
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneWin32Requirement.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Add a Win32 app to Microsoft Intune</maml:linkText>
@@ -5887,7 +5887,7 @@ Test-IntuneWin32Rule -Rule $rule</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
-        <maml:uri>https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32</maml:uri>
+        <maml:uri>https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Test-IntuneWin32Rule.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Add a Win32 app to Microsoft Intune</maml:linkText>

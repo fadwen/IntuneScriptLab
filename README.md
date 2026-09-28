@@ -62,7 +62,7 @@ offending code) and `Evidence` (the observed behaviour the rule rests on).
 ## Rules
 
 The full reference, every message each rule can produce with the observation and experiment ids
-behind it, is generated from the rule files: [docs/Rules.md](docs/Rules.md) (`Build/Build-RuleReference.ps1`;
+behind it, is generated from the rule files: [docs/Rules.md](https://github.com/fadwen/IntuneScriptLab/blob/main/docs/Rules.md) (`Build/Build-RuleReference.ps1`;
 the unit tests fail when it is stale). `Get-Help about_IntuneScriptLab` is the conceptual overview.
 
 | Rule | What it catches | Observed behaviour behind it |
