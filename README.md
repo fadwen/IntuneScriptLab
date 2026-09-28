@@ -672,9 +672,9 @@ Invoke-Pester .\Tests -ExcludeTagFilter Elevated # skip the SYSTEM-context tests
 | `Tests/TestHelpers` | Fixtures every suite dot-sources: `New-TestScript`, `Get-RuleFinding`, `New-Win32Fixture`, `Get-AssertionMessage`. |
 
 Host coverage is split, not overlapping: the x64 runtime path is exercised on the x64 CI runner and
-the arm64 path on an ARM64 development machine (each refuses the other's 64-bit host), and the x86
+the arm64 path on the Windows on ARM runner (each refuses the other's 64-bit host), and the x86
 path on both. The Unit suites pass with PowerShell 7 and with Windows PowerShell 5.1 as the module
-host.
+host; CI runs them on both, shuffled, with an 80% coverage gate.
 
 ## Help
 
@@ -700,4 +700,8 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 | Pester says `Should-HaveIntuneStatus` is not recognised | The aliases come from this module, not Pester: `Import-Module IntuneScriptLab` in `BeforeAll`, and use Pester 6.2 or later (`New-ShouldAssertion`). |
 
 ## Roadmap
-- 1.0: PowerShell Gallery (the Graph pre-flight shipped in 0.11, the GitHub Actions gate in 0.12)
+- 1.0 once the Gallery release has had a few rounds of real use. Everything on the original list
+  shipped: the Graph pre-flight (0.11), the GitHub Actions gate (0.12), suppressions and settings
+  (0.13), SARIF (0.14), Repair-IntuneScript (0.15), filters (0.17), another account (0.18), the
+  Enrollment Status Page (0.19), drift (0.20), assignment sanity (0.21), the health report (0.22),
+  timelines and the diagnostic zip (0.23). See [CHANGELOG.md](CHANGELOG.md).
