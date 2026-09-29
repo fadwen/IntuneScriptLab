@@ -78,6 +78,12 @@ changelog, was checked against the code and by running it. What follows is what 
 
 ### Changed
 
+- The reporting lag in `Get-IntuneScriptHealth`'s help is the measured one: a remediation's
+  changed result reaches Graph with the agent's next hourly report batch (65 minutes after the
+  run on 2026-09-29), a platform script's in 2-8 s, an app's in 30-39 s; an unchanged result is
+  not re-reported, so `lastStateUpdateDateTime` is the last change. `Get-IntuneAgentTimeline`'s
+  help gave the remediation report codes wrong: 3 is no issue, 4 is the remediation having run
+  (fixed or not), 5 is a detection script failure.
 - The rule reference keeps literal names such as `$PSScriptRoot` in a message instead of
   replacing them with `<value>`.
 - The manifest description names the whole module; the README's links into the repository are

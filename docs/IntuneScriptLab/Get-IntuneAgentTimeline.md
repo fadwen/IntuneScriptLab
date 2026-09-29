@@ -36,8 +36,11 @@ time between the first and the last step. A line that carries no id (the queue n
 install exit code, AgentExecutor's own lines) belongs to no timeline.
 Win32 apps are named from the policy list the agent logs; scripts show the id.
 
-Outcome is the last result the agent logged for the id: a remediation's report result
-(Result 4 fixed, 3 failed, 2 nothing to fix, per the validation rounds), a platform script's
+Outcome is the last result the agent logged for the id: a remediation's report result (the
+Result code of its report line: 3, the detection found no issue; 4, the issue was found and the
+remediation ran, whether or not the post-detection then passed, which Graph tells apart as
+remediationState success or remediationFailed; 5, the detection script itself failed; matched
+against Graph's run states on the lab devices, 2026-09-29), a platform script's
 policy result, an app's reported state or relationship report, detection, applicability or
 Enrollment Status Page state.
 Runs counts the launches

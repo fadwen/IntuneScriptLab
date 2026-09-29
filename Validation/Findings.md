@@ -374,6 +374,21 @@ console session active): the stored-password task no longer comes back with `0x8
 anywhere, and the launcher waited out its timeout. 0.26.0 treats five seconds of that after
 `Start-ScheduledTask` as the refusal and reports it with the same hint.
 
+### Reporting latency, re-measured (2026-09-29)
+
+| Kind | Device (log line, converted to UTC) | Graph | Lag |
+|---|---|---|---|
+| Remediation, changed result (REM-FIX after its marker was removed, hourly) | post-detection passed 01:37:34 | `lastStateUpdateDateTime` 02:42:58, `detectionState` fail / `remediationState` success | 65 min: the result rode the agent's next hourly report batch (`data in request` at 02:43:02 device time, 20 policies in one request); Graph wrote the state within seconds of the upload |
+| Remediation, unchanged result (three hourly policies over four cycles) | runs logged every hour | `lastStateUpdateDateTime` unchanged since the last change (days earlier), `lastSyncDateTime` current | never: the agent logs "app result is the same as cached one, no need to save" and reports nothing, so `lastStateUpdateDateTime` is the last change, not the last run |
+| Platform script (two policies, Failed) | 16:56:38 and 16:56:44 | `lastStateUpdateDateTime` 16:56:46 | 2-8 s |
+| Win32 app install state (`DeviceInstallStatusByApp` export, two apps) | report lines 00:25:53 and 00:26:02 | `LastModifiedDateTime` 00:26:32 for both | 30-39 s |
+
+The report line's `Result` code, matched against Graph on both lab devices: `3` when the detection
+found no issue (`success` / `skipped`), `4` when the issue was found and the remediation ran, both
+for a fix (`fail` / `success`) and for a recurrence (`fail` / `remediationFailed` or `scriptError`),
+`5` when the detection script itself failed (`scriptError` / `skipped`). It is not the registry
+`RemediationStatus` code set above.
+
 ## The Enrollment Status Page
 
 Round 8, 2026-09-28, VM 126 (a fresh clone with SMBIOS serial `ISL-ESP-01`): hardware hash imported

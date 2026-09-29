@@ -615,7 +615,8 @@ because the per-app status endpoints are gone from Graph. Health is Broken for a
 policy assigned to nobody or a policy every device failed; Attention for warnings, failures, a
 remediation whose issue stays detected, drift or an assigned policy nobody has reported on yet;
 Healthy otherwise, with the reasons in Notes. `-SkipAnalysis` and `-SkipRunState` leave parts out
-(run states lag the device by up to an hour for remediations), `-MarkdownPath` writes the same report
+(a remediation's run state reaches Graph with the agent's next hourly report, about an hour after
+the run; a state that has not changed is not re-reported), `-MarkdownPath` writes the same report
 as a Markdown table per kind, Broken first.
 
 ### In a GitHub Actions workflow (0.12)
