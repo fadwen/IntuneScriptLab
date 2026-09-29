@@ -246,7 +246,9 @@ interactive and runs inside it, which is the agent's shape; when it does not, th
 with the password ("run whether user is logged on or not") and runs in session 0 with the account's
 profile loaded, and `RunAs` says `(Password)` so you know the session differs; that logon needs
 the "Log on as a batch job" right, which a standard user does not have by default, and the launcher
-reports `0x80070569` with that hint when the scheduler refuses it. Needs an elevated session. On
+reports the refusal with that hint within seconds, whether the scheduler answers `0x80070569` or
+simply never starts the task (`0x00041303`, "has not run yet", which is what the lab device does
+today). Needs an elevated session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
 harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the
@@ -499,7 +501,8 @@ cache for the nested ones PSScriptAnalyzer also hands it.
 ### Pre-flight against the tenant (0.11)
 
 ```powershell
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All, GroupMember.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning
 
    Policy: Remediation 'Fix-Widget' (2b1c...)

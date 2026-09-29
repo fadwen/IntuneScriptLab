@@ -67,6 +67,10 @@ changelog, was checked against the code and by running it. What follows is what 
 - **`IslScriptSize`** called Win32 detection and requirement scripts remediations; it now names
   them and says the remediation limits are assumed for them, since only remediations and
   platform scripts were measured.
+- **A stored-password task the scheduler never launches** made the harness wait out the whole
+  timeout. For an account without the "Log on as a batch job" right the lab device no longer
+  answers `0x80070569`; the task sits Ready with `0x00041303` ("has not run yet") and no error
+  anywhere. Five seconds of that is now reported as the refusal, with the same hint.
 - **`Test-IntuneScript -EnforceSignatureCheck:$false`** was not explicit, so a tenant script's
   own directive could turn the check on under the pre-flight.
 - A typo in the `IslContextIssue` message; the AgentTimeline `Duration` column dropped days;

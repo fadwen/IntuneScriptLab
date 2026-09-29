@@ -368,6 +368,12 @@ round 1 (REM-PROBE-USER64, `AzureAD\JeffStuhr`).
 someone else; the stored-password fallback needs the batch logon right, and the launcher now
 says so instead of timing out.
 
+Re-checked 2026-09-29 on the same device (isl-user still without the batch logon right, its
+console session active): the stored-password task no longer comes back with `0x80070569`. It sits
+`Ready` with `LastTaskResult` `0x00041303` ("has not run yet"), `LastRunTime` unset, and no error
+anywhere, and the launcher waited out its timeout. 0.26.0 treats five seconds of that after
+`Start-ScheduledTask` as the refusal and reports it with the same hint.
+
 ## The Enrollment Status Page
 
 Round 8, 2026-09-28, VM 126 (a fresh clone with SMBIOS serial `ISL-ESP-01`): hardware hash imported

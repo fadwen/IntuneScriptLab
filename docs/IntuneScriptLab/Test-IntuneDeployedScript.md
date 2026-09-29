@@ -70,9 +70,11 @@ justified (Validation\Findings.md):
                                     once at the fetch (ASSIGN-PAST2)
 
 Needs Microsoft.Graph.Authentication connected first (Connect-MgGraph) with
-DeviceManagementConfiguration.Read.All (policies and assignment filters),
-DeviceManagementApps.Read.All, DeviceManagementScripts.Read.All and, for the assignment check,
-GroupMember.Read.All.
+DeviceManagementScripts.Read.All (remediations and platform scripts),
+DeviceManagementConfiguration.Read.All (assignment filters), DeviceManagementApps.Read.All (Win32
+apps) and, for the assignment check, GroupMember.ReadBasic.All (only member ids and types are
+read; GroupMember.Read.All also works). Each is the least privileged permission the Graph
+reference lists for that read.
 A group lookup or a filter read that fails (a session without the scope, most often) is reported
 once, and the rest of the run does without them.
 
@@ -84,7 +86,8 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning
 
 Every deployed script with a warning or an error, as the agent will run it.

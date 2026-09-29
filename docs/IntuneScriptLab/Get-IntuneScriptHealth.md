@@ -59,8 +59,8 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All,
-    DeviceManagementScripts.Read.All, DeviceManagementManagedDevices.Read.All
+Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
+    DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
 Get-IntuneScriptHealth | Where-Object Health -ne Healthy
 
 Every policy that needs a look, with the reasons in Notes.
@@ -327,10 +327,13 @@ Health (Healthy, Attention, Broken) and Notes.
 ## NOTES
 
 Author: Jeffrey Stuhr.
-Needs a Microsoft.Graph.Authentication session with
-DeviceManagementConfiguration.Read.All, DeviceManagementScripts.Read.All,
-DeviceManagementApps.Read.All and, for the app install export,
-DeviceManagementManagedDevices.Read.All; GroupMember.Read.All for the assignment check.
+Needs a Microsoft.Graph.Authentication session with DeviceManagementScripts.Read.All
+(remediations, platform scripts and their run summaries), DeviceManagementConfiguration.Read.All
+(assignment filters), DeviceManagementApps.Read.All (apps) and GroupMember.ReadBasic.All (the
+assignment check reads only member ids and types). The app install export creates an export
+job, which the Graph reference lists as a write: one of DeviceManagementApps.ReadWrite.All,
+DeviceManagementConfiguration.ReadWrite.All or DeviceManagementManagedDevices.ReadWrite.All.
+Without it the export is skipped with a warning and the apps' device columns stay empty.
 
 Remediation run states in Graph lagged the device by up to an hour in the validation rounds;
 platform script and Win32 app states appeared within seconds to minutes (Validation\Findings.md,

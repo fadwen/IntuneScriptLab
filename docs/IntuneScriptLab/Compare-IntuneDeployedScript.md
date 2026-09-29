@@ -69,7 +69,7 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync
 
 Every deployed script whose local copy differs, is missing or is ambiguous.

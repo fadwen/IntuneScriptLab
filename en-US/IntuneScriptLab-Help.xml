@@ -1284,7 +1284,7 @@ Windows PowerShell 5.1 reads UTF-8 without a BOM as ANSI (Validation\Findings.md
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script whose local copy differs, is missing or is ambiguous.
@@ -2585,10 +2585,13 @@ Health (Healthy, Attention, Broken) and Notes.</maml:para>
     <maml:alertSet>
       <maml:alert>
         <maml:para>Author: Jeffrey Stuhr.
-Needs a Microsoft.Graph.Authentication session with
-DeviceManagementConfiguration.Read.All, DeviceManagementScripts.Read.All,
-DeviceManagementApps.Read.All and, for the app install export,
-DeviceManagementManagedDevices.Read.All; GroupMember.Read.All for the assignment check.
+Needs a Microsoft.Graph.Authentication session with DeviceManagementScripts.Read.All
+(remediations, platform scripts and their run summaries), DeviceManagementConfiguration.Read.All
+(assignment filters), DeviceManagementApps.Read.All (apps) and GroupMember.ReadBasic.All (the
+assignment check reads only member ids and types). The app install export creates an export
+job, which the Graph reference lists as a write: one of DeviceManagementApps.ReadWrite.All,
+DeviceManagementConfiguration.ReadWrite.All or DeviceManagementManagedDevices.ReadWrite.All.
+Without it the export is skipped with a warning and the apps' device columns stay empty.
 
 Remediation run states in Graph lagged the device by up to an hour in the validation rounds;
 platform script and Win32 app states appeared within seconds to minutes (Validation\Findings.md,
@@ -2599,8 +2602,8 @@ platform script and Win32 app states appeared within seconds to minutes (Validat
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All,
-    DeviceManagementScripts.Read.All, DeviceManagementManagedDevices.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
+    DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
 Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every policy that needs a look, with the reasons in Notes.</maml:para>
@@ -2760,7 +2763,7 @@ not that account's profile or rights.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -2981,7 +2984,7 @@ hybrid-joined devices run them.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3217,7 +3220,7 @@ user-context remediations on Entra-registered devices.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3469,7 +3472,7 @@ User runs it as the account running this command.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3840,7 +3843,7 @@ install in the user's context but cannot impersonate the signed-in user the agen
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="10" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run every launch (the detection script, the related apps' detections, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run every launch (the detection script, the related apps' detections, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -4667,9 +4670,11 @@ justified (Validation\Findings.md):
                                     once at the fetch (ASSIGN-PAST2)
 
 Needs Microsoft.Graph.Authentication connected first (Connect-MgGraph) with
-DeviceManagementConfiguration.Read.All (policies and assignment filters),
-DeviceManagementApps.Read.All, DeviceManagementScripts.Read.All and, for the assignment check,
-GroupMember.Read.All.
+DeviceManagementScripts.Read.All (remediations and platform scripts),
+DeviceManagementConfiguration.Read.All (assignment filters), DeviceManagementApps.Read.All (Win32
+apps) and, for the assignment check, GroupMember.ReadBasic.All (only member ids and types are
+read; GroupMember.Read.All also works). Each is the least privileged permission the Graph
+reference lists for that read.
 A group lookup or a filter read that fails (a session without the scope, most often) is reported
 once, and the rest of the run does without them.
 
@@ -4867,7 +4872,8 @@ modified.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script with a warning or an error, as the agent will run it.</maml:para>

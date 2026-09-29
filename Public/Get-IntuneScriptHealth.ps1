@@ -90,7 +90,9 @@ function Get-IntuneScriptHealth {
         }
         catch {
             Write-Warning ("The app install export could not be read ($($_.Exception.Message)); the apps' " +
-                'device columns stay empty. DeviceManagementManagedDevices.Read.All allows it')
+                'device columns stay empty. Creating an export job needs a ReadWrite scope: ' +
+                'DeviceManagementApps.ReadWrite.All, DeviceManagementConfiguration.ReadWrite.All or ' +
+                'DeviceManagementManagedDevices.ReadWrite.All')
         }
     }
 
