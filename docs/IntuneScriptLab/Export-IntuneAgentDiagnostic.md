@@ -66,8 +66,9 @@ Logs, device facts and timelines only, written to diag.zip over an earlier one.
 
 Export-IntuneAgentDiagnostic -Path .\copied.zip -LogPath \\server\share\LAB-042\Logs -SkipRegistry
 
-Timelines and logs from a log folder copied off another device; the registry and device
-sections describe this machine, so they are left out.
+Timelines and logs from a log folder copied off another device; the registry describes this
+machine, so it is left out. The Device section still describes this machine, not the one the
+logs came from.
 
 ## PARAMETERS
 
@@ -202,8 +203,8 @@ those sections are present) and SizeBytes.
 ## NOTES
 
 Author: Jeffrey Stuhr.
-Reading HKLM\SOFTWARE\Microsoft\IntuneManagementExtension needs no
-elevation; dsregcmd /status runs when dsregcmd.exe is on the path.
+The registry is read with the caller's rights; a key that cannot be read is left out of the
+zip rather than failing the export. dsregcmd /status runs when dsregcmd.exe is on the path.
 
 ## RELATED LINKS
 

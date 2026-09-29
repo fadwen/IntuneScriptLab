@@ -65,8 +65,20 @@ function Resolve-Text {
     param($Ast, [object[]]$Assignments)
     if ($null -eq $Ast) { return '' }
     switch ($Ast.GetType().Name) {
-        'StringConstantExpressionAst' { return $Ast.Value }
-        'ExpandableStringExpressionAst' { return $Ast.Value }
+        # A literal $ (single-quoted, or escaped in a double-quoted string) is text, not a value:
+        # marked so the placeholder pass leaves it alone
+        'StringConstantExpressionAst' { return $Ast.Value.Replace('$', [string][char]1) }
+        'ExpandableStringExpressionAst' {
+            $text = $Ast.Value
+            foreach ($nested in ($Ast.NestedExpressions | Sort-Object { $_.Extent.StartOffset } -Descending)) {
+                $index = $text.LastIndexOf($nested.Extent.Text)
+                if ($index -ge 0) {
+                    $text = $text.Substring(0, $index) + '<value>' +
+                        $text.Substring($index + $nested.Extent.Text.Length)
+                }
+            }
+            return $text.Replace('$', [string][char]1)
+        }
         'ParenExpressionAst' {
             $inner = $Ast.Pipeline.PipelineElements[0]
             if ($inner.PSObject.Properties['Expression']) {
@@ -142,6 +154,7 @@ function ConvertTo-Placeholder {
     $text = [regex]::Replace($Text, '\$\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)', '<value>')
     $text = [regex]::Replace($text, '\$\{[^}]+\}', '<value>')
     $text = [regex]::Replace($text, '\$[A-Za-z_][\w:]*', '<value>')
+    $text = $text.Replace([string][char]1, '$')
     ($text -replace '\s+', ' ').Trim()
 }
 

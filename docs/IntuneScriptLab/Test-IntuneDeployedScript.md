@@ -44,19 +44,22 @@ justified (Validation\Findings.md):
     IslDetectionRuleIssue  Error    a file rule with detectionType doesNotExist: the agent does
                                     not evaluate it (missing file: not detected; present file:
                                     "Invalid detection rule", 0x87D30004)
-    IslAssignmentIssue     Warning  a Win32 app with install behavior User assigned to a group
-                                    whose members are devices: never installed ("userless
+    IslAssignmentIssue     Warning  a Win32 app with install behavior User assigned to All
+                                    devices or to a group whose sampled members (the first
+                                    twenty) are all devices: never installed ("userless
                                     check-in", Not applicable, code 1011)
     IslDetectOnly          Info     a remediation with no remediation script: the detection
                                     runs alone on its schedule (remediationState skipped)
-    IslFilterIssue         Warning  an assignment filter on the policy whose clause no Windows
-                                    device can match ("x64" for cpuArchitecture, "Microsoft
-                                    Entra joined" for deviceTrustType): the service accepts the
-                                    rule and the filter evaluator matches nothing, so an include
-                                    filter reaches nobody and an exclude filter excludes nobody
-                                    (FLT-V25, FLT-E07, FLT-V27, FLT-F01). The deprecated
-                                    osVersion, the undocumented isTpmAttested and a rule this
-                                    evaluator cannot read are Information.
+    IslFilterIssue         Warning  an assignment filter on the policy with an -eq or -in clause
+                                    whose value no Windows device reports ("x64" for
+                                    cpuArchitecture, "Microsoft Entra joined" for
+                                    deviceTrustType): the service accepts the rule and the
+                                    filter evaluator matches nothing on that clause, so a rule
+                                    made of it reaches nobody as an include and excludes nobody
+                                    as an exclude (FLT-V25, FLT-E07, FLT-V27, FLT-F01). The same
+                                    value under -ne or -notIn matches every device; that, the
+                                    deprecated osVersion, the undocumented isTpmAttested and a
+                                    rule this evaluator cannot read are Information.
     IslAssignmentIssue     Warning  a policy with no assignment, or only exclusions: no device
                                     resolves it, so it never runs (ASSIGN-NONE, ASSIGN-EXCLONLY)
     IslAssignmentIssue     Info     a user-context remediation or platform script assigned to
@@ -67,10 +70,13 @@ justified (Validation\Findings.md):
                                     once at the fetch (ASSIGN-PAST2)
 
 Needs Microsoft.Graph.Authentication connected first (Connect-MgGraph) with
-DeviceManagementConfiguration.Read.All (policies and assignment filters),
-DeviceManagementApps.Read.All, DeviceManagementScripts.Read.All and, for the assignment check,
-GroupMember.Read.All.
-A group lookup or a filter read the session is not allowed to make is reported once and skipped.
+DeviceManagementScripts.Read.All (remediations and platform scripts),
+DeviceManagementConfiguration.Read.All (assignment filters), DeviceManagementApps.Read.All (Win32
+apps) and, for the assignment check, GroupMember.ReadBasic.All (only member ids and types are
+read; GroupMember.Read.All also works). Each is the least privileged permission the Graph
+reference lists for that read.
+A group lookup or a filter read that fails (a session without the scope, most often) is reported
+once, and the rest of the run does without them.
 
 Script content is written to a temporary folder for the analysis, byte for byte as the
 tenant stores it, and removed afterwards.
@@ -80,7 +86,8 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning
 
 Every deployed script with a warning or an error, as the agent will run it.
@@ -97,7 +104,7 @@ The remediations named Fix-* only, detection and remediation scripts alike.
 Test-IntuneDeployedScript -Kind Win32App -SkipGroupLookup |
     Group-Object PolicyName | Sort-Object Count -Descending | Select-Object Count, Name
 
-Which apps' detection and requirement scripts collect the most findings, without touching
+Which apps collect the most findings, script and policy checks together, without touching
 groups.
 
 ## PARAMETERS

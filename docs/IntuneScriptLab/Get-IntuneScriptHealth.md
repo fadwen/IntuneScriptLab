@@ -44,12 +44,17 @@ and Win32 app the tenant has, one object with:
   gone from Graph);
 - a Health verdict with its reasons: Broken when a finding is an Error, when the policy is
   assigned to nobody, or when every device that ran it failed; Attention when there are
-  Warnings, failures, a remediation whose issue stays detected, drift, or an assigned policy
-  that no device has reported on yet; Healthy otherwise.
+  Warnings, failures, a remediation whose issue stays detected, drift (Drifted, Missing or
+  Ambiguous), devices the policy was not applicable to, or an assigned policy that no device
+  has reported on yet; Healthy otherwise.
 
-Intune's run states lag the device: a remediation's result reached Graph up to an hour after
-the device ran it in the validation rounds, platform script and app states within minutes
-(Validation\Findings.md).
+Intune's run states lag the device. A remediation's result travels in the agent's hourly
+report batch, not at the run: a fix at 01:37 UTC reached Graph at 02:42 UTC, when the next
+cycle uploaded it, and Graph wrote the state within seconds of that upload. A platform script's
+run state arrived 2-8 s after the device's log line, an app's install state 30-39 s after
+(2026-09-29, Validation\Findings.md). A recurring remediation whose result has not changed is
+not re-reported at all, so lastStateUpdateDateTime is the last change, not the last run, and a
+count that is days old is not stale.
 A policy changed minutes ago is best read with -SkipRunState.
 -MarkdownPath writes the same report as a Markdown table per kind, for a wiki or a pull request.
 Nothing in the tenant is changed.
@@ -58,8 +63,8 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All,
-    DeviceManagementScripts.Read.All, DeviceManagementManagedDevices.Read.All
+Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
+    DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
 Get-IntuneScriptHealth | Where-Object Health -ne Healthy
 
 Every policy that needs a look, with the reasons in Notes.
@@ -237,7 +242,7 @@ HelpMessage: ''
 
 ### -SkipAnalysis
 
-Leave the script rules out: Errors and Warnings stay empty and do not weigh on Health.
+Leave the script rules out: Errors and Warnings are 0 and do not weigh on Health; the assignment check still does.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -319,21 +324,25 @@ The command takes no pipeline input.
 
 One object per policy: Kind, PolicyName, PolicyId, Context (system, user, or the app's install
 context), Assigned (include targets, with a note for exclusions and filters), LastModified,
-Errors, Warnings, Findings (the objects behind the counts), Drift and DriftDetail, Succeeded,
+Errors, Warnings, Findings (the objects behind the counts), Drift (InSync, Drifted, Missing, Ambiguous, NotInTenant, NoScript for a policy that carries no script, or empty without -Path) and DriftDetail, Succeeded,
 Failed, Detected (remediations: issue detected or back, not fixed), Pending, LastRun,
 Health (Healthy, Attention, Broken) and Notes.
 
 ## NOTES
 
 Author: Jeffrey Stuhr.
-Needs a Microsoft.Graph.Authentication session with
-DeviceManagementConfiguration.Read.All, DeviceManagementScripts.Read.All,
-DeviceManagementApps.Read.All and, for the app install export,
-DeviceManagementManagedDevices.Read.All; GroupMember.Read.All for the assignment check.
+Needs a Microsoft.Graph.Authentication session with DeviceManagementScripts.Read.All
+(remediations, platform scripts and their run summaries), DeviceManagementConfiguration.Read.All
+(assignment filters), DeviceManagementApps.Read.All (apps) and GroupMember.ReadBasic.All (the
+assignment check reads only member ids and types). The app install export creates an export
+job, which the Graph reference lists as a write: one of DeviceManagementApps.ReadWrite.All,
+DeviceManagementConfiguration.ReadWrite.All or DeviceManagementManagedDevices.ReadWrite.All.
+Without it the export is skipped with a warning and the apps' device columns stay empty.
 
-Remediation run states in Graph lagged the device by up to an hour in the validation rounds;
-platform script and Win32 app states appeared within seconds to minutes (Validation\Findings.md,
-"Remediation daily schedule and detect-only assignment", "Win32 custom detection scripts").
+Remediation run states reach Graph with the agent's next hourly report batch (65 minutes after
+the run in the 2026-09-29 measurement, seconds after the upload itself); platform script states
+2-8 s and Win32 app install states 30-39 s after the device's log line (Validation\Findings.md,
+"Reporting latency, re-measured").
 
 ## RELATED LINKS
 

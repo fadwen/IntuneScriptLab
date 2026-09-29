@@ -29,8 +29,9 @@ Export-IntuneFindingSarif [-Finding] <psobject[]> [-Path] <string> [[-Root] <str
 ## DESCRIPTION
 
 Turns the findings Test-IntuneScript produces into one SARIF run: the IntuneScriptLab tool
-with a rule entry per rule seen (its description from the rule's own help and its default
-level), and a result per finding with the file, line, column and text of the offending
+with a rule entry per rule seen (its description from the rule's own help and, as its level,
+that of the most severe finding it produced in this log), and a result per finding with the
+file, line, column and text of the offending
 code, the message, the observed Intune behaviour as a property and, for a finding a
 Suppress directive silenced, an in-source suppression.
 File paths are written relative to
@@ -112,7 +113,7 @@ HelpMessage: ''
 The folder file paths are made relative to.
 Default: GITHUB_WORKSPACE, or the current
 directory.
-A finding outside it keeps its absolute path.
+A finding outside it gets an absolute file URI with no base.
 
 ```yaml
 Type: System.String

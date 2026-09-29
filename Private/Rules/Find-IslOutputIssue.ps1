@@ -157,7 +157,7 @@
             Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
         $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
             param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
-                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore|Stop'
+                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
         }
         if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
             $findingSplat = @{
@@ -271,7 +271,7 @@
             Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
         $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
             param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
-                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore|Stop'
+                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
         }
         if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
             $findingSplat = @{

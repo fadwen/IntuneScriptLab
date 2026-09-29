@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     The health report over a fake tenant: the Graph seam serves the policies with their assignments
@@ -194,7 +194,11 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
 
         It 'leaves the findings alone with -SkipAnalysis' {
             $report = @(Get-IntuneScriptHealth -SkipAnalysis -SkipRunState)
-            ($report | Where-Object PolicyId -eq 'rem-b').Health | Should-Be 'Healthy'
+            # Unassigned is read from the assignments, not from a finding, so it survives the switch
+            $reportOnly = $report | Where-Object PolicyId -eq 'rem-b'
+            $reportOnly.Health | Should-Be 'Broken'
+            $reportOnly.Notes | Should-BeLikeString '*assigned to nobody*'
+            $reportOnly.Errors | Should-Be 0
             ($report | Where-Object PolicyId -eq 'app-b').Errors | Should-Be 0
             Should-Invoke Test-IntuneDeployedScript -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
@@ -226,6 +230,19 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
             $remediationRows = @($lines | Where-Object { $_ -like '*Fix-Widget*' -or $_ -like '*Report-Only*' })
             $remediationRows[0] | Should-BeLikeString '| Broken | Report-Only | user | 0 include | 0 | 1 |*'
             $remediationRows[1] | Should-BeLikeString '| Attention | Fix-Widget | system |*'
+        }
+        It 'selects by id alone when no name is given' {
+            $report = @(Get-IntuneScriptHealth -Id 'ps-b' -SkipAnalysis -SkipRunState)
+            $report.PolicyName | Should-BeCollection @('Set-Proxy')
+        }
+
+        It 'resolves a relative -MarkdownPath against the PowerShell location' {
+            $folder = Join-Path $TestDrive 'relative'
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Push-Location $folder
+            try { $null = Get-IntuneScriptHealth -MarkdownPath '.\health.md' -SkipAnalysis -SkipRunState }
+            finally { Pop-Location }
+            Test-Path -LiteralPath (Join-Path $folder 'health.md') | Should-BeTrue
         }
     }
 }

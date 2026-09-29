@@ -8,18 +8,26 @@
         (437 on US systems), which is what turned "Grüße — ✓" into "Grüße - √" in Intune's
         reports. Read it from the registry rather than CultureInfo, which lies under invariant
         globalization, and register the legacy code pages when running on .NET Core.
+
+    .PARAMETER Kind
+        OEM (the default) is what a console-less powershell.exe writes its output in; ANSI is
+        what Windows PowerShell 5.1 reads a file without a BOM as.
     #>
     [CmdletBinding()]
     [OutputType([System.Text.Encoding])]
-    param()
+    param(
+        [ValidateSet('OEM', 'ANSI')]
+        [string]$Kind = 'OEM'
+    )
 
-    $codePage = 437
+    $valueName = if ($Kind -eq 'ANSI') { 'ACP' } else { 'OEMCP' }
+    $codePage = if ($Kind -eq 'ANSI') { 1252 } else { 437 }
     try {
         $key = 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage'
-        $value = (Get-ItemProperty -Path $key -Name OEMCP -ErrorAction Stop).OEMCP
+        $value = (Get-ItemProperty -Path $key -Name $valueName -ErrorAction Stop).$valueName
         if ($value -match '^\d+$') { $codePage = [int]$value }
     }
-    catch { Write-Verbose "OEMCP not readable from the registry, assuming $codePage" }
+    catch { Write-Verbose "$valueName not readable from the registry, assuming $codePage" }
 
     try {
         if (-not ('System.Text.CodePagesEncodingProvider' -as [type])) { throw 'no provider type' }

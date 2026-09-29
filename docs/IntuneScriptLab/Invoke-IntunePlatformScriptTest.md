@@ -112,7 +112,7 @@ HelpMessage: ''
 
 ### -Credential
 
-Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
+Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -191,7 +191,7 @@ This command does not accept pipeline input. Pass the script path with -Path.
 
 ### IntuneScriptLab.PlatformScriptResult
 
-RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), Architecture, Context, Host and ScriptPath.
+RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath.
 
 ## NOTES
 

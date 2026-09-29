@@ -166,12 +166,15 @@ function Assert-PassIntuneAnalysis {
     )
 
     Test-IslPesterAssertionSupport
-    # One script per assertion; a folder is a -ForEach in the test, which names each file
+    # A file, a folder, or a pipeline of either: every script found is analyzed and the failure
+    # names each file
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
-    $path = if ($Actual -is [System.IO.FileSystemInfo]) { $Actual.FullName } else { "$Actual" }
+    $paths = @(foreach ($item in @($Actual)) {
+            if ($item -is [System.IO.FileSystemInfo]) { $item.FullName } else { "$item" }
+        })
 
-    $findings = @(Test-IntuneScript -Path $path -ScriptType $ScriptType -MinimumSeverity $MinimumSeverity |
+    $findings = @(Test-IntuneScript -Path $paths -ScriptType $ScriptType -MinimumSeverity $MinimumSeverity |
             Where-Object { $_.RuleName -ne 'IslAssumedContext' })
     if ($findings.Count -eq 0) { return }
 

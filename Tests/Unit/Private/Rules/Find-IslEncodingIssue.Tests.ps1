@@ -24,6 +24,18 @@ Describe 'Find-IslEncodingIssue' -Tag 'Unit', 'Private', 'Rule' {
         @($findings | Where-Object Severity -eq 'Warning').Count | Should-Be 1
     }
 
+    It 'notes a BOM-less file that is not UTF-8 as ANSI, with the same fix' {
+        $path = Join-Path $TestDrive 'Detect-Ansi.ps1'
+        $ansi = [System.Text.Encoding]::GetEncoding(1252)
+        [System.IO.File]::WriteAllBytes($path, $ansi.GetBytes($script:NonAscii))
+        $findings = @(Get-RuleFinding $path IslEncodingIssue)
+        $ansi = @($findings | Where-Object Message -like 'Non-ASCII bytes that are not UTF-8*')
+        $ansi.Count | Should-Be 1
+        $ansi[0].Severity | Should-Be 'Information'
+        $ansi[0].Fix.Encoding | Should-Be 'UTF8BOM'
+        @($findings | Where-Object Severity -eq 'Warning').Count | Should-Be 0
+    }
+
     It 'does not warn when the BOM is present, but still notes output mangling' {
         $path = New-TestScript 'Detect-E2.ps1' $script:NonAscii -Bom
         $findings = @(Get-RuleFinding $path IslEncodingIssue)

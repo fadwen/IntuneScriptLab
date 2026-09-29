@@ -123,5 +123,27 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             ($results | Where-Object Path -like '*One*').Applied | Should-Be 1
             ($results | Where-Object Path -like '*Two*').Applied | Should-Be 0
         }
+
+        It 'lists what it would do for a folder under -WhatIf' {
+            $folder = Join-Path $TestDrive 'WhatIfTree'
+            $body = "return 'a'`nexit 1"
+            $path = New-TestScript 'WhatIfTree\Remediations\One\Detect.ps1' $body -Bom
+            $results = @(Repair-IntuneScript -Path $folder -WhatIf)
+            $results.Count | Should-Be 1
+            $results[0].Applied | Should-Be 1
+            $results[0].Written | Should-BeFalse
+            [System.IO.File]::ReadAllText($path) | Should-Be $body
+        }
+
+        It 'reads a BOM-less file that is not UTF-8 as ANSI and writes it back as UTF-8 with a BOM, intact' {
+            $path = Join-Path $TestDrive 'Detect-Ansi.ps1'
+            $text = 'Write-Output "Gr' + [char]0xFC + [char]0xDF + 'e"' + "`nexit 0"
+            [System.IO.File]::WriteAllBytes($path, [System.Text.Encoding]::GetEncoding(1252).GetBytes($text))
+            $result = Repair-IntuneScript -Path $path -ScriptType PlatformScript
+            $result.Written | Should-BeTrue
+            $bytes = [System.IO.File]::ReadAllBytes($path)
+            @($bytes[0], $bytes[1], $bytes[2]) | Should-BeCollection @([byte]0xEF, [byte]0xBB, [byte]0xBF)
+            [System.Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3) | Should-Be $text
+        }
     }
 }

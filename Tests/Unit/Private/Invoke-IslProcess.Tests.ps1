@@ -231,6 +231,21 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1
         }
 
+        It 'reports a stored-password task the scheduler never launches, within seconds (VM 125, isl-user)' {
+            Mock Get-IslLogonSession -ModuleName IntuneScriptLab { @() }
+            Mock Start-ScheduledTask -ModuleName IntuneScriptLab { }
+            # The task sits Ready with "has not run yet" (267011) and no error anywhere
+            Mock Get-ScheduledTaskInfo -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ LastTaskResult = 267011 }
+            }
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            $failure = { Invoke-Process $script:LaunchSplat } | Should-Throw
+            $stopwatch.Elapsed.TotalSeconds | Should-BeLessThan 15
+            $failure.Exception.Message |
+                Should-BeLikeString '*LAB\isl-user did not start: 0x00041303*never launched*Log on as a batch job*'
+            Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1
+        }
+
         It 'names the account in the elevation message when the registration is refused' {
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab { @() }
             Mock Register-ScheduledTask -ModuleName IntuneScriptLab { throw 'Access is denied.' }

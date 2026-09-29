@@ -24,10 +24,14 @@ Describe 'Find-IslInteractiveCall' -Tag 'Unit', 'Private', 'Rule' {
         $findings.Severity | Should-All { $_ -eq 'Error' }
     }
 
-    It 'warns on Set-ExecutionPolicy and Install-Module without -Force' {
+    It 'warns on Set-ExecutionPolicy and Install-Module without -Force or -Confirm:$false' {
+        # A bare -Confirm forces the prompt; only -Confirm:$false switches it off
         $path = New-TestScript 'script.ps1' ("Set-ExecutionPolicy RemoteSigned`nInstall-Module Foo -Force`n" +
-            'Install-Module Bar')
-        @(Get-RuleFinding $path IslInteractiveCall).Count | Should-Be 2
+            "Install-Module Bar`nInstall-Module Baz -Confirm`nInstall-Module Qux -Confirm:`$false")
+        $findings = @(Get-RuleFinding $path IslInteractiveCall)
+        $findings.Count | Should-Be 3
+        @($findings.Text) | Should-ContainCollection 'Install-Module Baz -Confirm'
+        @($findings.Text) | Should-NotContainCollection 'Install-Module Qux -Confirm:$false'
     }
 
     It 'names the platform-script timeout' {

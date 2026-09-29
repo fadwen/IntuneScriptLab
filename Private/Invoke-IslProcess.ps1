@@ -1,4 +1,4 @@
-function Invoke-IslProcess {
+﻿function Invoke-IslProcess {
     <#
     .SYNOPSIS
         Runs an executable as the current user, as SYSTEM or as another account, capturing its result.
@@ -162,6 +162,7 @@ function Invoke-IslProcess {
         try {
             Start-ScheduledTask -TaskName $taskName
             $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+            $neverStartedAfter = (Get-Date).AddSeconds(5)
             $launchFailure = $null
             while (-not (Test-Path -LiteralPath $exitFile) -and (Get-Date) -lt $deadline) {
                 Start-Sleep -Milliseconds 250
@@ -169,17 +170,29 @@ function Invoke-IslProcess {
                 # ends at once with a result code and never writes the exit file: read it rather
                 # than waiting for the timeout. 267009 is "running", 267011 "has not run yet"
                 $info = Get-ScheduledTaskInfo -TaskName $taskName -ErrorAction SilentlyContinue
-                if ($info -and $info.LastTaskResult -notin 0, 267009, 267011 -and
-                    (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue).State -ne 'Running') {
+                if (-not $info) { continue }
+                $state = (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue).State
+                if ($info.LastTaskResult -notin 0, 267009, 267011 -and $state -ne 'Running') {
                     $launchFailure = [uint32]$info.LastTaskResult
+                    break
+                }
+                # The refusal does not always come with a code: on the lab device a stored-password
+                # task for an account without the batch logon right sits Ready, "has not run yet",
+                # with no error anywhere. Five seconds of that after Start-ScheduledTask is the same
+                # failure
+                $neverStarted = $info.LastTaskResult -eq 267011 -and $state -eq 'Ready'
+                if ($neverStarted -and (Get-Date) -gt $neverStartedAfter) {
+                    $launchFailure = [uint32]267011
                     break
                 }
             }
             if ($launchFailure) {
                 $code = '0x{0:X8}' -f $launchFailure
-                $hint = if ($code -eq '0x80070569') {
-                    ' (the account is not granted the "Log on as a batch job" right a stored-password task ' +
-                    'needs; grant it in the local security policy, or run while the account holds a session)'
+                $never = if ($code -eq '0x00041303') { 'the scheduler never launched it: ' } else { '' }
+                $hint = if ($code -eq '0x80070569' -or ($code -eq '0x00041303' -and $logon -eq 'Password')) {
+                    " ($($never)the account is not granted the ""Log on as a batch job"" right a " +
+                    'stored-password task needs; grant it in the local security policy, or run while the ' +
+                    'account holds a session)'
                 }
                 else { '' }
                 throw "The scheduled task for $userName did not start: $code$hint"

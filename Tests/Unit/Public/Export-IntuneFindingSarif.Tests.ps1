@@ -49,7 +49,8 @@ Describe 'Export-IntuneFindingSarif' -Tag 'Unit', 'Public' {
         $exitRule = $run.tool.driver.rules | Where-Object id -eq 'IslExitCodeIssue'
         $exitRule.shortDescription.text | Should-BeLikeString '*exit*'
         $exitRule.fullDescription.text | Should-BeLikeString '*return*'
-        $exitRule.defaultConfiguration.level | Should-Be 'warning'
+        # The level of the most severe finding the rule produced in this log
+        $exitRule.defaultConfiguration.level | Should-Be 'error'
     }
 
     It 'writes one result per finding with the relative location, level, snippet and evidence' {
@@ -101,7 +102,18 @@ Describe 'Export-IntuneFindingSarif' -Tag 'Unit', 'Public' {
         $note = $run.results | Where-Object ruleId -eq 'IslAssumedContext'
         $note.level | Should-Be 'note'
         $note.locations[0].physicalLocation.region.startLine | Should-Be 1
-        $note.locations[0].physicalLocation.artifactLocation.uri | Should-BeLikeString '*Detect-Far.ps1'
-        $note.locations[0].physicalLocation.artifactLocation.uri | Should-NotBeLikeString 'Remediations*'
+        # An absolute file URI with no base, so nothing resolves it under the root
+        $location = $note.locations[0].physicalLocation.artifactLocation
+        $location.uri | Should-BeLikeString 'file:///*Detect-Far.ps1'
+        $location.PSObject.Properties['uriBaseId'] | Should-BeNull
+    }
+
+    It 'resolves a relative -Path against the PowerShell location' {
+        $folder = Join-Path $TestDrive 'relative'
+        $null = New-Item -ItemType Directory -Path $folder -Force
+        Push-Location $folder
+        try { $null = Export-IntuneFindingSarif -Finding $script:Findings -Path '.\out\findings.sarif' }
+        finally { Pop-Location }
+        Test-Path -LiteralPath (Join-Path $folder 'out\findings.sarif') | Should-BeTrue
     }
 }

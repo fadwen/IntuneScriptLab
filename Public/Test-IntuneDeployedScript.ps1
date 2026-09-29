@@ -29,6 +29,9 @@ function Test-IntuneDeployedScript {
         $Settings
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    $nameGiven = $PSBoundParameters.ContainsKey('Name')
+    $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     $severityRank = @{ Information = 0; Warning = 1; Error = 2 }
     $workName = "IntuneScriptLab\preflight-$([guid]::NewGuid().ToString('N'))"
@@ -51,7 +54,8 @@ function Test-IntuneDeployedScript {
     function Test-Wanted {
         param($Policy)
         $displayName = "$($Policy.displayName)"
-        $byName = @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
+        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
+        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
         $byId = $Id -and "$($Policy.id)" -in $Id
         $byName -or $byId
     }
@@ -110,7 +114,7 @@ function Test-IntuneDeployedScript {
             EnforceSignatureCheck = [bool]$EnforceSignatureCheck
             MinimumSeverity       = $MinimumSeverity
         }
-        if ($PSBoundParameters.ContainsKey('Settings')) { $testSplat.Settings = $Settings }
+        if ($settingsGiven) { $testSplat.Settings = $Settings }
         if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }
         if ($ExcludeRule) { $testSplat.ExcludeRule = $ExcludeRule }
         Write-Verbose "$PolicyKind '$($Policy.displayName)' $Role as $ScriptType, $context, $architecture"
@@ -266,7 +270,7 @@ function Test-IntuneDeployedScript {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
                 $policy = Invoke-IslGraphRequest -Uri "$remediations/$($summary.id)?`$expand=assignments"
-                $settings = @{
+                $policySettings = @{
                     RunAsAccount = $policy.runAsAccount; RunAs32Bit = $policy.runAs32Bit
                     EnforceSignatureCheck = $policy.enforceSignatureCheck
                 }
@@ -274,13 +278,13 @@ function Test-IntuneDeployedScript {
                     PolicyKind = 'Remediation'; Policy = $policy; Role = 'detection'; ScriptType = 'Detection'
                     Content    = $policy.detectionScriptContent
                 }
-                Test-PolicyScript @detectSplat @settings
+                Test-PolicyScript @detectSplat @policySettings
                 if ($policy.remediationScriptContent) {
                     $remediateSplat = @{
                         PolicyKind = 'Remediation'; Policy = $policy; Role = 'remediation'
                         ScriptType = 'Remediation'; Content = $policy.remediationScriptContent
                     }
-                    Test-PolicyScript @remediateSplat @settings
+                    Test-PolicyScript @remediateSplat @policySettings
                 }
                 else {
                     $noteSplat = @{
@@ -362,14 +366,16 @@ function Test-IntuneDeployedScript {
                 if ("$($app.installExperience.runAsAccount)" -eq 'user') {
                     $deviceGroups = foreach ($assignment in @($app.assignments)) {
                         $target = $assignment.target
-                        if ("$($target.'@odata.type')" -ne '#microsoft.graph.groupAssignmentTarget') { continue }
+                        $type = "$($target.'@odata.type')"
+                        if ($type -eq '#microsoft.graph.allDevicesAssignmentTarget') { 'all devices'; continue }
+                        if ($type -ne '#microsoft.graph.groupAssignmentTarget') { continue }
                         if (Test-DeviceGroup -GroupId "$($target.groupId)") { "$($target.groupId)" }
                     }
                     if ($deviceGroups) {
                         $assignmentSplat = @{
                             PolicyKind = 'Win32App'; Policy = $app; Rule = 'IslAssignmentIssue'
                             Severity   = 'Warning'
-                            Message    = 'Install behavior User, assigned to a group of devices ' +
+                            Message    = 'Install behavior User, assigned to devices ' +
                                 "($($deviceGroups -join ', ')): the app is never installed there. Assign " +
                                 'it to users'
                             Evidence   = 'A user-context app assigned to a device group was never installed ' +

@@ -73,6 +73,8 @@ Reason     : Not applicable: the rule does not match this device; the portal sho
              are not met." (W32-FILTER-INCLUDE)
 Clauses    : device.deviceName -startsWith "LAB-" [not matched, actual: DESKTOP-P96U0KB]
              device.cpuArchitecture -eq "arm64" [matched, actual: arm64]
+Warnings   : {}
+Rule       : (device.deviceName -startsWith "LAB-") and (device.cpuArchitecture -eq "arm64")
 
 The rule against this device; each clause reports what it saw.
 
@@ -84,7 +86,11 @@ Test-IntuneAssignmentFilter -Rule $rule -Device $device -Mode Exclude
 
 Applicable : False
 Matched    : True
+Mode       : Exclude
 Reason     : Not applicable: the exclude rule matches this device (W32-FILTER-EXCLUDE)
+Clauses    : device.operatingSystemVersion -lt 10.0.26100.5000 [matched, actual: 10.0.26100.4652]
+Warnings   : {}
+Rule       : (device.operatingSystemVersion -lt 10.0.26100.5000)
 
 A described device against an exclude filter: the version compares numerically and the
 match excludes the device.

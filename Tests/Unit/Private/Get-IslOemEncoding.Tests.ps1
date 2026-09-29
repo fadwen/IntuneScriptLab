@@ -26,6 +26,12 @@ Describe 'Get-IslOemEncoding' -Tag 'Unit', 'Private' {
             $encoding.CodePage | Should-Be $expected
         }
 
+        It 'returns the ANSI code page from ACP with -Kind ANSI' {
+            $key = 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage'
+            $expected = [int](Get-ItemProperty -Path $key -Name ACP).ACP
+            (InModuleScope IntuneScriptLab { Get-IslOemEncoding -Kind ANSI }).CodePage | Should-Be $expected
+        }
+
         It 'is a real code page, not code page 1' {
             (InModuleScope IntuneScriptLab { Get-IslOemEncoding }).CodePage | Should-BeGreaterThan 1
         }

@@ -445,9 +445,11 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:noun>HaveIntuneStatus</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>For IntuneScriptLab.RemediationResult ('Without issues', 'Fixed', 'Recurred', 'Failed',
-'TimedOut') and IntuneScriptLab.Win32AppResult ('Installed', 'Installed after install',
-'Not detected after install', 'Install failed (exit N)', 'Retry', 'TimedOut').
+      <maml:para>For IntuneScriptLab.RemediationResult ('Without issues', 'Issue detected (no remediation
+script)', 'Fixed', 'Recurred', 'Failed', 'TimedOut') and IntuneScriptLab.Win32AppResult
+('Installed', 'Installed after install', 'Not detected after install', 'Install failed (exit
+N)', 'Retry', 'Not installed', 'Not installed (dependency)', 'Uninstalled', 'Still detected
+after uninstall', 'Uninstall failed (exit N)', 'TimedOut').
 On failure
 the message carries what Intune would have shown: the actual status, the reported output
 and error, and the harness warnings.</maml:para>
@@ -895,8 +897,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:noun>PassIntuneAnalysis</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>Runs Test-IntuneScript on the path and fails with the list of findings, each with its line,
-severity, rule and message, so the test output is the fix list.</maml:para>
+      <maml:para>Runs Test-IntuneScript on the path, folder or pipeline of files and fails with the list of
+findings, each with its file, line, severity, rule and message, so the test output is the fix
+list. The IslAssumedContext note is never counted.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -1091,8 +1094,9 @@ Local files are found by convention under -Path, searched recursively:
     Platform script 'Set-Proxy'  Set-Proxy.ps1 anywhere, or a folder named Set-Proxy with one .ps1
     Win32 app 'Widget 2.0'       a folder named 'Widget 2.0' holding Detect*.ps1 and Requirement*.ps1
 
-Characters Windows does not allow in a name are matched as underscores, so the app
-'Widget: 2.0' matches a folder named 'Widget_ 2.0'.
+Names are matched without regard to case, with every character other than a letter, a digit,
+'.', '_' or '-' taken as an underscore, so the app 'Widget: 2.0' matches a folder named
+'Widget_ 2.0' or 'widget__2.0'.
 -Map names the files directly when the
 layout is different.
 A policy with no local file, a local match that is ambiguous and, with
@@ -1105,8 +1109,10 @@ Inferred values are never compared.
 
 One result per script role.
 State is InSync, Drifted, Missing (no local file), Ambiguous
-(more than one local candidate) or NotInTenant (a local file or -Map entry the tenant has no
-script for); Differences lists what differs (Content, LineEndings, Whitespace, Bom, Settings)
+(more than one local candidate) or NotInTenant (a local file for a role the policy does not
+carry, or a -Map entry naming a policy the selection did not include; a local folder for a
+policy the tenant does not have is not reported); Differences lists what differs (Content,
+LineEndings, Whitespace, Bom, Settings)
 and Detail says where.
 Nothing in the tenant is changed.</maml:para>
     </maml:description>
@@ -1278,7 +1284,7 @@ Windows PowerShell 5.1 reads UTF-8 without a BOM as ANSI (Validation\Findings.md
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script whose local copy differs, is missing or is ambiguous.
@@ -1489,8 +1495,8 @@ those sections are present) and SizeBytes.</maml:para>
     <maml:alertSet>
       <maml:alert>
         <maml:para>Author: Jeffrey Stuhr.
-Reading HKLM\SOFTWARE\Microsoft\IntuneManagementExtension needs no
-elevation; dsregcmd /status runs when dsregcmd.exe is on the path.</maml:para>
+The registry is read with the caller's rights; a key that cannot be read is left out of the
+zip rather than failing the export. dsregcmd /status runs when dsregcmd.exe is on the path.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
@@ -1519,8 +1525,9 @@ elevation; dsregcmd /status runs when dsregcmd.exe is on the path.</maml:para>
         <maml:introduction>
           <maml:para>Export-IntuneAgentDiagnostic -Path .\copied.zip -LogPath \\server\share\LAB-042\Logs -SkipRegistry</maml:para>
           <maml:para>&#x80;</maml:para>
-          <maml:para>Timelines and logs from a log folder copied off another device; the registry and device
-sections describe this machine, so they are left out.</maml:para>
+          <maml:para>Timelines and logs from a log folder copied off another device; the registry describes this
+machine, so it is left out. The Device section still describes this machine, not the one the
+logs came from.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -1552,8 +1559,9 @@ sections describe this machine, so they are left out.</maml:para>
     </command:details>
     <maml:description>
       <maml:para>Turns the findings Test-IntuneScript produces into one SARIF run: the IntuneScriptLab tool
-with a rule entry per rule seen (its description from the rule's own help and its default
-level), and a result per finding with the file, line, column and text of the offending
+with a rule entry per rule seen (its description from the rule's own help and, as its level,
+that of the most severe finding it produced in this log), and a result per finding with the
+file, line, column and text of the offending
 code, the message, the observed Intune behaviour as a property and, for a finding a
 Suppress directive silenced, an in-source suppression.
 File paths are written relative to
@@ -1621,7 +1629,7 @@ Its folder is created; an existing file is replaced.</maml:para>
           <maml:para>The folder file paths are made relative to.
 Default: GITHUB_WORKSPACE, or the current
 directory.
-A finding outside it keeps its absolute path.</maml:para>
+A finding outside it gets an absolute file URI with no base.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -1726,10 +1734,13 @@ Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -R
     <maml:description>
       <maml:para>Parses the agent's CMTrace logs (IntuneManagementExtension, AppWorkload, HealthScripts and
 AgentExecutor, rolled files included) into one object per entry, merges them in time order
-and names the event each known line records: a script policy fetch and its download count,
-a remediation's schedule inspection, start, detection result and report, a Win32 app's
-policy fetch, applicability, detection, rule evaluation, install and report, AgentExecutor's
-launch, exit code and script output, the Enrollment Status Page's phase, selected apps,
+and names the event each known line records: a platform script's policy fetch and download
+count, its start, launch, result and exit, a user-context script skipped on an Entra
+registered device, the agent's start and its userless check-in, a remediation's schedule
+inspection, queueing, start, detection result and report, a Win32 app's policy fetch, one
+filtered out by an assignment filter or skipped for user context, its applicability,
+requirement checks, detection, rule evaluation, install, exit code, outcome and report,
+AgentExecutor's launch, exit code, script output and errors, the Enrollment Status Page's phase, selected apps,
 their registration and tracked install states, its completion and the check-in that follows it,
 and an app's relationships: the subgraph it is processed in, a skipped subgraph, the report
 that names the impacting app with its classification and conflict reason, the dependency
@@ -1955,7 +1966,7 @@ Default: the agent's log folder,
           <maml:name>IntuneScriptLab.AgentLogEntry</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>One object per log entry: Time (the local time the agent wrote), Level (Information, Warning or Error), Component, Thread, Event (the name from the event table, or empty for a line the table does not know), Detail (what the event's pattern captured: an exit code, a detection state, a download count), Id (the first policy or app id in the message), Message, Log (the file's base name) and Line. With -ListEvent, one IntuneScriptLab.AgentLogEventDefinition per event with Event and Pattern.</maml:para>
+          <maml:para>One object per log entry: Time (the local time the agent wrote), Level (Information, Warning or Error), Component, Thread, Event (the name from the event table, or empty for a line the table does not know), Detail (what the event's pattern captured: an exit code, a detection state, a download count), Id (the first non-empty GUID in the message, or the empty GUID when that is all the line carries), Message, Log (the file's base name) and Line. With -ListEvent, one IntuneScriptLab.AgentLogEventDefinition per event with Event and Pattern.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -1992,10 +2003,11 @@ a line the agent writes that is not in the table has no event and passes through
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppInstallExit, AppReport |
-    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 3 }</maml:para>
+          <maml:para>Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppReport |
+    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 1 }</maml:para>
           <maml:para>&#x80;</maml:para>
-          <maml:para>From a copied log folder: the last detection, install exit code and report per app.</maml:para>
+          <maml:para>From a copied log folder: the last detection or report per app. An install exit code line
+carries no app id, so read those with -EventName AppInstallExit on their own.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -2028,14 +2040,19 @@ a line the agent writes that is not in the table has no event and passes through
     <maml:description>
       <maml:para>Reads the agent's logs through Get-IntuneAgentLog, keeps the lines the event table names and
 groups them by the policy or app id they carry, so one object tells the story of one
-remediation, platform script or Win32 app: when the agent fetched it, queued it, ran it, what
-the detection said and what it reported, in order, with the time between the first and the
-last step.
+remediation, platform script or Win32 app: when the agent inspected its schedule or
+applicability, launched it, what the detection said and what it reported, in order, with the
+time between the first and the last step. A line that carries no id (the queue notice, an
+install exit code, AgentExecutor's own lines) belongs to no timeline.
 Win32 apps are named from the policy list the agent logs; scripts show the id.
 
-Outcome is the last result the agent logged for the id: a remediation's report result
-(Result 4 fixed, 3 failed, 2 nothing to fix, per the validation rounds), a platform script's
-policy result, an app's reported state or install outcome.
+Outcome is the last result the agent logged for the id: a remediation's report result (the
+Result code of its report line: 3, the detection found no issue; 4, the issue was found and the
+remediation ran, whether or not the post-detection then passed, which Graph tells apart as
+remediationState success or remediationFailed; 5, the detection script itself failed; matched
+against Graph's run states on the lab devices, 2026-09-29), a platform script's
+policy result, an app's reported state or relationship report, detection, applicability or
+Enrollment Status Page state.
 Runs counts the launches
 (remediation starts, script policy starts, app executions).
 Steps holds every event with its
@@ -2114,7 +2131,7 @@ live agent is no obstacle; a copied log folder works with -Path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>Only the timelines of these policy or app ids.</maml:para>
+          <maml:para>Only the timelines whose own id is one of these. A line that merely mentions the id (a relationship report names two apps) does not add another timeline.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -2198,7 +2215,7 @@ timeline; Get-IntuneAgentLog -Log AgentExecutor shows them by time.</maml:para>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
           <maml:para>Get-IntuneAgentTimeline -Path .\Logs -After (Get-Date).AddHours(-1) |
-    Where-Object Outcome -like 'AppReport*' | Select-Object Name, Outcome, Summary</maml:para>
+    Where-Object Outcome -like 'App*Report*' | Select-Object Name, Outcome, Summary</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The apps a copied log folder shows in the last hour, by name, with their reported states.</maml:para>
         </maml:introduction>
@@ -2301,10 +2318,11 @@ file; the wrapper analyzes the file once at the root and answers from a cache fo
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>@{ CustomRulePath = Get-IntuneAnalyzerRulePath; IncludeDefaultRules = $true } |
-    ConvertTo-Json</maml:para>
+          <maml:para>$rules = Get-IntuneAnalyzerRulePath
+"@{ CustomRulePath = '$rules'; IncludeDefaultRules = `$true }" |
+    Set-Content .\PSScriptAnalyzerSettings.psd1</maml:para>
           <maml:para>&#x80;</maml:para>
-          <maml:para>The values for a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.</maml:para>
+          <maml:para>Writes a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -2346,12 +2364,17 @@ and Win32 app the tenant has, one object with:
   gone from Graph);
 - a Health verdict with its reasons: Broken when a finding is an Error, when the policy is
   assigned to nobody, or when every device that ran it failed; Attention when there are
-  Warnings, failures, a remediation whose issue stays detected, drift, or an assigned policy
-  that no device has reported on yet; Healthy otherwise.
+  Warnings, failures, a remediation whose issue stays detected, drift (Drifted, Missing or
+  Ambiguous), devices the policy was not applicable to, or an assigned policy that no device
+  has reported on yet; Healthy otherwise.
 
-Intune's run states lag the device: a remediation's result reached Graph up to an hour after
-the device ran it in the validation rounds, platform script and app states within minutes
-(Validation\Findings.md).
+Intune's run states lag the device. A remediation's result travels in the agent's hourly
+report batch, not at the run: a fix at 01:37 UTC reached Graph at 02:42 UTC, when the next
+cycle uploaded it, and Graph wrote the state within seconds of that upload. A platform script's
+run state arrived 2-8 s after the device's log line, an app's install state 30-39 s after
+(2026-09-29, Validation\Findings.md). A recurring remediation whose result has not changed is
+not re-reported at all, so lastStateUpdateDateTime is the last change, not the last run, and a
+count that is days old is not stale.
 A policy changed minutes ago is best read with -SkipRunState.
 -MarkdownPath writes the same report as a Markdown table per kind, for a wiki or a pull request.
 Nothing in the tenant is changed.</maml:para>
@@ -2515,7 +2538,7 @@ Compare-IntuneDeployedScript (its folder convention, or -Map).</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>SkipAnalysis</maml:name>
         <maml:description>
-          <maml:para>Leave the script rules out: Errors and Warnings stay empty and do not weigh on Health.</maml:para>
+          <maml:para>Leave the script rules out: Errors and Warnings are 0 and do not weigh on Health; the assignment check still does.</maml:para>
         </maml:description>
         <dev:type>
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -2560,7 +2583,7 @@ Faster, and the right choice right after a change.</maml:para>
         <maml:description>
           <maml:para>One object per policy: Kind, PolicyName, PolicyId, Context (system, user, or the app's install
 context), Assigned (include targets, with a note for exclusions and filters), LastModified,
-Errors, Warnings, Findings (the objects behind the counts), Drift and DriftDetail, Succeeded,
+Errors, Warnings, Findings (the objects behind the counts), Drift (InSync, Drifted, Missing, Ambiguous, NotInTenant, NoScript for a policy that carries no script, or empty without -Path) and DriftDetail, Succeeded,
 Failed, Detected (remediations: issue detected or back, not fixed), Pending, LastRun,
 Health (Healthy, Attention, Broken) and Notes.</maml:para>
         </maml:description>
@@ -2569,22 +2592,26 @@ Health (Healthy, Attention, Broken) and Notes.</maml:para>
     <maml:alertSet>
       <maml:alert>
         <maml:para>Author: Jeffrey Stuhr.
-Needs a Microsoft.Graph.Authentication session with
-DeviceManagementConfiguration.Read.All, DeviceManagementScripts.Read.All,
-DeviceManagementApps.Read.All and, for the app install export,
-DeviceManagementManagedDevices.Read.All; GroupMember.Read.All for the assignment check.
+Needs a Microsoft.Graph.Authentication session with DeviceManagementScripts.Read.All
+(remediations, platform scripts and their run summaries), DeviceManagementConfiguration.Read.All
+(assignment filters), DeviceManagementApps.Read.All (apps) and GroupMember.ReadBasic.All (the
+assignment check reads only member ids and types). The app install export creates an export
+job, which the Graph reference lists as a write: one of DeviceManagementApps.ReadWrite.All,
+DeviceManagementConfiguration.ReadWrite.All or DeviceManagementManagedDevices.ReadWrite.All.
+Without it the export is skipped with a warning and the apps' device columns stay empty.
 
-Remediation run states in Graph lagged the device by up to an hour in the validation rounds;
-platform script and Win32 app states appeared within seconds to minutes (Validation\Findings.md,
-"Remediation daily schedule and detect-only assignment", "Win32 custom detection scripts").</maml:para>
+Remediation run states reach Graph with the agent's next hourly report batch (65 minutes after
+the run in the 2026-09-29 measurement, seconds after the upload itself); platform script states
+2-8 s and Win32 app install states 30-39 s after the device's log line (Validation\Findings.md,
+"Reporting latency, re-measured").</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All,
-    DeviceManagementScripts.Read.All, DeviceManagementManagedDevices.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
+    DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
 Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every policy that needs a look, with the reasons in Notes.</maml:para>
@@ -2719,7 +2746,8 @@ Test-IntuneScript's IslContextIssue flags statically.</maml:para>
         <maml:name>Architecture</maml:name>
         <maml:description>
           <maml:para>Host to run in: x64 (Intune's default for Win32 detection), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device.</maml:para>
+option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
+x64 default is refused there: pass arm64, the host the agent uses on ARM64.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -2743,7 +2771,7 @@ not that account's profile or rights.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -2799,7 +2827,7 @@ Intune allows 60 minutes; the default here is 5.</maml:para>
           <maml:name>IntuneScriptLab.DetectionResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>Detected, Reason, ExitCode, StdOut, StdErr, TimedOut, Duration, SignatureStatus (with -EnforceSignatureCheck), Architecture, Context, Host and ScriptPath. Detected is true only for exit 0 with stdout and no stderr, which is the rule Intune applies.</maml:para>
+          <maml:para>Detected, Reason, ExitCode, StdOut, StdErr, TimedOut, Duration, SignatureStatus (filled with -EnforceSignatureCheck, empty otherwise), RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath. Detected is true only for exit 0 with stdout and no stderr, which is the rule Intune applies.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -2964,7 +2992,7 @@ hybrid-joined devices run them.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3009,7 +3037,7 @@ Intune allows 30 minutes; the default here is 5.</maml:para>
           <maml:name>IntuneScriptLab.PlatformScriptResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), Architecture, Context, Host and ScriptPath.</maml:para>
+          <maml:para>RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -3098,6 +3126,9 @@ again.
 The status follows what the device recorded:
 
     Without issues  detection exited 0, remediation skipped
+    Issue detected (no remediation script)
+                    detection non-zero with no -RemediationPath, as a detect-only
+                    remediation records it
     Fixed           detection non-zero, remediation 0, post-detection 0
     Recurred        detection non-zero, remediation 0, post-detection still non-zero
     Failed          remediation exited non-zero (post-detection skipped)
@@ -3197,7 +3228,7 @@ user-context remediations on Entra-registered devices.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3253,7 +3284,7 @@ Intune allows 60 minutes; the default here is 5.</maml:para>
           <maml:name>IntuneScriptLab.RemediationResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput and IntuneError (the last line of each stream, 2,048-character tail, as the portal reports them), RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, Architecture, Context and Host.</maml:para>
+          <maml:para>Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput (the pre-detection's last stdout line) and IntuneError (its stderr text), each cut to its last 2,048 characters as the portal reports them, RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, RunAs (the account and logon type the scripts ran as), Architecture, Context and Host.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -3342,7 +3373,8 @@ requirement rule (Windows PowerShell 5.1 in the chosen host, -NoProfile -Executi
 Bypass -File, working directory C:\WINDOWS\system32, a copy of the script, OEM output) and
 evaluates the rule as the agent was observed to: only on exit 0 with nothing on stderr; the
 whole console output minus its final line break is the value (Write-Host counts; a second line
-or trailing spaces never match); string comparison ignores case; Integer,
+never matches, and for a String rule neither do trailing spaces; the typed rules trim
+first); string comparison ignores case; Integer,
 Float, Version, Boolean and DateTime outputs are parsed as that type, and an output that
 does not parse fails the rule.
 
@@ -3423,7 +3455,8 @@ Under Intune the requirement runs before the install and after the detection has
         <maml:name>Architecture</maml:name>
         <maml:description>
           <maml:para>Host to run in: x64 (the default for requirement rules), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device.</maml:para>
+option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
+x64 default is refused there: pass arm64, the host the agent uses on ARM64.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -3447,7 +3480,7 @@ User runs it as the account running this command.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3524,7 +3557,7 @@ Intune allows 60 minutes; the default here is 5.</maml:para>
           <maml:name>IntuneScriptLab.RequirementResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>Applicable, Reason, Output (the text the rule compared), ExitCode, StdOut, StdErr, TimedOut, Duration, OutputType, Operator, Value, Architecture, Context, Host and ScriptPath.</maml:para>
+          <maml:para>Applicable, Reason, Output (the text the rule compared), ExitCode, StdOut, StdErr, TimedOut, Duration, OutputType, Operator, Value, RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -3621,14 +3654,15 @@ Statuses:
     Not detected after install
                              install returned a success code but detection still fails,
                              Intune's 0x87D1041C "app installed but not detected"
-    Install failed           exit code not in the success/reboot/retry codes
+    Install failed (exit N)  exit code not in the success/reboot/retry codes
     Retry                    exit code mapped to retry (Intune retries 3 times, 5 min apart)
     Not installed            intent Uninstall and nothing was detected, so nothing ran
     Uninstalled              the uninstall command succeeded and the post-detection no longer
                              reports the app (W32-UNINSTALL: Intune shows "Not installed")
     Still detected after uninstall
                              the uninstall command succeeded but the detection still says installed
-    Uninstall failed         uninstall exit code not in the success/reboot/retry codes
+    Uninstall failed (exit N)
+                             uninstall exit code not in the success/reboot/retry codes
     Not installed (dependency)
                              a dependency was not detected and could not be installed (a detect
                              dependency, a missing install command, or a failed install), so this
@@ -3783,7 +3817,7 @@ Soft/hard reboot codes count as success but are reported.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="8" aliases="none">
         <maml:name>Architecture</maml:name>
         <maml:description>
-          <maml:para>Host for the detection script: x64 (Intune default), x86, or arm64.</maml:para>
+          <maml:para>Host for the detection script: x64 (Intune default), x86, or arm64. A Windows on ARM device has no x64 host, so a -DetectionPath with the x64 default is refused there: pass arm64.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -3817,7 +3851,7 @@ install in the user's context but cannot impersonate the signed-in user the agen
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="10" aliases="none">
         <maml:name>Credential</maml:name>
         <maml:description>
-          <maml:para>Run every launch (detection and requirement scripts, dependencies, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
+          <maml:para>Run every launch (the detection script, the related apps' detections, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Management.Automation.PSCredential</command:parameterValue>
         <dev:type>
@@ -3982,7 +4016,7 @@ Default 5 minutes (Intune: 60).</maml:para>
           <maml:name>IntuneScriptLab.Win32AppResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>Status (Installed, Installed after install, Not detected after install, Install failed (exit n), Retry, Not installed, Not installed (dependency), Uninstalled, Still detected after uninstall, Uninstall failed (exit n) or TimedOut), Intent, the PreDetection and PostDetection script results, PreRules and PostRules (one IntuneScriptLab.RuleResult per detection rule), Dependencies and Superseded (one IntuneScriptLab.Win32RelatedResult per related app, with Name, Relationship, Status and its own detections, rules and install or uninstall run), the Install or Uninstall run (command, exit code, output), Warnings, Architecture and Context.</maml:para>
+          <maml:para>Status (Installed, Installed after install, Not detected after install, Install failed (exit n), Retry, Not installed, Not installed (dependency), Uninstalled, Still detected after uninstall, Uninstall failed (exit n) or TimedOut), Intent, the PreDetection and PostDetection script results, PreRules and PostRules (one IntuneScriptLab.RuleResult per detection rule), Dependencies and Superseded (one IntuneScriptLab.Win32RelatedResult per related app, with Name, Relationship, Status and its own detections, rules and install or uninstall run), the Install or Uninstall run (command, exit code, output), Warnings, RunAs (the account and logon type the launches ran as), Architecture and Context.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -4122,8 +4156,9 @@ behaviour-preserving edit:
                        'return' turns into 'exit 0', 'return &lt;value&gt;' into '&lt;value&gt;; exit 0'.
                        The script does the same as before, and now says so; whether that
                        exit should have been 1 is still the author's call
-    IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, or a UTF-16
-                       file, is rewritten as UTF-8 with a BOM, the encoding Intune expects
+    IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, a UTF-16 file
+                       or an ANSI file (read in the system ANSI code page, so its characters
+                       survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects
     IslOutputIssue     a requirement script's output literal with leading or trailing
                        whitespace is trimmed, so it can match the portal value
 
@@ -4279,7 +4314,7 @@ The command supports
           <maml:name>IntuneScriptLab.Repair</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>One per script: Path, Applied (fixes made), Remaining (findings still reported afterwards), Written (whether the file changed; false under -WhatIf) and Fixes, one IntuneScriptLab.Fix per edit with RuleName, Line (0 for the encoding), Before and After.</maml:para>
+          <maml:para>One per script: Path, Applied (fixes made, or that would be made under -WhatIf), Remaining (findings still reported after the fixes; under -WhatIf, the findings minus the fixes), Written (whether the file changed; false under -WhatIf) and Fixes, one IntuneScriptLab.Fix per edit with RuleName, Line (0 for the encoding), Before and After.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -4518,7 +4553,9 @@ Mode       : Include
 Reason     : Not applicable: the rule does not match this device; the portal shows "Filters criteria
              are not met." (W32-FILTER-INCLUDE)
 Clauses    : device.deviceName -startsWith "LAB-" [not matched, actual: DESKTOP-P96U0KB]
-             device.cpuArchitecture -eq "arm64" [matched, actual: arm64]</maml:para>
+             device.cpuArchitecture -eq "arm64" [matched, actual: arm64]
+Warnings   : {}
+Rule       : (device.deviceName -startsWith "LAB-") and (device.cpuArchitecture -eq "arm64")</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The rule against this device; each clause reports what it saw.</maml:para>
         </maml:introduction>
@@ -4534,7 +4571,11 @@ Test-IntuneAssignmentFilter -Rule $rule -Device $device -Mode Exclude</maml:para
           <maml:para>&#x80;</maml:para>
           <maml:para>Applicable : False
 Matched    : True
-Reason     : Not applicable: the exclude rule matches this device (W32-FILTER-EXCLUDE)</maml:para>
+Mode       : Exclude
+Reason     : Not applicable: the exclude rule matches this device (W32-FILTER-EXCLUDE)
+Clauses    : device.operatingSystemVersion -lt 10.0.26100.5000 [matched, actual: 10.0.26100.4652]
+Warnings   : {}
+Rule       : (device.operatingSystemVersion -lt 10.0.26100.5000)</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A described device against an exclude filter: the version compares numerically and the
 match excludes the device.</maml:para>
@@ -4611,19 +4652,22 @@ justified (Validation\Findings.md):
     IslDetectionRuleIssue  Error    a file rule with detectionType doesNotExist: the agent does
                                     not evaluate it (missing file: not detected; present file:
                                     "Invalid detection rule", 0x87D30004)
-    IslAssignmentIssue     Warning  a Win32 app with install behavior User assigned to a group
-                                    whose members are devices: never installed ("userless
+    IslAssignmentIssue     Warning  a Win32 app with install behavior User assigned to All
+                                    devices or to a group whose sampled members (the first
+                                    twenty) are all devices: never installed ("userless
                                     check-in", Not applicable, code 1011)
     IslDetectOnly          Info     a remediation with no remediation script: the detection
                                     runs alone on its schedule (remediationState skipped)
-    IslFilterIssue         Warning  an assignment filter on the policy whose clause no Windows
-                                    device can match ("x64" for cpuArchitecture, "Microsoft
-                                    Entra joined" for deviceTrustType): the service accepts the
-                                    rule and the filter evaluator matches nothing, so an include
-                                    filter reaches nobody and an exclude filter excludes nobody
-                                    (FLT-V25, FLT-E07, FLT-V27, FLT-F01). The deprecated
-                                    osVersion, the undocumented isTpmAttested and a rule this
-                                    evaluator cannot read are Information.
+    IslFilterIssue         Warning  an assignment filter on the policy with an -eq or -in clause
+                                    whose value no Windows device reports ("x64" for
+                                    cpuArchitecture, "Microsoft Entra joined" for
+                                    deviceTrustType): the service accepts the rule and the
+                                    filter evaluator matches nothing on that clause, so a rule
+                                    made of it reaches nobody as an include and excludes nobody
+                                    as an exclude (FLT-V25, FLT-E07, FLT-V27, FLT-F01). The same
+                                    value under -ne or -notIn matches every device; that, the
+                                    deprecated osVersion, the undocumented isTpmAttested and a
+                                    rule this evaluator cannot read are Information.
     IslAssignmentIssue     Warning  a policy with no assignment, or only exclusions: no device
                                     resolves it, so it never runs (ASSIGN-NONE, ASSIGN-EXCLONLY)
     IslAssignmentIssue     Info     a user-context remediation or platform script assigned to
@@ -4634,10 +4678,13 @@ justified (Validation\Findings.md):
                                     once at the fetch (ASSIGN-PAST2)
 
 Needs Microsoft.Graph.Authentication connected first (Connect-MgGraph) with
-DeviceManagementConfiguration.Read.All (policies and assignment filters),
-DeviceManagementApps.Read.All, DeviceManagementScripts.Read.All and, for the assignment check,
-GroupMember.Read.All.
-A group lookup or a filter read the session is not allowed to make is reported once and skipped.
+DeviceManagementScripts.Read.All (remediations and platform scripts),
+DeviceManagementConfiguration.Read.All (assignment filters), DeviceManagementApps.Read.All (Win32
+apps) and, for the assignment check, GroupMember.ReadBasic.All (only member ids and types are
+read; GroupMember.Read.All also works). Each is the least privileged permission the Graph
+reference lists for that read.
+A group lookup or a filter read that fails (a session without the scope, most often) is reported
+once, and the rest of the run does without them.
 
 Script content is written to a temporary folder for the analysis, byte for byte as the
 tenant stores it, and removed afterwards.
@@ -4833,7 +4880,8 @@ modified.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script with a warning or an error, as the agent will run it.</maml:para>
@@ -4858,7 +4906,7 @@ Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
           <maml:para>Test-IntuneDeployedScript -Kind Win32App -SkipGroupLookup |
     Group-Object PolicyName | Sort-Object Count -Descending | Select-Object Count, Name</maml:para>
           <maml:para>&#x80;</maml:para>
-          <maml:para>Which apps' detection and requirement scripts collect the most findings, without touching
+          <maml:para>Which apps collect the most findings, script and policy checks together, without touching
 groups.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -4903,12 +4951,14 @@ explicitly, put a directive in the script, or let them be inferred from the file
 
     # IntuneScriptLab: ScriptType=Detection Context=System Architecture=x64
 
-Inference from the file name (whole words): requirement → Win32Requirement; detect with
-app/win32/package/software/install/msi/exe → Win32Detection; detect → Detection;
+Inference from the file name and the two nearest folder names, each word matched at its
+start: requirement → Win32Requirement; detect with app, apps, win32, package, software,
+install, installed, msi or exe in the name or a folder → Win32Detection; detect → Detection;
 remediate/remediation/fix → Remediation; anything else → PlatformScript.
 An
-IslAssumedContext note is always emitted when the type was not given explicitly, because
-the wrong type silently skips whole rule sets.
+IslAssumedContext note is emitted whenever the type was inferred rather than given by a
+parameter, a directive or a settings file, because the wrong type silently skips whole rule
+sets.
 Defaults follow the portal: platform
 scripts run as the user in 32-bit, remediations as SYSTEM in 32-bit, Win32 detection as
 SYSTEM in 64-bit.
@@ -5042,7 +5092,7 @@ Auto (default) uses the directive or the type's portal default.</maml:para>
           <maml:para>Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
 check" were on: an unsigned script gets an IslSignatureIssue error, because the agent will not
 run it. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true" does the same for
-one script.</maml:para>
+one script, and the settings key EnforceSignatureCheck = $true for a folder.</maml:para>
         </maml:description>
         <dev:type>
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -5118,8 +5168,9 @@ Auto (default) uses the directive or the file name.</maml:para>
           <maml:para>A settings file path or a hashtable in the file's shape, instead of the search for
 IntuneScriptLab.settings.psd1 above each script; @{} means no settings. Keys: ExcludeRule,
 IncludeRule, MinimumSeverity, Severity (a hashtable of rule name to severity), ScriptType,
-Context, Architecture and EnforceSignatureCheck. Explicit parameters win over the file, and a
-script's directive wins over its type, context, architecture and signature entries.</maml:para>
+Context, Architecture and EnforceSignatureCheck. Explicit parameters win over the file
+(-ExcludeRule adds to the file's ExcludeRule; -IncludeRule sets it aside), and a script's
+directive wins over its type, context, architecture and signature entries.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.Object</command:parameterValue>
         <dev:type>
@@ -5159,7 +5210,7 @@ script's directive wins over its type, context, architecture and signature entri
           <maml:name>IntuneScriptLab.Finding</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>One object per finding: RuleName, Severity (Information, Warning or Error), Message, ScriptPath, Line, Column, ScriptType, Text (the offending code) and Evidence (the observed Intune behaviour the rule rests on).</maml:para>
+          <maml:para>One object per finding: RuleName, Severity (Information, Warning or Error), Message, ScriptPath, Line, Column, ScriptType, Text (the offending code), Evidence (the observed Intune behaviour the rule rests on), Suppressed (true for a finding a Suppress directive silenced, shown with -IncludeSuppressed) and Fix (the edit Repair-IntuneScript would make, for the rules that offer one).</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>
@@ -5835,7 +5886,7 @@ string, or the product version.</maml:para>
           <maml:name>IntuneScriptLab.RuleResult</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>Met, Kind (File, Registry or ProductCode), RuleType (Detection or Requirement), Target (the path, key or product code), Operation, Operator, Value, Actual (what was read from the device), Check32BitOn64System and Reason, which names the experiment the behaviour comes from.</maml:para>
+          <maml:para>Met, Kind (File, Registry or ProductCode), RuleType (Detection or Requirement), Target (the path, key or product code), Operation, Operator, Value, Actual (what was read from the device), Check32BitOn64System and Reason, which says what was read and, where the agent behaves other than documented, names the experiment.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>

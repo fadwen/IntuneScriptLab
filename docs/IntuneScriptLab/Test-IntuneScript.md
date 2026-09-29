@@ -43,12 +43,14 @@ explicitly, put a directive in the script, or let them be inferred from the file
 
     # IntuneScriptLab: ScriptType=Detection Context=System Architecture=x64
 
-Inference from the file name (whole words): requirement → Win32Requirement; detect with
-app/win32/package/software/install/msi/exe → Win32Detection; detect → Detection;
+Inference from the file name and the two nearest folder names, each word matched at its
+start: requirement → Win32Requirement; detect with app, apps, win32, package, software,
+install, installed, msi or exe in the name or a folder → Win32Detection; detect → Detection;
 remediate/remediation/fix → Remediation; anything else → PlatformScript.
 An
-IslAssumedContext note is always emitted when the type was not given explicitly, because
-the wrong type silently skips whole rule sets.
+IslAssumedContext note is emitted whenever the type was inferred rather than given by a
+parameter, a directive or a settings file, because the wrong type silently skips whole rule
+sets.
 Defaults follow the portal: platform
 scripts run as the user in 32-bit, remediations as SYSTEM in 32-bit, Win32 detection as
 SYSTEM in 64-bit.
@@ -158,7 +160,7 @@ HelpMessage: ''
 Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
 check" were on: an unsigned script gets an IslSignatureIssue error, because the agent will not
 run it. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true" does the same for
-one script.
+one script, and the settings key EnforceSignatureCheck = $true for a folder.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -315,8 +317,9 @@ HelpMessage: ''
 A settings file path or a hashtable in the file's shape, instead of the search for
 IntuneScriptLab.settings.psd1 above each script; @{} means no settings. Keys: ExcludeRule,
 IncludeRule, MinimumSeverity, Severity (a hashtable of rule name to severity), ScriptType,
-Context, Architecture and EnforceSignatureCheck. Explicit parameters win over the file, and a
-script's directive wins over its type, context, architecture and signature entries.
+Context, Architecture and EnforceSignatureCheck. Explicit parameters win over the file
+(-ExcludeRule adds to the file's ExcludeRule; -IncludeRule sets it aside), and a script's
+directive wins over its type, context, architecture and signature entries.
 
 ```yaml
 Type: System.Object
@@ -360,7 +363,7 @@ Several paths at once, bound to -Path.
 
 ### IntuneScriptLab.Finding
 
-One object per finding: RuleName, Severity (Information, Warning or Error), Message, ScriptPath, Line, Column, ScriptType, Text (the offending code) and Evidence (the observed Intune behaviour the rule rests on).
+One object per finding: RuleName, Severity (Information, Warning or Error), Message, ScriptPath, Line, Column, ScriptType, Text (the offending code), Evidence (the observed Intune behaviour the rule rests on), Suppressed (true for a finding a Suppress directive silenced, shown with -IncludeSuppressed) and Fix (the edit Repair-IntuneScript would make, for the rules that offer one).
 
 ## NOTES
 

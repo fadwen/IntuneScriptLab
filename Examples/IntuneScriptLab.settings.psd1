@@ -1,8 +1,9 @@
 @{
     # IntuneScriptLab.settings.psd1: put it in the folder that holds the scripts, or any folder
     # above them; the nearest one applies to every script below it. Every key is optional.
-    # Explicit parameters to Test-IntuneScript win over these; a '# IntuneScriptLab:' directive in
-    # a script wins over the type, context, architecture and signature entries.
+    # Explicit parameters to Test-IntuneScript win over these (-ExcludeRule adds to ExcludeRule,
+    # -IncludeRule sets it aside); a '# IntuneScriptLab:' directive in a script wins over the type,
+    # context, architecture and signature entries.
 
     # Rules to skip everywhere (wildcards allowed). The context note is the usual one to drop once
     # the folder layout or the entries below settle every script's type.

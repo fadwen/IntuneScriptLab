@@ -28,9 +28,11 @@ Assert-HaveIntuneStatus [-Expected] <string> [[-Actual] <Object>] [-Because <str
 
 ## DESCRIPTION
 
-For IntuneScriptLab.RemediationResult ('Without issues', 'Fixed', 'Recurred', 'Failed',
-'TimedOut') and IntuneScriptLab.Win32AppResult ('Installed', 'Installed after install',
-'Not detected after install', 'Install failed (exit N)', 'Retry', 'TimedOut').
+For IntuneScriptLab.RemediationResult ('Without issues', 'Issue detected (no remediation
+script)', 'Fixed', 'Recurred', 'Failed', 'TimedOut') and IntuneScriptLab.Win32AppResult
+('Installed', 'Installed after install', 'Not detected after install', 'Install failed (exit
+N)', 'Retry', 'Not installed', 'Not installed (dependency)', 'Uninstalled', 'Still detected
+after uninstall', 'Uninstall failed (exit N)', 'TimedOut').
 On failure
 the message carries what Intune would have shown: the actual status, the reported output
 and error, and the harness warnings.

@@ -1,6 +1,6 @@
 # IntuneScriptLab gate for a repository of Intune scripts. Copy to .github/workflows/ and set the
 # paths. On every pull request that touches a script it runs the analysis the way Intune will run
-# the scripts, annotates the changed files with the findings, writes a job summary and fails on
+# the scripts, annotates the scripts under the paths you set with the findings, writes a job summary and fails on
 # errors. The optional second job runs the runtime harness on a Windows runner.
 #
 # Where the module comes from: a copy checked into the repository when ISL_MODULE_PATH points at
@@ -97,7 +97,7 @@ jobs:
               $env:PSModulePath = "$root$([IO.Path]::PathSeparator)$env:PSModulePath"
           }
           $config = New-PesterConfiguration
-          $config.Run.Path = $env:SCRIPT_PATHS
+          $config.Run.Path = @($env:SCRIPT_PATHS -split ',' | ForEach-Object { $_.Trim() })
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config

@@ -101,6 +101,16 @@ Describe 'Find-IslOutputIssue' -Tag 'Unit', 'Private', 'Rule' {
                 Should-Be 1
         }
 
+        It 'takes SilentlyContinue as a guard for a probing cmdlet, but not Stop, which puts the miss on stderr' {
+            $probe = "Get-Item 'HKLM:\SOFTWARE\NoSuchVendor'`nWrite-Output 'found'`nexit 0"
+            $unguarded = 'Get-Item writes an error record*'
+            $stop = New-TestScript 'App-Stop\Detect.ps1' ("`$ErrorActionPreference = 'Stop'`n" + $probe)
+            @(Get-RuleFinding $stop IslOutputIssue | Where-Object Message -like $unguarded).Count | Should-Be 1
+            $quietBody = "`$ErrorActionPreference = 'SilentlyContinue'`n" + $probe
+            $quiet = New-TestScript 'App-Quiet\Detect.ps1' $quietBody
+            @(Get-RuleFinding $quiet IslOutputIssue | Where-Object Message -like $unguarded).Count | Should-Be 0
+        }
+
         It 'notes a non-zero exit and warns on an unguarded probing cmdlet' {
             $path = New-TestScript 'App-Requirement.ps1' ("`$v = (Get-ItemProperty 'HKLM:\SOFTWARE\X').Version`n" +
                 "if (`$v) { Write-Output `$v } else { exit 1 }")

@@ -34,6 +34,9 @@ function Compare-IntuneDeployedScript {
     $settingsCache = @{}
     $mapped = @{}
     $sha = [System.Security.Cryptography.SHA256]::Create()
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    $nameGiven = $PSBoundParameters.ContainsKey('Name')
+    $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     function Get-NameKey {
         param([string]$Value)
@@ -43,7 +46,8 @@ function Compare-IntuneDeployedScript {
     function Test-Wanted {
         param($Policy)
         $displayName = "$($Policy.displayName)"
-        $byName = @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
+        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
+        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
         $byId = $Id -and "$($Policy.id)" -in $Id
         $byName -or $byId
     }
@@ -150,22 +154,25 @@ function Compare-IntuneDeployedScript {
         $tenantLines = @($tenantText.Text -split "`r?`n")
         $localTrim = Get-TrimmedLine -Lines @($localLines | ForEach-Object { $_.TrimEnd() })
         $tenantTrim = Get-TrimmedLine -Lines @($tenantLines | ForEach-Object { $_.TrimEnd() })
-        if (($localTrim -join "`n") -ne ($tenantTrim -join "`n")) {
+        if (($localTrim -join "`n") -cne ($tenantTrim -join "`n")) {
             $differences.Add('Content')
             $line = 0
             $limit = [Math]::Min($localTrim.Count, $tenantTrim.Count)
-            while ($line -lt $limit -and $localTrim[$line] -eq $tenantTrim[$line]) { $line++ }
+            while ($line -lt $limit -and $localTrim[$line] -ceq $tenantTrim[$line]) { $line++ }
             $localExcerpt = '<end>'
             if ($line -lt $localTrim.Count) { $localExcerpt = Get-Excerpt -Line $localTrim[$line] }
             $tenantExcerpt = '<end>'
             if ($line -lt $tenantTrim.Count) { $tenantExcerpt = Get-Excerpt -Line $tenantTrim[$line] }
-            $compared = @(Compare-Object -ReferenceObject @($localTrim) -DifferenceObject @($tenantTrim))
+            $compareSplat = @{
+                ReferenceObject = @($localTrim); DifferenceObject = @($tenantTrim); CaseSensitive = $true
+            }
+            $compared = @(Compare-Object @compareSplat)
             $onlyLocal = @($compared | Where-Object SideIndicator -eq '<=').Count
             $onlyTenant = @($compared | Where-Object SideIndicator -eq '=>').Count
             $details.Add(("content differs from line $($line + 1): local '$localExcerpt', tenant " +
                     "'$tenantExcerpt' ($onlyLocal line(s) only local, $onlyTenant only in the tenant)"))
         }
-        elseif (($localLines -join "`n") -ne ($tenantLines -join "`n")) {
+        elseif (($localLines -join "`n") -cne ($tenantLines -join "`n")) {
             $differences.Add('Whitespace')
             $details.Add('only trailing whitespace or blank lines at the end differ')
         }
@@ -189,7 +196,7 @@ function Compare-IntuneDeployedScript {
             }
         }
         $settingSplat = @{ Path = $File; Cache = $settingsCache }
-        if ($PSBoundParameters.ContainsKey('Settings')) { $settingSplat.Settings = $Settings }
+        if ($settingsGiven) { $settingSplat.Settings = $Settings }
         $fileSettings = Get-IslSetting @settingSplat
         $explicit = @{}
         foreach ($key in 'Context', 'Architecture', 'EnforceSignatureCheck') {
@@ -335,7 +342,7 @@ function Compare-IntuneDeployedScript {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
                 $policy = Invoke-IslGraphRequest -Uri "$remediations/$($summary.id)"
-                $settings = @{
+                $policySettings = @{
                     RunAsAccount = $policy.runAsAccount; RunAs32Bit = $policy.runAs32Bit
                     EnforceSignatureCheck = $policy.enforceSignatureCheck
                 }
@@ -344,13 +351,13 @@ function Compare-IntuneDeployedScript {
                     Content    = $policy.detectionScriptContent
                     Candidates = Find-LocalFile -Policy $policy -Role 'detection' -Pattern '^(?i)detect'
                 }
-                Compare-Role @detectSplat @settings
+                Compare-Role @detectSplat @policySettings
                 $remediateSplat = @{
                     PolicyKind = 'Remediation'; Policy = $policy; Role = 'remediation'
                     Content    = $policy.remediationScriptContent
                     Candidates = Find-LocalFile -Policy $policy -Role 'remediation' -Pattern '^(?i)remediat'
                 }
-                Compare-Role @remediateSplat @settings
+                Compare-Role @remediateSplat @policySettings
             }
         }
 

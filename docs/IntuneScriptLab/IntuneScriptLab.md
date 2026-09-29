@@ -14,7 +14,7 @@ title: IntuneScriptLab Module
 
 ## Description
 
-Test Intune scripts before Intune does: static analysis, a runtime harness, Pester assertions
+Test Intune scripts before Intune does: static rules, a runtime harness, Pester assertions, a Graph pre-flight over the tenant's deployed scripts and readers for the agent's logs
 
 ## IntuneScriptLab Cmdlets
 

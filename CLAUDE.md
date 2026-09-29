@@ -70,6 +70,14 @@ The harness launches `powershell.exe` hosts by architecture, reads the registry 
 scheduled tasks, so the suites run on Windows only: the `desktop` job under 5.1 and the `arm64`
 job on Windows on ARM. The `help` job proves the module imports on Linux; nothing else there runs.
 
+### Variable names are case-insensitive, and nested functions have their own `$PSBoundParameters`
+
+A body-level `$settings = @{ ... }` silently overwrote the `-Settings` parameter of two commands,
+and `$PSBoundParameters.ContainsKey('Settings')` inside a nested helper was the helper's own,
+always false. Name locals so they cannot collide with a parameter, and capture what a nested
+function needs from `$PSBoundParameters` into a plain variable before defining it. 0.26.0 fixed
+both, with tests.
+
 ### A nested function returning `@()` hands the caller `$null`
 
 Several public commands use nested helper functions. PowerShell unrolls an empty array on the

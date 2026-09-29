@@ -30,11 +30,14 @@ function Get-IntuneScriptHealth {
         [string]$MarkdownPath
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($Kind -join ', ')"
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    $nameGiven = $PSBoundParameters.ContainsKey('Name')
 
     function Test-Wanted {
         param($Policy)
         $displayName = "$($Policy.displayName)"
-        $byName = @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
+        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
+        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
         $byId = $Id -and "$($Policy.id)" -in $Id
         $byName -or $byId
     }
@@ -87,7 +90,9 @@ function Get-IntuneScriptHealth {
         }
         catch {
             Write-Warning ("The app install export could not be read ($($_.Exception.Message)); the apps' " +
-                'device columns stay empty. DeviceManagementManagedDevices.Read.All allows it')
+                'device columns stay empty. Creating an export job needs a ReadWrite scope: ' +
+                'DeviceManagementApps.ReadWrite.All, DeviceManagementConfiguration.ReadWrite.All or ' +
+                'DeviceManagementManagedDevices.ReadWrite.All')
         }
     }
 
@@ -155,9 +160,8 @@ function Get-IntuneScriptHealth {
 
         $notes = [System.Collections.Generic.List[string]]::new()
         $health = 'Healthy'
-        $unassigned = @($findings | Where-Object {
-                $_.RuleName -eq 'IslAssignmentIssue' -and $_.Message -like '*never runs anywhere*'
-            }).Count -gt 0
+        # From the assignments themselves, so -SkipAnalysis does not hide it
+        $unassigned = $assignment.Includes -eq 0
         $allFailed = $HasRunState -and $Failed -gt 0 -and $Succeeded -eq 0
         if ($errors) { $notes.Add("$errors error finding(s)") }
         if ($unassigned) { $notes.Add('assigned to nobody') }
@@ -281,7 +285,9 @@ function Get-IntuneScriptHealth {
             }
             $lines.Add('')
         }
-        [System.IO.File]::WriteAllLines($MarkdownPath, $lines, [System.Text.UTF8Encoding]::new($false))
+        # Resolved against the PowerShell location: .NET's current directory is not $PWD
+        $markdownFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($MarkdownPath)
+        [System.IO.File]::WriteAllLines($markdownFile, $lines, [System.Text.UTF8Encoding]::new($false))
         Write-Verbose "Markdown report written to $MarkdownPath"
     }
 

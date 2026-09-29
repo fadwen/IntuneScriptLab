@@ -25,7 +25,7 @@ scripts, platform scripts, and Win32 app detection and requirement scripts.
   test suites (Pester 6.2+).
 
 Every rule and every verdict is backed by what real devices did, not only by the docs (see
-[Validation/Findings.md](Validation/Findings.md)). No Intune connection needed; runs on
+[Validation/Findings.md](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/Findings.md)). No Intune connection needed; runs on
 Windows PowerShell 5.1 and PowerShell 7; x86, x64 and ARM64 hosts.
 
 ## Prerequisites
@@ -94,11 +94,14 @@ decide:
 
 | Inferred from the path | ScriptType | Default context | Default architecture |
 |---|---|---|---|
-| `*requirement*` | Win32Requirement | System | x64 |
-| `*detect*` under a `Win32`, `Apps` or `Packages` folder (two levels up at most), or named after an app, package or installer (`Detect-Agent.ps1`, `Detect-App.ps1`) | Win32Detection | System | x64 |
-| `*detect*` under a `Remediations` or `HealthScripts` folder, or any other `*detect*` | Detection | System | x86 |
-| `*remediat*`, `*fix*` | Remediation | System | x86 |
+| `requirement` | Win32Requirement | System | x64 |
+| `detect` under a `Win32`, `Apps` or `Packages` folder (two levels up at most), or with `app`, `apps`, `win32`, `package`, `software`, `install`, `installed`, `msi` or `exe` in the name (`Detect-App.ps1`, `Detect-Package.ps1`) | Win32Detection | System | x64 |
+| `detect` under a `Remediations` or `HealthScripts` folder, or any other `detect` | Detection | System | x86 |
+| `remediat`, `fix` | Remediation | System | x86 |
 | anything else | PlatformScript | User | x86 |
+
+Each word matches at the start of a word in the file name or a folder name: `Get-Requirement.ps1`
+is a requirement script, `Get-AppRequirement.ps1` is not.
 
 Defaults follow the **portal**. Scripts created through the Graph API get 64-bit SYSTEM instead,
 so the same script can behave differently depending on how it was deployed. Every inferred file
@@ -143,9 +146,11 @@ applies to every script below it (the nearest one wins):
 }
 ```
 
-Explicit parameters win over the file, and a script's directive wins over its type, context,
-architecture and signature entries. `-Settings` takes a path or a hashtable instead of the search
-(`@{}` for none) on `Test-IntuneScript`, `Test-IntuneDeployedScript` and the CI gate; the
+Explicit parameters win over the file (`-ExcludeRule` adds to the file's list, `-IncludeRule` sets it
+aside), and a script's directive wins over its type, context, architecture and signature entries.
+`-Settings` takes a path or a hashtable instead of the search (`@{}` for none) on `Test-IntuneScript`,
+`Repair-IntuneScript`, `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`,
+`Get-IntuneScriptHealth` and the CI gate; the
 PSScriptAnalyzer rules and the gate pick the file up on their own.
 [Examples/IntuneScriptLab.settings.psd1](./Examples/IntuneScriptLab.settings.psd1) is a commented
 template.
@@ -241,12 +246,14 @@ interactive and runs inside it, which is the agent's shape; when it does not, th
 with the password ("run whether user is logged on or not") and runs in session 0 with the account's
 profile loaded, and `RunAs` says `(Password)` so you know the session differs; that logon needs
 the "Log on as a batch job" right, which a standard user does not have by default, and the launcher
-reports `0x80070569` with that hint when the scheduler refuses it. Needs an elevated session. On
+reports the refusal with that hint within seconds, whether the scheduler answers `0x80070569` or
+simply never starts the task (`0x00041303`, "has not run yet", which is what the lab device does
+today). Needs an elevated session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
 harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the
 account granted Modify, since another account cannot reach your temp folder.
-[Validation/New-IslHarnessUser.ps1](Validation/New-IslHarnessUser.ps1) creates a standard lab
+[Validation/New-IslHarnessUser.ps1](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/New-IslHarnessUser.ps1) creates a standard lab
 account with a generated password stored as a DPAPI credential, and the `UserContext` integration
 suite runs against it when `ISL_TEST_CREDENTIAL` points at that file.
 
@@ -477,7 +484,7 @@ Invoke-ScriptAnalyzer -Path .\Remediations -Recurse -CustomRulePath (Get-IntuneA
 RuleName                   Severity  ScriptName       Line  Message
 --------                   --------  ----------       ----  -------
 Measure-IslExitCodeIssue   Error     Detect.ps1       12    'return' at script scope ends the script with exit 0 ... [Observed: ...]
-Measure-IslLongSleep       Warning   Detect.ps1       15    Start-Sleep -Seconds 4000 ... [Observed: ...]
+Measure-IslLongSleep       Error     Detect.ps1       15    Start-Sleep -Seconds 4000 exceeds the 3600 s timeout ... [Observed: ...]
 PSAvoidUsingWriteHost      Warning   Remediate.ps1    3     File 'Remediate.ps1' uses Write-Host ...
 ```
 
@@ -494,7 +501,8 @@ cache for the nested ones PSScriptAnalyzer also hands it.
 ### Pre-flight against the tenant (0.11)
 
 ```powershell
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All, GroupMember.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+    DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning
 
    Policy: Remediation 'Fix-Widget' (2b1c...)
@@ -509,7 +517,7 @@ Warning     IslEncodingIssue       detection        UTF-8 without a BOM: Windows
 Severity    Rule                   Role        Line Message
 --------    ----                   ----        ---- -------
 Error       IslDetectionRuleIssue  policy           Detection rule 2 is a file rule with detectionType doesNotExist ...
-Warning     IslAssignmentIssue     policy           Install behavior User, assigned to a group of devices ...
+Warning     IslAssignmentIssue     policy           Install behavior User, assigned to devices ...
 ```
 
 `Test-IntuneDeployedScript` reads what the tenant actually has (remediations, platform scripts,
@@ -542,7 +550,7 @@ Clauses    : device.deviceName -startsWith "LAB-" [not matched, actual: DESKTOP-
              device.operatingSystemVersion -ge 10.0.26100 [matched, actual: 10.0.26200.9457]
 
 Test-IntuneAssignmentFilter -Rule '(device.cpuArchitecture -eq "x64")' -SyntaxOnly
-WARNING: 'x64' is not a value a Windows device reports for device.cpuArchitecture (amd64, x86, arm64, unknown); the clause at position 2 never matches
+WARNING: 'x64' is not a value a Windows device reports for device.cpuArchitecture (amd64, x86, arm64, unknown); the clause at character 29 never matches
 ```
 
 An assignment filter decides before anything runs, and until now the only way to try a rule was
@@ -607,13 +615,14 @@ because the per-app status endpoints are gone from Graph. Health is Broken for a
 policy assigned to nobody or a policy every device failed; Attention for warnings, failures, a
 remediation whose issue stays detected, drift or an assigned policy nobody has reported on yet;
 Healthy otherwise, with the reasons in Notes. `-SkipAnalysis` and `-SkipRunState` leave parts out
-(run states lag the device by up to an hour for remediations), `-MarkdownPath` writes the same report
+(a remediation's run state reaches Graph with the agent's next hourly report, about an hour after
+the run; a state that has not changed is not re-reported), `-MarkdownPath` writes the same report
 as a Markdown table per kind, Broken first.
 
 ### In a GitHub Actions workflow (0.12)
 
 ```yaml
-# .github/workflows/intune-script-gate.yml, from Examples/intune-script-gate.yml
+# The analyze step, in short; Examples/intune-script-gate.yml is the complete workflow
 - name: Analyze
   shell: pwsh
   run: |
@@ -667,18 +676,20 @@ Invoke-Pester .\Tests -ExcludeTagFilter Elevated # skip the SYSTEM-context tests
 | Folder | What it holds |
 |---|---|
 | `Tests/Unit/Public` | One suite per exported function. The runtime commands are tested with the process launch mocked, so the status mapping runs in milliseconds. |
-| `Tests/Unit/Private` | One suite per private helper and, under `Rules/`, one per rule, calling the rule directly through `InModuleScope`. |
+| `Tests/Unit/Private` | A suite for most private helpers and, under `Rules/`, one per rule, calling the rule directly through `InModuleScope`. |
 | `Tests/Integration` | The suites that start real Windows PowerShell 5.1 processes: launch shape, output as Intune reports it, the remediation and Win32 workflows, SYSTEM context (skipped unless elevated), and the assertions on real results. About a minute. |
 | `Tests/TestHelpers` | Fixtures every suite dot-sources: `New-TestScript`, `Get-RuleFinding`, `New-Win32Fixture`, `Get-AssertionMessage`. |
 
-Host coverage is split, not overlapping: the x64 runtime path is exercised on the x64 CI runner and
-the arm64 path on the Windows on ARM runner (each refuses the other's 64-bit host), and the x86
-path on both. The Unit suites pass with PowerShell 7 and with Windows PowerShell 5.1 as the module
-host; CI runs them on both, shuffled, with an 80% coverage gate.
+Host coverage is split, not overlapping: the integration suites exercise the x64 runtime path on
+the x64 CI runner and the arm64 path on an ARM64 development machine (each refuses the other's
+64-bit host), and the x86 path on both. The Unit suites pass with PowerShell 7 and with Windows
+PowerShell 5.1 as the module host: CI runs the whole suite on PowerShell 7, shuffled and with an
+80% coverage gate, and the unit suites again on Windows PowerShell 5.1 and on the Windows on ARM
+runner.
 
 ## Help
 
-Command help is PlatyPS Markdown under [docs/IntuneScriptLab/](docs/IntuneScriptLab/) compiled
+Command help is PlatyPS Markdown under [docs/IntuneScriptLab/](https://github.com/fadwen/IntuneScriptLab/tree/main/docs/IntuneScriptLab) compiled
 into `en-US/IntuneScriptLab-Help.xml`, which is what `Get-Help` reads. Edit the Markdown, not the
 functions' comment blocks (those carry only `.EXTERNALHELP` and a synopsis), then rebuild:
 
@@ -692,11 +703,11 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 | Symptom | Cause and fix |
 |---|---|
 | `IslAssumedContext` finding on every script | The script type was inferred from the file name. Pass `-ScriptType`, or put `# IntuneScriptLab: ScriptType=Detection` at the top of the script, and the finding goes away. |
-| A rule fires on something Intune tolerates | Every rule cites its `Evidence`, ending in experiment IDs such as `REM-EXIT-2`: those are the experiments in [Experiments.psd1](Validation/Experiments.psd1) whose results [Findings.md](Validation/Findings.md) summarises. Use `-ExcludeRule` for a deliberate exception, and open an issue with the script if the evidence is wrong. |
+| A rule fires on something Intune tolerates | Every rule cites its `Evidence`, ending in experiment IDs such as `REM-EXIT-2`: those are the experiments in [Experiments.psd1](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/Experiments.psd1) whose results [Findings.md](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/Findings.md) summarises. Use `-ExcludeRule` for a deliberate exception, and open an issue with the script if the evidence is wrong. |
 | Import fails on Windows PowerShell 5.1 with odd characters in the error | A source file was saved as UTF-8 without a BOM. 5.1 reads that as the ANSI code page. Save with a BOM (this is also what rule `IslEncodingIssue` reports for your scripts). |
 | `-Context System` says "run elevated" | `Register-ScheduledTask` needs an administrator session. Restart PowerShell as administrator; the current-user runs need no elevation. |
 | `-Architecture x64` refused on an ARM64 PC | ARM64 Windows has no x64 `powershell.exe`; only x86 (emulated) and arm64 (native) exist there, which is what Intune's agent uses too. Test x64 on an x64 machine. |
-| Runtime result differs from what Intune showed | Compare `Output` (the last console line, 2,048-character tail, OEM code page) and `ExitCode` on the result. Intune reports the same values; the portal just formats them. The `-Verbose` switch prints each step. |
+| Runtime result differs from what Intune showed | Compare what the result carries as Intune reports it: `IntuneOutput` and `IntuneError` on a remediation result, `StdOut`, `StdErr` and `ExitCode` on a detection, platform script or requirement result (OEM code page; the 2,048-character tail where the portal caps it). The `-Verbose` switch prints each step. |
 | Pester says `Should-HaveIntuneStatus` is not recognised | The aliases come from this module, not Pester: `Import-Module IntuneScriptLab` in `BeforeAll`, and use Pester 6.2 or later (`New-ShouldAssertion`). |
 
 ## Roadmap

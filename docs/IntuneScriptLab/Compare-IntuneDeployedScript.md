@@ -43,8 +43,9 @@ Local files are found by convention under -Path, searched recursively:
     Platform script 'Set-Proxy'  Set-Proxy.ps1 anywhere, or a folder named Set-Proxy with one .ps1
     Win32 app 'Widget 2.0'       a folder named 'Widget 2.0' holding Detect*.ps1 and Requirement*.ps1
 
-Characters Windows does not allow in a name are matched as underscores, so the app
-'Widget: 2.0' matches a folder named 'Widget_ 2.0'.
+Names are matched without regard to case, with every character other than a letter, a digit,
+'.', '_' or '-' taken as an underscore, so the app 'Widget: 2.0' matches a folder named
+'Widget_ 2.0' or 'widget__2.0'.
 -Map names the files directly when the
 layout is different.
 A policy with no local file, a local match that is ambiguous and, with
@@ -57,8 +58,10 @@ Inferred values are never compared.
 
 One result per script role.
 State is InSync, Drifted, Missing (no local file), Ambiguous
-(more than one local candidate) or NotInTenant (a local file or -Map entry the tenant has no
-script for); Differences lists what differs (Content, LineEndings, Whitespace, Bom, Settings)
+(more than one local candidate) or NotInTenant (a local file for a role the policy does not
+carry, or a -Map entry naming a policy the selection did not include; a local folder for a
+policy the tenant does not have is not reported); Differences lists what differs (Content,
+LineEndings, Whitespace, Bom, Settings)
 and Detail says where.
 Nothing in the tenant is changed.
 
@@ -66,7 +69,7 @@ Nothing in the tenant is changed.
 
 ### EXAMPLE 1
 
-Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync
 
 Every deployed script whose local copy differs, is missing or is ambiguous.

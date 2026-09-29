@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     Drift between a fake tenant (the Graph seam mocked) and a local folder laid out by the
@@ -190,6 +190,19 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $orphan.LocalPath | Should-BeLikeString '*Report-Only\Remediate.ps1'
         }
 
+        It 'compares content case-sensitively' {
+            $root = Join-Path $TestDrive 'case'
+            $file = Join-Path $root 'Remediations\Fix-Widget\Detect.ps1'
+            $null = New-Item -ItemType Directory -Path (Split-Path $file -Parent) -Force
+            $upper = $script:Detect -replace 'exit 0', 'EXIT 0'
+            [System.IO.File]::WriteAllBytes($file, (Get-ByteArray -Text $upper -Bom))
+            $results = @(Compare-IntuneDeployedScript -Path $root -Kind Remediation -Name 'Fix-Widget')
+            $detection = Get-Result -Results $results -Policy 'Fix-Widget' -Role 'detection'
+            $detection.State | Should-Be 'Drifted'
+            @($detection.Differences) | Should-BeCollection @('Content')
+            $detection.Detail | Should-BeLikeString 'content differs from line 2*'
+        }
+
         It 'reports two local candidates as Ambiguous' {
             $dup = $script:Results | Where-Object PolicyName -eq 'Dup'
             $dup.State | Should-Be 'Ambiguous'
@@ -220,6 +233,20 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '*mobileApps*'
             } -Times 0 -Exactly
+        }
+        It 'selects by id alone when no name is given' {
+            $results = @(Compare-IntuneDeployedScript -Path $script:Root -Id 'rem-c')
+            $results.PolicyName | Should-All { $_ -eq 'Ctx-Check' }
+            $results.Count | Should-Be 1
+        }
+
+        It 'uses -Settings for the settings comparison instead of the nearest settings file' {
+            # Set-Wallpaper's local file says nothing, so the settings hashtable is what gets compared
+            $compareSplat = @{ Path = $script:Root; Name = 'Set-Wallpaper'; Settings = @{ Context = 'System' } }
+            $wallpaper = @(Compare-IntuneDeployedScript @compareSplat)
+            $wallpaper.Count | Should-Be 1
+            @($wallpaper[0].Differences) | Should-ContainCollection 'Settings'
+            $wallpaper[0].Detail | Should-BeLikeString '*Context=System locally, the policy runs as User*'
         }
 
         It 'takes local files from -Map by role, relative to -Path, and reports an entry with no policy' {

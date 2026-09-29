@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     The Graph pre-flight against a fake tenant: the Graph seam (Invoke-IslGraphRequest) is mocked
@@ -91,6 +91,8 @@ BeforeAll {
                     @{ target = @{ '@odata.type' = '#microsoft.graph.allLicensedUsersAssignmentTarget'
                             deviceAndAppManagementAssignmentFilterId = 'flt-x64'
                             deviceAndAppManagementAssignmentFilterType = 'include' } }
+                    # All devices is a device target too: a user-context app never installs through it
+                    @{ target = @{ '@odata.type' = '#microsoft.graph.allDevicesAssignmentTarget' } }
                 )
             }
             @{
@@ -202,7 +204,8 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $findings.Count | Should-Be 1
             $findings[0].PolicyName | Should-Be 'Widget 2.0'
             $findings[0].Severity | Should-Be 'Warning'
-            $findings[0].Message | Should-BeLikeString '*grp-devices*'
+            $findings[0].Message | Should-BeLikeString '*assigned to devices (*grp-devices*'
+            $findings[0].Message | Should-BeLikeString '*all devices*'
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '/v1.0/groups/*'
             } -Times 1 -Exactly
@@ -305,6 +308,19 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
                 $Uri -like '*/mobileApps/app-b*'
             } -Times 1 -Exactly
         }
+        It 'selects by id alone when no name is given' {
+            @(Test-IntuneDeployedScript -Id 'rem-b').PolicyName | Sort-Object -Unique |
+                Should-BeCollection @('Report-Only')
+        }
+
+        It 'forwards -Settings to the script analysis' {
+            $withRule = @(Test-IntuneDeployedScript -Name 'Fix-Widget' -Kind Remediation)
+            $withRule.RuleName | Should-ContainCollection 'IslExitCodeIssue'
+            $settingsSplat = @{
+                Name = 'Fix-Widget'; Kind = 'Remediation'; Settings = @{ ExcludeRule = 'IslExitCodeIssue' }
+            }
+            @(Test-IntuneDeployedScript @settingsSplat).RuleName | Should-NotContainCollection 'IslExitCodeIssue'
+        }
 
         It 'applies the rule and severity filters to script findings and policy checks alike' {
             $errors = @(Test-IntuneDeployedScript -MinimumSeverity Error)
@@ -330,7 +346,10 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             }
             $warnings = @()
             $findings = @(Test-IntuneDeployedScript -Kind Win32App -WarningVariable warnings 3>$null)
-            $findings.RuleName | Should-NotContainCollection 'IslAssignmentIssue'
+            # The group could not be read, so only the All devices target is named
+            $assignment = @($findings | Where-Object RuleName -eq 'IslAssignmentIssue')
+            $assignment.Count | Should-Be 1
+            $assignment[0].Message | Should-BeLikeString '*assigned to devices (all devices)*'
             @($warnings).Count | Should-Be 1
             "$($warnings[0])" | Should-BeLikeString '*Group members could not be read*GroupMember.Read.All*'
         }

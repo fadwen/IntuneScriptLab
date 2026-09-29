@@ -51,16 +51,36 @@
     }
 
     if ($hasNonAscii -and -not $hasUtf8Bom) {
-        $findingSplat = @{
-            RuleName = $rule
-            Severity = 'Warning'
-            Context  = $Context
-            Extent   = $Context.Ast.Extent
-            Message  = ('Non-ASCII characters in a UTF-8 file without a BOM: Windows PowerShell 5.1 decodes ' +
-                'it as ANSI and corrupts them. Save as UTF-8 with BOM')
-            Evidence = ('Same bytes uploaded with and without BOM: without, the literal "Grüße — ✓" ran as ' +
-                '"GrÃ¼ÃŸe â€" âœ"" (REM-ENC-BOM vs REM-PROBE-SYS64)')
-            Fix      = @{ Encoding = 'UTF8BOM' }
+        $isUtf8 = $true
+        try { $null = [System.Text.UTF8Encoding]::new($false, $true).GetString($bytes) } catch { $isUtf8 = $false }
+        if ($isUtf8) {
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Warning'
+                Context  = $Context
+                Extent   = $Context.Ast.Extent
+                Message  = ('Non-ASCII characters in a UTF-8 file without a BOM: Windows PowerShell 5.1 ' +
+                    'decodes it as ANSI and corrupts them. Save as UTF-8 with BOM')
+                Evidence = ('Same bytes uploaded with and without BOM: without, the literal "Grüße — ✓" ran ' +
+                    'as "GrÃ¼ÃŸe â€" âœ"" (REM-ENC-BOM vs REM-PROBE-SYS64)')
+                Fix      = @{ Encoding = 'UTF8BOM' }
+            }
+        }
+        else {
+            # Not UTF-8 at all: an ANSI file. 5.1 reads it in the ANSI code page, so the characters
+            # survive on the device, but nothing else expects it. Repair decodes it as ANSI
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Information'
+                Context  = $Context
+                Extent   = $Context.Ast.Extent
+                Message  = ('Non-ASCII bytes that are not UTF-8 (an ANSI code page): Windows PowerShell 5.1 ' +
+                    'reads the file as ANSI, but Intune expects UTF-8 and other tooling reads it as such. ' +
+                    'Save as UTF-8 with BOM')
+                Evidence = ('Microsoft Learn: "Ensure the scripts are encoded in UTF-8"; Windows PowerShell ' +
+                    'reads a file without a BOM in the system ANSI code page (about_Character_Encoding)')
+                Fix      = @{ Encoding = 'UTF8BOM' }
+            }
         }
         New-IslFinding @findingSplat
     }

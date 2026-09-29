@@ -37,10 +37,13 @@ Get-IntuneAgentLog -ListEvent [<CommonParameters>]
 
 Parses the agent's CMTrace logs (IntuneManagementExtension, AppWorkload, HealthScripts and
 AgentExecutor, rolled files included) into one object per entry, merges them in time order
-and names the event each known line records: a script policy fetch and its download count,
-a remediation's schedule inspection, start, detection result and report, a Win32 app's
-policy fetch, applicability, detection, rule evaluation, install and report, AgentExecutor's
-launch, exit code and script output, the Enrollment Status Page's phase, selected apps,
+and names the event each known line records: a platform script's policy fetch and download
+count, its start, launch, result and exit, a user-context script skipped on an Entra
+registered device, the agent's start and its userless check-in, a remediation's schedule
+inspection, queueing, start, detection result and report, a Win32 app's policy fetch, one
+filtered out by an assignment filter or skipped for user context, its applicability,
+requirement checks, detection, rule evaluation, install, exit code, outcome and report,
+AgentExecutor's launch, exit code, script output and errors, the Enrollment Status Page's phase, selected apps,
 their registration and tracked install states, its completion and the check-in that follows it,
 and an app's relationships: the subgraph it is processed in, a skipped subgraph, the report
 that names the impacting app with its classification and conflict reason, the dependency
@@ -72,10 +75,11 @@ Everything the agent logged about one policy in the last two hours, across all f
 
 ### EXAMPLE 3
 
-Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppInstallExit, AppReport |
-    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 3 }
+Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppReport |
+    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 1 }
 
-From a copied log folder: the last detection, install exit code and report per app.
+From a copied log folder: the last detection or report per app. An install exit code line
+carries no app id, so read those with -EventName AppInstallExit on their own.
 
 ## PARAMETERS
 
@@ -313,7 +317,7 @@ This command does not accept pipeline input. Pass the paths and filters as param
 
 ### IntuneScriptLab.AgentLogEntry
 
-One object per log entry: Time (the local time the agent wrote), Level (Information, Warning or Error), Component, Thread, Event (the name from the event table, or empty for a line the table does not know), Detail (what the event's pattern captured: an exit code, a detection state, a download count), Id (the first policy or app id in the message), Message, Log (the file's base name) and Line. With -ListEvent, one IntuneScriptLab.AgentLogEventDefinition per event with Event and Pattern.
+One object per log entry: Time (the local time the agent wrote), Level (Information, Warning or Error), Component, Thread, Event (the name from the event table, or empty for a line the table does not know), Detail (what the event's pattern captured: an exit code, a detection state, a download count), Id (the first non-empty GUID in the message, or the empty GUID when that is all the line carries), Message, Log (the file's base name) and Line. With -ListEvent, one IntuneScriptLab.AgentLogEventDefinition per event with Event and Pattern.
 
 ## NOTES
 

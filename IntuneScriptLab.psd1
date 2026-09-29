@@ -1,13 +1,16 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.25.0'
+    ModuleVersion = '0.26.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
     Copyright = '(c) 2026 Jeffrey Stuhr. All rights reserved.'
-    # One line, within the repository's 115-character limit; the README carries the long form
-    Description = 'Test Intune scripts before Intune does: static analysis, a runtime harness, Pester assertions'
+    # Two lines, within the repository's 115-character limit; the README carries the long form
+    Description = @'
+Test Intune scripts before Intune does: static rules, a runtime harness, Pester assertions, a Graph
+pre-flight over the tenant's deployed scripts and readers for the agent's logs
+'@
 
     # The analyzer itself runs anywhere. The rules describe Windows PowerShell 5.1 behaviour
     # because that is what the Intune Management Extension runs scripts with.
@@ -61,6 +64,18 @@
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.26.0 - Every claim in the README, help, about topic, rule reference and examples was checked
+        against the code and by running it, and what did not hold was fixed: -Settings never
+        reached the pre-flight or the drift compare; -Id alone selected every policy;
+        Repair-IntuneScript -WhatIf on a folder returned nothing; the encoding fix corrupted
+        ANSI files; a directive earned the assumed-context note; a settings file's ExcludeRule
+        beat an explicit -IncludeRule; Should-PassIntuneAnalysis failed on a pipeline of files;
+        SARIF rule levels, outside-root URIs and relative output paths; a missing script path
+        returned a result; timeline -Id and relationship reports; case-insensitive drift
+        compare; All devices for a user-context app; -SkipAnalysis hiding 'assigned to nobody';
+        -ne/-notIn filter values; a bare -Confirm; Stop as a guard; using module and two
+        parameters in the PowerShell 7 rule; Win32 scripts in the size rule. Help corrected
+        throughout. See CHANGELOG.md.
 0.25.0 - The first release from the module's own repository, github.com/fadwen/IntuneScriptLab, and
         the first published to the PowerShell Gallery. Nothing any command does has changed: the
         build scripts moved under Build\, the manifest points at the new repository, and releases

@@ -35,6 +35,9 @@ again.
 The status follows what the device recorded:
 
     Without issues  detection exited 0, remediation skipped
+    Issue detected (no remediation script)
+                    detection non-zero with no -RemediationPath, as a detect-only
+                    remediation records it
     Fixed           detection non-zero, remediation 0, post-detection 0
     Recurred        detection non-zero, remediation 0, post-detection still non-zero
     Failed          remediation exited non-zero (post-detection skipped)
@@ -126,7 +129,7 @@ HelpMessage: ''
 
 ### -Credential
 
-Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
+Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -227,7 +230,7 @@ This command does not accept pipeline input. Pass the scripts with -DetectionPat
 
 ### IntuneScriptLab.RemediationResult
 
-Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput and IntuneError (the last line of each stream, 2,048-character tail, as the portal reports them), RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, Architecture, Context and Host.
+Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput (the pre-detection's last stdout line) and IntuneError (its stderr text), each cut to its last 2,048 characters as the portal reports them, RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, RunAs (the account and logon type the scripts ran as), Architecture, Context and Host.
 
 ## NOTES
 
