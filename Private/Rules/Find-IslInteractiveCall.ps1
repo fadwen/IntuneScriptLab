@@ -81,7 +81,7 @@ function Find-IslInteractiveCall {
         foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
             $forced = $confirming[$commandName] -and
                 (Test-IslCommandParameter -Command $command -ParameterName $confirming[$commandName])
-            $silenced = $forced -or (Test-IslCommandParameter -Command $command -ParameterName 'Confirm')
+            $silenced = $forced -or ($command.Extent.Text -match '(?i)-Confirm:\s*\$false')
             if (-not $silenced) {
                 $findingSplat = @{
                     RuleName = $rule

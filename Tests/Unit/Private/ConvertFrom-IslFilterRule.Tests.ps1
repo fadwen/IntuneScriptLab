@@ -242,18 +242,24 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
     }
 
     Context 'Warnings' {
-        It 'warns that <Rule> never matches a Windows device' -ForEach @(
-            @{ Rule = '(device.cpuArchitecture -eq "x64")'; Text = "*'x64'*device.cpuArchitecture*never matches*" }
-            @{ Rule = '(device.cpuArchitecture -in ["amd64", "x64"])'; Text = "*'x64'*never matches*" }
-            @{ Rule = '(device.deviceTrustType -eq "Microsoft Entra joined")'
+        It 'warns that <Rule> uses a value no Windows device reports' -ForEach @(
+            @{ Rule = '(device.cpuArchitecture -eq "x64")'; Kind = 'NeverMatches'
+                Text = "*'x64'*device.cpuArchitecture*never matches*" }
+            @{ Rule = '(device.cpuArchitecture -in ["amd64", "x64"])'; Kind = 'NeverMatches'
+                Text = "*'x64'*never matches*" }
+            @{ Rule = '(device.deviceTrustType -eq "Microsoft Entra joined")'; Kind = 'NeverMatches'
                 Text = "*'Microsoft Entra joined'*device.deviceTrustType*" }
-            @{ Rule = '(device.deviceTrustType -ne "AzureADJoined")'; Text = "*'AzureADJoined'*" }
-            @{ Rule = '(device.deviceOwnership -eq "company")'; Text = "*'company'*Personal, Corporate, Unknown*" }
-            @{ Rule = '(device.operatingSystemSKU -eq "Windows Enterprise")'; Text = "*'Windows Enterprise'*" }
+            # -ne with a value nobody reports is true for every device, the opposite trap
+            @{ Rule = '(device.deviceTrustType -ne "AzureADJoined")'; Kind = 'AlwaysMatches'
+                Text = "*'AzureADJoined'*matches every device*" }
+            @{ Rule = '(device.deviceOwnership -eq "company")'; Kind = 'NeverMatches'
+                Text = "*'company'*Personal, Corporate, Unknown*" }
+            @{ Rule = '(device.operatingSystemSKU -eq "Windows Enterprise")'; Kind = 'NeverMatches'
+                Text = "*'Windows Enterprise'*" }
         ) {
             $parsed = ConvertFrom-Rule -Rule $Rule
             @($parsed.Warnings).Count | Should-Be 1
-            $parsed.Warnings[0].Kind | Should-Be 'NeverMatches'
+            $parsed.Warnings[0].Kind | Should-Be $Kind
             $parsed.Warnings[0].Message | Should-BeLikeString $Text
         }
 

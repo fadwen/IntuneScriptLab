@@ -71,10 +71,12 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
                 Should-Be 1
         }
 
-        It 'lets a directive comment override the file name' {
+        It 'lets a directive comment override the file name, and treats it as declared' {
             $path = New-TestScript 'script.ps1' "# IntuneScriptLab: ScriptType=Win32Detection`nexit 0"
             $findings = @(Test-IntuneScript -Path $path)
             $findings.ScriptType | Should-All { $_ -eq 'Win32Detection' }
+            # A type written in the script is not assumed, so the note stays away
+            @($findings | Where-Object RuleName -eq 'IslAssumedContext').Count | Should-Be 0
         }
 
         It 'lets an explicit parameter override both, and drops the note' {
@@ -130,7 +132,7 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
     Context 'Suppressions' {
         It 'drops a finding a header directive suppresses, and shows it with -IncludeSuppressed' {
             $body = "# IntuneScriptLab: ScriptType=Detection Suppress=IslLongSleep`n" +
-                "Start-Sleep -Seconds 4000`nexit 1"
+                "Start-Sleep -Seconds 4000`nRead-Host 'Continue?'`nexit 1"
             $path = New-TestScript 'Detect-Quiet.ps1' $body
             @(Test-IntuneScript -Path $path).RuleName | Should-NotContainCollection 'IslLongSleep'
             $all = @(Test-IntuneScript -Path $path -IncludeSuppressed)
@@ -191,6 +193,15 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
                 Should-All { $_ -eq 'PlatformScript' }
             @(Test-IntuneScript -Path $script:Slow -MinimumSeverity Warning).RuleName |
                 Should-NotContainCollection 'IslLongSleep'
+        }
+
+        It 'lets an explicit -IncludeRule set the file''s exclusions aside, while -ExcludeRule adds to them' {
+            $settings = @{ ExcludeRule = 'IslLongSleep' }
+            $asked = @(Test-IntuneScript -Path $script:Slow -Settings $settings -IncludeRule IslLongSleep)
+            $asked.RuleName | Should-ContainCollection 'IslLongSleep'
+            $added = @(Test-IntuneScript -Path $script:Slow -Settings $settings -ExcludeRule IslAssumedContext)
+            $added.RuleName | Should-NotContainCollection 'IslLongSleep'
+            $added.RuleName | Should-NotContainCollection 'IslAssumedContext'
         }
 
         It 'takes -Settings as a path or a hashtable, and @{} as no settings' {

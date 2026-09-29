@@ -39,6 +39,11 @@ Describe 'Find-IslPowerShell7Syntax' -Tag 'Unit', 'Private', 'Rule' {
         $messages | Should-BeLikeString '*-AsHashtable*'
     }
 
+    It 'leaves a module the parser cannot find to the dependency rule' {
+        $path = New-TestScript 'Detect-U.ps1' "using module NoSuchModuleForIsl`nexit 0"
+        @(Get-RuleFinding $path IslPowerShell7Syntax).Count | Should-Be 0
+    }
+
     It 'stays quiet on 5.1-compatible code' {
         $path = New-TestScript 'Detect-Ok.ps1' ("if (Test-Path 'C:\x') { Write-Output 'ok'; exit 0 } " +
             "else { Write-Output 'missing'; exit 1 }")

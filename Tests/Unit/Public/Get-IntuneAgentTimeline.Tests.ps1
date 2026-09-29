@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     Per-policy timelines over a fake log folder: a remediation's fetch, start, verdict and report,
@@ -123,6 +123,30 @@ Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
             @(Get-IntuneAgentTimeline -Path $script:Logs -Id $script:App).Id | Should-BeCollection @($script:App)
             $health = @(Get-IntuneAgentTimeline -Path $script:Logs -Log HealthScripts)
             $health.Id | Should-BeCollection @($script:Policy)
+        }
+
+        It 'keeps -Id to the timeline whose own id it is, and takes a relationship report as the outcome' {
+            $other = '1a2b3c4d-0000-4000-8000-000000000002'
+            $logs = Join-Path $TestDrive 'RelationLogs'
+            $aw = @{ Component = 'AppWorkload' }
+            Write-TestLog $logs 'AppWorkload.log' @(
+                New-CmTraceLine @aw -Time '09:00:00.0000000' -Message ('[Win32App][DetectionActionHandler] ' +
+                    "Detection for policy with id: $($script:App) resulted in action status: Success and " +
+                    'detection state: NotDetected.')
+                New-CmTraceLine @aw -Time '09:00:05.0000000' -Message ('[Win32App][DetectionActionHandler] ' +
+                    "Detection for policy with id: $other resulted in action status: Success and " +
+                    'detection state: Detected.')
+                # Names both apps: the report is about the first, the second is the impacting app
+                New-CmTraceLine @aw -Time '09:00:10.0000000' -Message ('[Win32App][ReportingManager] Sending ' +
+                    'status to company portal based on report: {"ApplicationId":"' + $script:App +
+                    '","ResultantAppState":1,"ReportingImpact":{"DesiredState":1,"Classification":1,' +
+                    '"ConflictReason":0,"ImpactingApps":[{"AppId":"' + $other + '"}]}}')
+            ) | Out-Null
+            $timelines = @(Get-IntuneAgentTimeline -Path $logs -Id $other)
+            @($timelines.Id) | Should-BeCollection @($other)
+            $first = @(Get-IntuneAgentTimeline -Path $logs -Id $script:App)
+            $first.Count | Should-Be 1
+            $first[0].Outcome | Should-BeLikeString 'AppRelationshipReport*'
         }
 
         It 'cuts the steps by time' {

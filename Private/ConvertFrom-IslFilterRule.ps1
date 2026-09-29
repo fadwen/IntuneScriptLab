@@ -177,12 +177,16 @@ function ConvertFrom-IslFilterRule {
             Write-Failure "an empty string is refused $where; compare with `$null for a device without a value"
             return
         }
-        if ($Property.Values -and ($isList -or $Operator -in 'eq', 'ne')) {
+        if ($Property.Values -and $Operator -in 'eq', 'in', 'ne', 'notIn') {
+            # -eq and -in with such a value match nobody; -ne and -notIn match every device
+            $positive = $Operator -in 'eq', 'in'
             foreach ($item in @($value)) {
                 if ($null -ne $item -and "$item".Trim() -notin $Property.Values) {
-                    Add-Warning -Kind 'NeverMatches' -Message ("'$item' is not a value a Windows device reports " +
-                        "for device.$($Property.Name) ($($Property.Values -join ', ')); the clause at position " +
-                        "$($token.Position) never matches")
+                    $warningKind = if ($positive) { 'NeverMatches' } else { 'AlwaysMatches' }
+                    $effect = if ($positive) { 'never matches' } else { 'matches every device' }
+                    Add-Warning -Kind $warningKind -Message ("'$item' is not a value a Windows device reports " +
+                        "for device.$($Property.Name) ($($Property.Values -join ', ')); the clause at character " +
+                        "$($token.Position) $effect")
                 }
             }
         }

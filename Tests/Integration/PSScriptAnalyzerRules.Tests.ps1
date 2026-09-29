@@ -42,8 +42,9 @@ BeforeAll {
     if ($analyzer) { Import-Module $analyzer -ErrorAction Stop }
     $script:RulePath = Get-IntuneAnalyzerRulePath
     $script:Detect = Join-Path $TestDrive 'Detect-Widget.ps1'
+    # No directive: the type comes from the file name, so the assumed-context note is among the
+    # findings and the wrapper has to carry it too
     $detectBody = @(
-        '# IntuneScriptLab: ScriptType=Detection'
         '$item = Get-Item C:\Windows\notepad.exe'
         '$siblings = gci C:\Windows -Filter *.exe'
         'function Get-Helper { 1..3 | ForEach-Object { $_ } }'
@@ -122,15 +123,18 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
     }
 
     It 'analyzes a -ScriptDefinition the same way, reading the type from the directive' {
+        # A definition has no file name to infer from; the directive names the type, and a declared
+        # type earns no assumed-context note
+        $definition = "# IntuneScriptLab: ScriptType=Detection`r`n" + [System.IO.File]::ReadAllText($script:Detect)
         $records = @($scriptAnalyzerSplat = @{
-                         ScriptDefinition    = ([System.IO.File]::ReadAllText($script:Detect))
+                         ScriptDefinition    = $definition
                          CustomRulePath      = $script:RulePath
                          IncludeDefaultRules = $false
                      }
                      Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
-        $records.Count | Should-Be $script:Direct.Count
-        ($records | Where-Object RuleName -eq 'Measure-IslAssumedContext').Message |
-            Should-BeLikeString '*Detection (directive)*'
+        $records.Count | Should-Be ($script:Direct.Count - 1)
+        $records.RuleName | Should-NotContainCollection 'Measure-IslAssumedContext'
+        $records.RuleName | Should-ContainCollection 'Measure-IslExitCodeIssue'
     }
 
     It 'runs next to the built-in rules in one pass with -IncludeDefaultRules' {

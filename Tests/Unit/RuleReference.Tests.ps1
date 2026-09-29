@@ -34,11 +34,11 @@ Describe 'Build-RuleReference' -Tag 'Unit' {
         foreach ($row in $rows) {
             $row.Groups[2].Value | Should-NotBeWhiteSpaceString
             $row.Groups[3].Value | Should-NotBeWhiteSpaceString
-            # An unresolved expression would leave a variable or subexpression behind; a literal
-            # "$<value>" (the name of an environment variable in a message) is fine
+            # An unresolved expression would leave a subexpression behind; a literal $name in a
+            # message ($PSScriptRoot, $env:ProgramW6432) is text the rule prints and stays
             $row.Groups[1].Value | Should-NotBeLikeString '*<*'
-            $row.Groups[2].Value | Should-NotBeLikeString '*$[a-zA-Z_(]*'
-            $row.Groups[3].Value | Should-NotBeLikeString '*$[a-zA-Z_(]*'
+            $row.Groups[2].Value | Should-NotBeLikeString '*$(*'
+            $row.Groups[3].Value | Should-NotBeLikeString '*$(*'
         }
     }
 

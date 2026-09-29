@@ -31,6 +31,8 @@ function Find-IslPowerShell7Syntax {
     $ast = $Context.Ast
 
     foreach ($parseError in $Context.ParseErrors) {
+        # A module the parser could not find (using module) is a dependency, not PowerShell 7 syntax
+        if ("$($parseError.ErrorId)" -eq 'ModuleNotFoundDuringParse') { continue }
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
@@ -152,10 +154,10 @@ function Find-IslPowerShell7Syntax {
         'Add-Content'        = 'AsByteStream'
         'Out-File'           = 'Encoding utf8NoBOM'
         'Start-Process'      = 'Environment'
-        'Get-Process'        = 'CommandLine'
+
         'Compress-Archive'   = 'PassThru'
         'Import-Module'      = 'UseWindowsPowerShell', 'SkipEditionCheck'
-        'New-TemporaryFile'  = 'Extension'
+
         'Rename-Item'        = ''
     }
     foreach ($commandName in $coreOnlyParameters.Keys) {

@@ -97,7 +97,7 @@ jobs:
               $env:PSModulePath = "$root$([IO.Path]::PathSeparator)$env:PSModulePath"
           }
           $config = New-PesterConfiguration
-          $config.Run.Path = $env:SCRIPT_PATHS
+          $config.Run.Path = @($env:SCRIPT_PATHS -split ',' | ForEach-Object { $_.Trim() })
           $config.Run.Exit = $true
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config

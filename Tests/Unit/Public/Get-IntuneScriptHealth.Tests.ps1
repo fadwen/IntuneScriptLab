@@ -194,7 +194,11 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
 
         It 'leaves the findings alone with -SkipAnalysis' {
             $report = @(Get-IntuneScriptHealth -SkipAnalysis -SkipRunState)
-            ($report | Where-Object PolicyId -eq 'rem-b').Health | Should-Be 'Healthy'
+            # Unassigned is read from the assignments, not from a finding, so it survives the switch
+            $reportOnly = $report | Where-Object PolicyId -eq 'rem-b'
+            $reportOnly.Health | Should-Be 'Broken'
+            $reportOnly.Notes | Should-BeLikeString '*assigned to nobody*'
+            $reportOnly.Errors | Should-Be 0
             ($report | Where-Object PolicyId -eq 'app-b').Errors | Should-Be 0
             Should-Invoke Test-IntuneDeployedScript -ModuleName IntuneScriptLab -Times 0 -Exactly
         }

@@ -54,7 +54,7 @@ function Test-IntuneScript {
             foreach ($resolved in (Resolve-Path -Path $item -ErrorAction Stop)) {
                 if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                     Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
-                        ForEach-Object FullName
+                        ForEach-Object { $_.FullName }
                 }
                 else { $resolved.ProviderPath }
             }
@@ -67,7 +67,10 @@ function Test-IntuneScript {
             $fileSettings = Get-IslSetting @settingsSplat
             $include = if ($PSBoundParameters.ContainsKey('IncludeRule')) { $IncludeRule }
             else { $fileSettings.IncludeRule }
-            $exclude = @($ExcludeRule) + @($fileSettings.ExcludeRule) | Where-Object { $_ }
+            # An explicit -IncludeRule names what to run, so the file's exclusions stand aside for it
+            $exclude = if ($PSBoundParameters.ContainsKey('IncludeRule')) { @($ExcludeRule) }
+            else { @($ExcludeRule) + @($fileSettings.ExcludeRule) }
+            $exclude = @($exclude | Where-Object { $_ })
             $minimum = if ($PSBoundParameters.ContainsKey('MinimumSeverity')) { $MinimumSeverity }
             elseif ($fileSettings.MinimumSeverity) { $fileSettings.MinimumSeverity }
             else { $MinimumSeverity }
@@ -93,7 +96,7 @@ function Test-IntuneScript {
                 })
             # Say what was assumed: the wrong type silently skips whole rule sets. The note obeys
             # the rule filters, so -ExcludeRule IslAssumedContext silences it
-            $noteWanted = $scriptContext.TypeSource -notin 'parameter', 'settings' -and
+            $noteWanted = $scriptContext.TypeSource -notin 'parameter', 'settings', 'directive' -and
                 (Test-RuleSelected -RuleName 'IslAssumedContext' @filters)
             if ($noteWanted) {
                 $findingSplat = @{
@@ -102,7 +105,8 @@ function Test-IntuneScript {
                     Context  = $scriptContext
                     Message  = ("Analyzed as $($scriptContext.ScriptType) ($($scriptContext.TypeSource)), " +
                         "$($scriptContext.Context) context, $($scriptContext.Architecture): the portal " +
-                        'defaults; a deployment through the Graph API or IaC gets 64-bit SYSTEM. Pass ' +
+                        'defaults where nothing said otherwise; a deployment through the Graph API or IaC ' +
+                        'gets 64-bit SYSTEM. Pass ' +
                         "-ScriptType/-Context/-Architecture or add a '# IntuneScriptLab:' " +
                         'directive if that is wrong')
                     Evidence = ('Portal defaults: platform scripts run as the user in 32-bit, remediations ' +

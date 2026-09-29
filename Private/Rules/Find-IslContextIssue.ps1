@@ -61,7 +61,7 @@ function Find-IslContextIssue {
                 Context  = $Context
                 Extent   = $variable.Extent
                 Message  = ("`$$name resolves to the SYSTEM profile (systemprofile), not the signed-in user. " +
-                    "Look the user up (e.g. via explorer.exe''s owner or HKU) or run in user context")
+                    "Look the user up (e.g. via explorer.exe's owner or HKU) or run in user context")
                 Evidence = $evidence
             }
             New-IslFinding @findingSplat

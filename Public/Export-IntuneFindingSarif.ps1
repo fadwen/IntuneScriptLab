@@ -48,14 +48,15 @@ function Export-IntuneFindingSarif {
     }
 
     end {
-        function Get-RelativeUri {
+        function Get-ArtifactLocation {
             param([string]$FilePath)
-            $relative = if ($FilePath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $FilePath.Substring($rootPath.Length).TrimStart('\', '/')
+            if ($FilePath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $relative = $FilePath.Substring($rootPath.Length).TrimStart('\', '/')
+                $segments = $relative -split '[\\/]' | ForEach-Object { [System.Uri]::EscapeDataString($_) }
+                return [ordered]@{ uri = ($segments -join '/'); uriBaseId = '%SRCROOT%' }
             }
-            else { $FilePath }
-            $segments = $relative -split '[\\/]' | ForEach-Object { [System.Uri]::EscapeDataString($_) }
-            $segments -join '/'
+            # Outside the root: an absolute file URI, with no base to resolve against
+            [ordered]@{ uri = ([System.Uri]::new($FilePath)).AbsoluteUri }
         }
 
         $ruleIndex = [ordered]@{}
@@ -63,7 +64,14 @@ function Export-IntuneFindingSarif {
         foreach ($name in @($all | ForEach-Object { $_.RuleName } | Sort-Object -Unique)) {
             $summary = ''
             $description = ''
-            $level = 'warning'
+            # The level of the most severe finding the rule produced in this log; the fixed-table
+            # rules carry their own
+            $rank = @{ note = 0; warning = 1; error = 2 }
+            $level = 'note'
+            foreach ($item in ($all | Where-Object RuleName -eq $name)) {
+                $itemLevel = $levels["$($item.Severity)"]
+                if ($itemLevel -and $rank[$itemLevel] -gt $rank[$level]) { $level = $itemLevel }
+            }
             if ($fixedRules.ContainsKey($name)) {
                 $summary = $fixedRules[$name].Summary
                 $level = $fixedRules[$name].Level
@@ -97,10 +105,7 @@ function Export-IntuneFindingSarif {
                 locations = @(
                     [ordered]@{
                         physicalLocation = [ordered]@{
-                            artifactLocation = [ordered]@{
-                                uri       = Get-RelativeUri -FilePath "$($item.ScriptPath)"
-                                uriBaseId = '%SRCROOT%'
-                            }
+                            artifactLocation = Get-ArtifactLocation -FilePath "$($item.ScriptPath)"
                             region           = $region
                         }
                     }
@@ -135,11 +140,13 @@ function Export-IntuneFindingSarif {
             )
         }
 
-        $folder = Split-Path -Path $Path -Parent
+        # Resolved against the PowerShell location: .NET's current directory is not $PWD
+        $outFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+        $folder = Split-Path -Path $outFile -Parent
         if ($folder) { $null = New-Item -ItemType Directory -Path $folder -Force }
         $json = $log | ConvertTo-Json -Depth 12
-        [System.IO.File]::WriteAllText($Path, $json, [System.Text.UTF8Encoding]::new($false))
-        Write-Verbose "Wrote $($all.Count) result(s) for $($rules.Count) rule(s) to $Path"
-        Get-Item -LiteralPath $Path
+        [System.IO.File]::WriteAllText($outFile, $json, [System.Text.UTF8Encoding]::new($false))
+        Write-Verbose "Wrote $($all.Count) result(s) for $($rules.Count) rule(s) to $outFile"
+        Get-Item -LiteralPath $outFile
     }
 }

@@ -154,22 +154,25 @@ function Compare-IntuneDeployedScript {
         $tenantLines = @($tenantText.Text -split "`r?`n")
         $localTrim = Get-TrimmedLine -Lines @($localLines | ForEach-Object { $_.TrimEnd() })
         $tenantTrim = Get-TrimmedLine -Lines @($tenantLines | ForEach-Object { $_.TrimEnd() })
-        if (($localTrim -join "`n") -ne ($tenantTrim -join "`n")) {
+        if (($localTrim -join "`n") -cne ($tenantTrim -join "`n")) {
             $differences.Add('Content')
             $line = 0
             $limit = [Math]::Min($localTrim.Count, $tenantTrim.Count)
-            while ($line -lt $limit -and $localTrim[$line] -eq $tenantTrim[$line]) { $line++ }
+            while ($line -lt $limit -and $localTrim[$line] -ceq $tenantTrim[$line]) { $line++ }
             $localExcerpt = '<end>'
             if ($line -lt $localTrim.Count) { $localExcerpt = Get-Excerpt -Line $localTrim[$line] }
             $tenantExcerpt = '<end>'
             if ($line -lt $tenantTrim.Count) { $tenantExcerpt = Get-Excerpt -Line $tenantTrim[$line] }
-            $compared = @(Compare-Object -ReferenceObject @($localTrim) -DifferenceObject @($tenantTrim))
+            $compareSplat = @{
+                ReferenceObject = @($localTrim); DifferenceObject = @($tenantTrim); CaseSensitive = $true
+            }
+            $compared = @(Compare-Object @compareSplat)
             $onlyLocal = @($compared | Where-Object SideIndicator -eq '<=').Count
             $onlyTenant = @($compared | Where-Object SideIndicator -eq '=>').Count
             $details.Add(("content differs from line $($line + 1): local '$localExcerpt', tenant " +
                     "'$tenantExcerpt' ($onlyLocal line(s) only local, $onlyTenant only in the tenant)"))
         }
-        elseif (($localLines -join "`n") -ne ($tenantLines -join "`n")) {
+        elseif (($localLines -join "`n") -cne ($tenantLines -join "`n")) {
             $differences.Add('Whitespace')
             $details.Add('only trailing whitespace or blank lines at the end differ')
         }

@@ -6,8 +6,11 @@
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
     Copyright = '(c) 2026 Jeffrey Stuhr. All rights reserved.'
-    # One line, within the repository's 115-character limit; the README carries the long form
-    Description = 'Test Intune scripts before Intune does: static analysis, a runtime harness, Pester assertions'
+    # Two lines, within the repository's 115-character limit; the README carries the long form
+    Description = @'
+Test Intune scripts before Intune does: static rules, a runtime harness, Pester assertions, a Graph
+pre-flight over the tenant's deployed scripts and readers for the agent's logs
+'@
 
     # The analyzer itself runs anywhere. The rules describe Windows PowerShell 5.1 behaviour
     # because that is what the Intune Management Extension runs scripts with.

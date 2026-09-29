@@ -31,6 +31,15 @@ Describe 'Assert-PassIntuneAnalysis' -Tag 'Unit', 'Public' {
             Get-Item $script:Clean | Should-PassIntuneAnalysis
         }
 
+        It 'accepts a pipeline of files, and names the one that fails' {
+            $second = New-TestScript 'Detect-Clean2.ps1' ("if (Test-Path 'C:\x') { Write-Output 'ok'; exit 0 } " +
+                "else { exit 1 }")
+            Get-Item $script:Clean, $second | Should-PassIntuneAnalysis
+            $message = Get-AssertionMessage { $script:Clean, $script:Dirty | Should-PassIntuneAnalysis }
+            $message | Should-BeLikeString '*Detect-Bad.ps1:*'
+            $message | Should-NotBeLikeString '*Detect-Clean.ps1:*'
+        }
+
         It 'limits MinimumSeverity and ScriptType to the analyzer values' {
             $command = Get-Command Assert-PassIntuneAnalysis
             $command.Parameters['MinimumSeverity'].Attributes.ValidValues |

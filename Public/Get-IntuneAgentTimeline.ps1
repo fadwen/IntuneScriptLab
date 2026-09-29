@@ -38,10 +38,14 @@ function Get-IntuneAgentTimeline {
 
     $launches = 'RemediationStart', 'ScriptPolicyStart', 'AppExecution'
     $results = 'RemediationReport', 'DetectionResult', 'ScriptPolicyResult', 'ScriptExit', 'AppReport',
-    'AppInstallOutcome', 'AppDetection', 'AppApplicability', 'EspAppState'
+    'AppInstallOutcome', 'AppRelationshipReport', 'AppDetection', 'AppApplicability', 'EspAppState'
     $kindByLog = @{ HealthScripts = 'Remediation'; AppWorkload = 'Win32App' }
 
-    $timelines = foreach ($group in ($entries | Where-Object { $_.Event -and $_.Id } | Group-Object Id)) {
+    $groups = @($entries | Where-Object { $_.Event -and $_.Id } | Group-Object Id)
+    # -Id keeps every line that mentions an id (a relationship line names two); the timeline is
+    # the one whose own id it is
+    if ($Id) { $groups = @($groups | Where-Object { "$($_.Name)" -in $Id }) }
+    $timelines = foreach ($group in $groups) {
         $steps = @($group.Group | Sort-Object Time, Log, Line | ForEach-Object {
                 [pscustomobject]@{
                     PSTypeName = 'IntuneScriptLab.AgentTimelineStep'

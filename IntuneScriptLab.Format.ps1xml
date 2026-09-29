@@ -298,7 +298,10 @@
                 <PropertyName>Name</PropertyName>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$_.Duration.ToString('hh\:mm\:ss')</ScriptBlock>
+                <ScriptBlock>
+                  if ($_.Duration.Days) { '{0}d {1}' -f $_.Duration.Days, $_.Duration.ToString('hh\:mm\:ss') }
+                  else { $_.Duration.ToString('hh\:mm\:ss') }
+                </ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <PropertyName>Runs</PropertyName>

@@ -158,9 +158,8 @@ function Get-IntuneScriptHealth {
 
         $notes = [System.Collections.Generic.List[string]]::new()
         $health = 'Healthy'
-        $unassigned = @($findings | Where-Object {
-                $_.RuleName -eq 'IslAssignmentIssue' -and $_.Message -like '*never runs anywhere*'
-            }).Count -gt 0
+        # From the assignments themselves, so -SkipAnalysis does not hide it
+        $unassigned = $assignment.Includes -eq 0
         $allFailed = $HasRunState -and $Failed -gt 0 -and $Succeeded -eq 0
         if ($errors) { $notes.Add("$errors error finding(s)") }
         if ($unassigned) { $notes.Add('assigned to nobody') }

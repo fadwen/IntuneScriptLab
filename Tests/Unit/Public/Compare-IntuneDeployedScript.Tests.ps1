@@ -190,6 +190,19 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $orphan.LocalPath | Should-BeLikeString '*Report-Only\Remediate.ps1'
         }
 
+        It 'compares content case-sensitively' {
+            $root = Join-Path $TestDrive 'case'
+            $file = Join-Path $root 'Remediations\Fix-Widget\Detect.ps1'
+            $null = New-Item -ItemType Directory -Path (Split-Path $file -Parent) -Force
+            $upper = $script:Detect -replace 'exit 0', 'EXIT 0'
+            [System.IO.File]::WriteAllBytes($file, (Get-ByteArray -Text $upper -Bom))
+            $results = @(Compare-IntuneDeployedScript -Path $root -Kind Remediation -Name 'Fix-Widget')
+            $detection = Get-Result -Results $results -Policy 'Fix-Widget' -Role 'detection'
+            $detection.State | Should-Be 'Drifted'
+            @($detection.Differences) | Should-BeCollection @('Content')
+            $detection.Detail | Should-BeLikeString 'content differs from line 2*'
+        }
+
         It 'reports two local candidates as Ambiguous' {
             $dup = $script:Results | Where-Object PolicyName -eq 'Dup'
             $dup.State | Should-Be 'Ambiguous'

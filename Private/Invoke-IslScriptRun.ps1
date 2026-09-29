@@ -52,7 +52,7 @@ function Invoke-IslScriptRun {
     )
 
     $hostInfo = Get-IslHostPath -Architecture $Architecture
-    $source = (Resolve-Path -LiteralPath $Path).ProviderPath
+    $source = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
 
     # Like IMECache: the script runs from a copy, so $PSScriptRoot is not the source folder
     $runId = [guid]::NewGuid().ToString('N')

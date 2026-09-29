@@ -27,7 +27,7 @@ function Repair-IntuneScript {
             foreach ($resolved in (Resolve-Path -Path $item -ErrorAction Stop)) {
                 if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                     Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
-                        ForEach-Object FullName
+                        ForEach-Object { $_.FullName }
                 }
                 else { $resolved.ProviderPath }
             }
@@ -55,7 +55,16 @@ function Repair-IntuneScript {
                     $bytes[2] -eq 0xBF) {
                     [System.Text.UTF8Encoding]::new($true)
                 }
-                else { [System.Text.UTF8Encoding]::new($false) }
+                else {
+                    # No BOM: UTF-8 when the bytes decode as such, otherwise the ANSI code page
+                    # Windows PowerShell 5.1 reads it in (a UTF-8 decode would turn every non-ASCII
+                    # character into U+FFFD and lose it for good)
+                    try {
+                        $null = [System.Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+                        [System.Text.UTF8Encoding]::new($false)
+                    }
+                    catch { Get-IslOemEncoding -Kind ANSI }
+                }
                 $text = $encoding.GetString($bytes).TrimStart([char]0xFEFF)
                 $lineStarts = [System.Collections.Generic.List[int]]::new()
                 $lineStarts.Add(0)

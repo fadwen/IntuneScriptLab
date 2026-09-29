@@ -58,6 +58,12 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
             $result.PSObject.TypeNames | Should-ContainCollection 'IntuneScriptLab.RunResult'
         }
 
+        It 'throws for a script that does not exist instead of running nothing' {
+            $missing = Join-Path $TestDrive 'nowhere.ps1'
+            { Invoke-ScriptRun @{ Path = $missing; Architecture = 'x86' } } | Should-Throw
+            Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
         It 'removes the cache copy after the run' {
             $result = Invoke-ScriptRun @{ Path = $script:Script; Architecture = 'x86' }
             $workFolder = ($result.StdOut -split '\|')[3]

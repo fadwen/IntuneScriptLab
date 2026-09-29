@@ -366,14 +366,16 @@ function Test-IntuneDeployedScript {
                 if ("$($app.installExperience.runAsAccount)" -eq 'user') {
                     $deviceGroups = foreach ($assignment in @($app.assignments)) {
                         $target = $assignment.target
-                        if ("$($target.'@odata.type')" -ne '#microsoft.graph.groupAssignmentTarget') { continue }
+                        $type = "$($target.'@odata.type')"
+                        if ($type -eq '#microsoft.graph.allDevicesAssignmentTarget') { 'all devices'; continue }
+                        if ($type -ne '#microsoft.graph.groupAssignmentTarget') { continue }
                         if (Test-DeviceGroup -GroupId "$($target.groupId)") { "$($target.groupId)" }
                     }
                     if ($deviceGroups) {
                         $assignmentSplat = @{
                             PolicyKind = 'Win32App'; Policy = $app; Rule = 'IslAssignmentIssue'
                             Severity   = 'Warning'
-                            Message    = 'Install behavior User, assigned to a group of devices ' +
+                            Message    = 'Install behavior User, assigned to devices ' +
                                 "($($deviceGroups -join ', ')): the app is never installed there. Assign " +
                                 'it to users'
                             Evidence   = 'A user-context app assigned to a device group was never installed ' +

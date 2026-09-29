@@ -14,9 +14,9 @@ Remediations and platform scripts default to the 32-bit host in the portal (Win3
 | Severity | Message | Evidence |
 |---|---|---|
 | Information or Warning | HKLM:\SOFTWARE is redirected to HKLM:\SOFTWARE\WOW6432Node in the 32-bit host<value>. Run the script in 64-bit or open the key with RegistryView.Registry64 | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
-| Information or Warning | 'Program Files' resolves to 'Program Files (x86)' via the 32-bit environment<value>. Use <value> or run in 64-bit | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
+| Information or Warning | 'Program Files' resolves to 'Program Files (x86)' via the 32-bit environment<value>. Use ${env:ProgramW6432} or run in 64-bit | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
 | Information or Warning | System32 is redirected to SysWOW64 in the 32-bit host<value>. Use Sysnative or run in 64-bit | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
-| Information or Warning | <value> is 'Program Files (x86)' in the 32-bit host<value>. Use <value> for the 64-bit folder | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
+| Information or Warning | $env:ProgramFiles is 'Program Files (x86)' in the 32-bit host<value>. Use $env:ProgramW6432 for the 64-bit folder | runAs32Bit launched C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe with Is64BitProcess=False (PS-PROBE-SYS32, REM-PROBE-SYS32, W32-DET-32) |
 | Warning | Sysnative only exists for 32-bit processes; in the 64-bit host the path does not exist | 64-bit host observed: System32\WindowsPowerShell\v1.0\powershell.exe, Is64BitProcess=True (PS-PROBE-SYS64); on ARM64 the native host has no Sysnative either (local survey) |
 
 Experiments: PS-PROBE-SYS32, PS-PROBE-SYS64, REM-PROBE-SYS32, W32-DET-32
@@ -31,7 +31,7 @@ On an ARM64 device the native host reports PROCESSOR_ARCHITECTURE=ARM64 (and the
 |---|---|---|
 | Warning | 'AMD64' does not match on Windows on ARM (the value is ARM64), so a 64-bit check built on it takes the 32-bit branch. Test [Environment]::Is64BitProcess or match 'ARM64\|AMD64' | Windows 11 ARM64 host survey: System32 PowerShell is native ARM64 (PROCESSOR_ARCHITECTURE=ARM64, Is64BitProcess=True), SysWOW64 is x86 (PROCESSOR_ARCHITEW6432=ARM64), Program Files (Arm) exists, no x64 PowerShell host |
 | Information | x64-specific package: on an ARM64 device this installs the emulated x64 build, or fails if the installer checks the CPU. Prefer an ARM64 or architecture-neutral package when one exists | Windows 11 ARM64 host survey: System32 PowerShell is native ARM64 (PROCESSOR_ARCHITECTURE=ARM64, Is64BitProcess=True), SysWOW64 is x86 (PROCESSOR_ARCHITEW6432=ARM64), Program Files (Arm) exists, no x64 PowerShell host |
-| Information | Program Files (x86) is checked but not 'Program Files (Arm)', where ARM64 devices can keep 32-bit ARM apps (<value>) | Windows 11 ARM64 host survey: System32 PowerShell is native ARM64 (PROCESSOR_ARCHITECTURE=ARM64, Is64BitProcess=True), SysWOW64 is x86 (PROCESSOR_ARCHITEW6432=ARM64), Program Files (Arm) exists, no x64 PowerShell host |
+| Information | Program Files (x86) is checked but not 'Program Files (Arm)', where ARM64 devices can keep 32-bit ARM apps (${env:ProgramFiles(Arm)}) | Windows 11 ARM64 host survey: System32 PowerShell is native ARM64 (PROCESSOR_ARCHITECTURE=ARM64, Is64BitProcess=True), SysWOW64 is x86 (PROCESSOR_ARCHITEW6432=ARM64), Program Files (Arm) exists, no x64 PowerShell host |
 
 ## IslContextIssue
 
@@ -42,7 +42,7 @@ As SYSTEM, HKCU: is the SYSTEM account's own hive, USERPROFILE is C:\WINDOWS\sys
 | Severity | Message | Evidence |
 |---|---|---|
 | Error | HKCU: under SYSTEM is the SYSTEM account's hive, not the signed-in user's. Load the user's hive via HKU\<SID> or run the script in user context | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
-| Error | $<value> resolves to the SYSTEM profile (systemprofile), not the signed-in user. Look the user up (e.g. via explorer.exe''s owner or HKU) or run in user context | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
+| Error | $<value> resolves to the SYSTEM profile (systemprofile), not the signed-in user. Look the user up (e.g. via explorer.exe's owner or HKU) or run in user context | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
 | Information | $<value> is C:\WINDOWS\TEMP under SYSTEM, which is fine if that is what you expect | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
 | Error | GetFolderPath for a per-user folder returns the SYSTEM profile's folder under SYSTEM | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
 | Warning | Drive <value> is not mapped for SYSTEM; mapped drives belong to the user session. Use a UNC path and make sure the computer account can reach it | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
@@ -62,6 +62,7 @@ Intune delivers the script bytes unchanged. Without a UTF-8 BOM, Windows PowerSh
 |---|---|---|
 | Warning | File is UTF-16. Intune expects UTF-8; save as UTF-8 with BOM | Microsoft Learn: "Ensure the scripts are encoded in UTF-8"; files are delivered byte-for-byte |
 | Warning | Non-ASCII characters in a UTF-8 file without a BOM: Windows PowerShell 5.1 decodes it as ANSI and corrupts them. Save as UTF-8 with BOM | Same bytes uploaded with and without BOM: without, the literal "Grüße — ✓" ran as "GrÃ¼ÃŸe â€" âœ"" (REM-ENC-BOM vs REM-PROBE-SYS64) |
+| Information | Non-ASCII bytes that are not UTF-8 (an ANSI code page): Windows PowerShell 5.1 reads the file as ANSI, but Intune expects UTF-8 and other tooling reads it as such. Save as UTF-8 with BOM | Microsoft Learn: "Ensure the scripts are encoded in UTF-8"; Windows PowerShell reads a file without a BOM in the system ANSI code page (about_Character_Encoding) |
 | Information | Non-ASCII text in output is mangled on the way to Intune (OEM code page); keep reported output ASCII | With a BOM the script ran correctly, but Intune reported "Grüße - √" for "Grüße — ✓" (REM-ENC-BOM) |
 
 Experiments: REM-ENC-BOM, REM-PROBE-SYS64
@@ -109,7 +110,7 @@ The agent launches powershell.exe with -NoProfile -ExecutionPolicy Bypass -File 
 |---|---|---|
 | Error | <value> waits for input that never comes; the script hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
 | Error | <value>.<value>() waits for input; the script hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
-| Warning | <value> can prompt for confirmation (or to trust a repository); add -Force / -Confirm:<value> or it hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
+| Warning | <value> can prompt for confirmation (or to trust a repository); add -Force / -Confirm:$false or it hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
 
 Experiments: PS-PROBE-SYS64, REM-PROBE-SYS64
 
@@ -200,8 +201,8 @@ The working directory is not the script's folder. SYSTEM scripts start in C:\WIN
 
 | Severity | Message | Evidence |
 |---|---|---|
-| Warning | Relative path '<value>' resolves against an unpredictable working directory. Anchor it to <value> or use a full path | cwd was C:\WINDOWS\system32 for SYSTEM scripts, the content folder for Win32 installs, and once an old IMECache folder for a user script (PS-PROBE-USER) |
-| Information | <value> is not the script folder under Intune; use <value> for files shipped with the script | cwd was C:\WINDOWS\system32 for SYSTEM scripts, the content folder for Win32 installs, and once an old IMECache folder for a user script (PS-PROBE-USER) |
+| Warning | Relative path '<value>' resolves against an unpredictable working directory. Anchor it to $PSScriptRoot or use a full path | cwd was C:\WINDOWS\system32 for SYSTEM scripts, the content folder for Win32 installs, and once an old IMECache folder for a user script (PS-PROBE-USER) |
+| Information | $PWD is not the script folder under Intune; use $PSScriptRoot for files shipped with the script | cwd was C:\WINDOWS\system32 for SYSTEM scripts, the content folder for Win32 installs, and once an old IMECache folder for a user script (PS-PROBE-USER) |
 
 Experiments: PS-PROBE-USER
 
@@ -213,8 +214,8 @@ Microsoft Learn puts the limit for remediation and platform scripts at 200 KB. T
 
 | Severity | Message | Evidence |
 |---|---|---|
-| Error | The file is <value> KB; the service refused a <value> of <value> KB, so this one cannot be uploaded. Split it or move the bulk into content the script downloads | Microsoft Learn: "must be less than 200 KB"; the Graph API accepted a 504 KB remediation and a 660 KB platform script and refused 512 KB and 680 KB; a 250 KB remediation and a 500 KB platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB) |
-| Warning | The file is <value> KB, over the documented 200 KB limit. The API took a <value> of up to <value> KB and the device ran one this size, but the portal and other tooling may hold to 200 KB | Microsoft Learn: "must be less than 200 KB"; the Graph API accepted a 504 KB remediation and a 660 KB platform script and refused 512 KB and 680 KB; a 250 KB remediation and a 500 KB platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB) |
+| Error | The file is <value> KB; the service refused a <value> of <value> KB, so this one cannot be uploaded. Split it or move the bulk into content the script downloads | Microsoft Learn: "must be less than 200 KB"; the Graph API accepted a 504 KB remediation and a 660 KB platform script and refused 512 KB and 680 KB; a 250 KB remediation and a 500 KB platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB); Win32 detection and requirement scripts were not measured, the remediation limits are assumed |
+| Warning | The file is <value> KB, over the documented 200 KB limit. The API took a <value> of up to <value> KB and the device ran one this size, but the portal and other tooling may hold to 200 KB | Microsoft Learn: "must be less than 200 KB"; the Graph API accepted a 504 KB remediation and a 660 KB platform script and refused 512 KB and 680 KB; a 250 KB remediation and a 500 KB platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB); Win32 detection and requirement scripts were not measured, the remediation limits are assumed |
 
 Experiments: PS-SIZE-500KB, REM-SIZE-250KB
 
