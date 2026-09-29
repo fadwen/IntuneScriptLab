@@ -17,7 +17,7 @@ LONG DESCRIPTION
     EVIDENCE
 
     Every rule, warning and verdict in the module is backed by an observation recorded in the
-    validation kit's Findings (Validation\Findings.md next to the module): a documented behaviour
+    validation kit's Findings (Validation\Findings.md in the repository): a documented behaviour
     checked against a real Entra joined or registered device, or an undocumented one measured there.
     Each finding carries an Evidence string ending in experiment ids such as REM-EXIT-2 or
     W32-DET-NOOUT; those are the names in Validation\Experiments.psd1, and the script body that ran
@@ -62,8 +62,12 @@ LONG DESCRIPTION
                                      the last line, the detection state, the install outcome.
                                      -Context System runs as SYSTEM; -Credential runs as another
                                      account, in its session when it has one.
-        Test-IntuneWin32Rule         A file, registry, MSI or script detection or requirement rule
-        Test-IntuneWin32Requirement  against this device, with the agent's own semantics.
+        Test-IntuneWin32Rule         A file, registry or MSI detection or requirement rule against
+                                     this device, with the agent's own semantics (a script rule is
+                                     Invoke-IntuneDetectionTest's job).
+        Test-IntuneWin32Requirement  The base requirements (architecture, OS version, disk, memory,
+                                     processors) against this device, with the portal's texts and
+                                     applicability codes.
         Test-IntuneAssignmentFilter  An assignment filter rule against this device or a described
                                      one, with the service's syntax and matching.
 
@@ -107,7 +111,8 @@ LONG DESCRIPTION
 
     THE VALIDATION KIT
 
-    The Validation folder next to the module holds the experiments (Experiments.psd1), the driver
+    The Validation folder in the repository (not in the Gallery package) holds the experiments
+    (Experiments.psd1), the driver
     that deploys and collects them (Invoke-ValidationRound.ps1), the probes and helpers, and
     Findings.md, the documented-versus-observed record every rule cites. Run a round against your
     own tenant and test device to re-check the observations, or add an experiment to answer a new

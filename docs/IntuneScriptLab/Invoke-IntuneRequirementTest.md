@@ -34,7 +34,8 @@ requirement rule (Windows PowerShell 5.1 in the chosen host, -NoProfile -Executi
 Bypass -File, working directory C:\WINDOWS\system32, a copy of the script, OEM output) and
 evaluates the rule as the agent was observed to: only on exit 0 with nothing on stderr; the
 whole console output minus its final line break is the value (Write-Host counts; a second line
-or trailing spaces never match); string comparison ignores case; Integer,
+never matches, and for a String rule neither do trailing spaces; the typed rules trim
+first); string comparison ignores case; Integer,
 Float, Version, Boolean and DateTime outputs are parsed as that type, and an output that
 does not parse fails the rule.
 
@@ -69,7 +70,8 @@ As SYSTEM from an elevated session, inside a Pester test.
 ### -Architecture
 
 Host to run in: x64 (the default for requirement rules), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device.
+option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
+x64 default is refused there: pass arm64, the host the agent uses on ARM64.
 
 ```yaml
 Type: System.String
@@ -259,7 +261,7 @@ This command does not accept pipeline input. Pass the script path with -Path.
 
 ### IntuneScriptLab.RequirementResult
 
-Applicable, Reason, Output (the text the rule compared), ExitCode, StdOut, StdErr, TimedOut, Duration, OutputType, Operator, Value, Architecture, Context, Host and ScriptPath.
+Applicable, Reason, Output (the text the rule compared), ExitCode, StdOut, StdErr, TimedOut, Duration, OutputType, Operator, Value, RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath.
 
 ## NOTES
 

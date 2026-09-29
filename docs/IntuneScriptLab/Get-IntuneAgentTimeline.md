@@ -30,14 +30,16 @@ Get-IntuneAgentTimeline [[-Path] <string[]>] [-Log <string[]>] [-Id <string[]>] 
 
 Reads the agent's logs through Get-IntuneAgentLog, keeps the lines the event table names and
 groups them by the policy or app id they carry, so one object tells the story of one
-remediation, platform script or Win32 app: when the agent fetched it, queued it, ran it, what
-the detection said and what it reported, in order, with the time between the first and the
-last step.
+remediation, platform script or Win32 app: when the agent inspected its schedule or
+applicability, launched it, what the detection said and what it reported, in order, with the
+time between the first and the last step. A line that carries no id (the queue notice, an
+install exit code, AgentExecutor's own lines) belongs to no timeline.
 Win32 apps are named from the policy list the agent logs; scripts show the id.
 
 Outcome is the last result the agent logged for the id: a remediation's report result
 (Result 4 fixed, 3 failed, 2 nothing to fix, per the validation rounds), a platform script's
-policy result, an app's reported state or install outcome.
+policy result, an app's reported state or relationship report, detection, applicability or
+Enrollment Status Page state.
 Runs counts the launches
 (remediation starts, script policy starts, app executions).
 Steps holds every event with its
@@ -65,7 +67,7 @@ Step by step for one policy.
 ### EXAMPLE 3
 
 Get-IntuneAgentTimeline -Path .\Logs -After (Get-Date).AddHours(-1) |
-    Where-Object Outcome -like 'AppReport*' | Select-Object Name, Outcome, Summary
+    Where-Object Outcome -like 'App*Report*' | Select-Object Name, Outcome, Summary
 
 The apps a copied log folder shows in the last hour, by name, with their reported states.
 
@@ -115,7 +117,7 @@ HelpMessage: ''
 
 ### -Id
 
-Only the timelines of these policy or app ids.
+Only the timelines whose own id is one of these. A line that merely mentions the id (a relationship report names two apps) does not add another timeline.
 
 ```yaml
 Type: System.String[]

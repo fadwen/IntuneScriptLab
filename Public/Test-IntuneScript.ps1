@@ -86,7 +86,10 @@ function Test-IntuneScript {
                 Architecture = $Architecture
                 Settings     = $fileSettings
             }
-            if ($EnforceSignatureCheck) { $scriptContextSplat.EnforceSignatureCheck = 'True' }
+            # Bound either way it is explicit: the pre-flight passes the policy's own false value
+            if ($PSBoundParameters.ContainsKey('EnforceSignatureCheck')) {
+                $scriptContextSplat.EnforceSignatureCheck = if ($EnforceSignatureCheck) { 'True' } else { 'False' }
+            }
             $scriptContext = Get-IslScriptContext @scriptContextSplat
             Write-Verbose ("$file : $($scriptContext.ScriptType) ($($scriptContext.TypeSource)), " +
                 "$($scriptContext.Context), $($scriptContext.Architecture)")

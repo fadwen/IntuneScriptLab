@@ -44,8 +44,9 @@ and Win32 app the tenant has, one object with:
   gone from Graph);
 - a Health verdict with its reasons: Broken when a finding is an Error, when the policy is
   assigned to nobody, or when every device that ran it failed; Attention when there are
-  Warnings, failures, a remediation whose issue stays detected, drift, or an assigned policy
-  that no device has reported on yet; Healthy otherwise.
+  Warnings, failures, a remediation whose issue stays detected, drift (Drifted, Missing or
+  Ambiguous), devices the policy was not applicable to, or an assigned policy that no device
+  has reported on yet; Healthy otherwise.
 
 Intune's run states lag the device: a remediation's result reached Graph up to an hour after
 the device ran it in the validation rounds, platform script and app states within minutes
@@ -237,7 +238,7 @@ HelpMessage: ''
 
 ### -SkipAnalysis
 
-Leave the script rules out: Errors and Warnings stay empty and do not weigh on Health.
+Leave the script rules out: Errors and Warnings are 0 and do not weigh on Health; the assignment check still does.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -319,7 +320,7 @@ The command takes no pipeline input.
 
 One object per policy: Kind, PolicyName, PolicyId, Context (system, user, or the app's install
 context), Assigned (include targets, with a note for exclusions and filters), LastModified,
-Errors, Warnings, Findings (the objects behind the counts), Drift and DriftDetail, Succeeded,
+Errors, Warnings, Findings (the objects behind the counts), Drift (InSync, Drifted, Missing, Ambiguous, NotInTenant, NoScript for a policy that carries no script, or empty without -Path) and DriftDetail, Succeeded,
 Failed, Detected (remediations: issue detected or back, not fixed), Pending, LastRun,
 Health (Healthy, Attention, Broken) and Notes.
 

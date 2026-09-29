@@ -49,14 +49,15 @@ Statuses:
     Not detected after install
                              install returned a success code but detection still fails,
                              Intune's 0x87D1041C "app installed but not detected"
-    Install failed           exit code not in the success/reboot/retry codes
+    Install failed (exit N)  exit code not in the success/reboot/retry codes
     Retry                    exit code mapped to retry (Intune retries 3 times, 5 min apart)
     Not installed            intent Uninstall and nothing was detected, so nothing ran
     Uninstalled              the uninstall command succeeded and the post-detection no longer
                              reports the app (W32-UNINSTALL: Intune shows "Not installed")
     Still detected after uninstall
                              the uninstall command succeeded but the detection still says installed
-    Uninstall failed         uninstall exit code not in the success/reboot/retry codes
+    Uninstall failed (exit N)
+                             uninstall exit code not in the success/reboot/retry codes
     Not installed (dependency)
                              a dependency was not detected and could not be installed (a detect
                              dependency, a missing install command, or a failed install), so this
@@ -142,7 +143,7 @@ package is uninstalled if it is present, then the app installs.
 
 ### -Architecture
 
-Host for the detection script: x64 (Intune default), x86, or arm64.
+Host for the detection script: x64 (Intune default), x86, or arm64. A Windows on ARM device has no x64 host, so a -DetectionPath with the x64 default is refused there: pass arm64.
 
 ```yaml
 Type: System.String
@@ -209,7 +210,7 @@ HelpMessage: ''
 
 ### -Credential
 
-Run every launch (detection and requirement scripts, dependencies, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
+Run every launch (the detection script, the related apps' detections, the install or uninstall command) as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0; the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
 
 ```yaml
 Type: System.Management.Automation.PSCredential
@@ -522,7 +523,7 @@ This command does not accept pipeline input. Pass the paths, rules and commands 
 
 ### IntuneScriptLab.Win32AppResult
 
-Status (Installed, Installed after install, Not detected after install, Install failed (exit n), Retry, Not installed, Not installed (dependency), Uninstalled, Still detected after uninstall, Uninstall failed (exit n) or TimedOut), Intent, the PreDetection and PostDetection script results, PreRules and PostRules (one IntuneScriptLab.RuleResult per detection rule), Dependencies and Superseded (one IntuneScriptLab.Win32RelatedResult per related app, with Name, Relationship, Status and its own detections, rules and install or uninstall run), the Install or Uninstall run (command, exit code, output), Warnings, Architecture and Context.
+Status (Installed, Installed after install, Not detected after install, Install failed (exit n), Retry, Not installed, Not installed (dependency), Uninstalled, Still detected after uninstall, Uninstall failed (exit n) or TimedOut), Intent, the PreDetection and PostDetection script results, PreRules and PostRules (one IntuneScriptLab.RuleResult per detection rule), Dependencies and Superseded (one IntuneScriptLab.Win32RelatedResult per related app, with Name, Relationship, Status and its own detections, rules and install or uninstall run), the Install or Uninstall run (command, exit code, output), Warnings, RunAs (the account and logon type the launches ran as), Architecture and Context.
 
 ## NOTES
 

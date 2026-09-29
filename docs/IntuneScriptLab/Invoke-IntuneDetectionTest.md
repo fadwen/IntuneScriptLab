@@ -68,7 +68,8 @@ Inside a Pester test.
 ### -Architecture
 
 Host to run in: x64 (Intune's default for Win32 detection), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device.
+option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
+x64 default is refused there: pass arm64, the host the agent uses on ARM64.
 
 ```yaml
 Type: System.String
@@ -216,7 +217,7 @@ This command does not accept pipeline input. Pass the script path with -Path.
 
 ### IntuneScriptLab.DetectionResult
 
-Detected, Reason, ExitCode, StdOut, StdErr, TimedOut, Duration, SignatureStatus (with -EnforceSignatureCheck), Architecture, Context, Host and ScriptPath. Detected is true only for exit 0 with stdout and no stderr, which is the rule Intune applies.
+Detected, Reason, ExitCode, StdOut, StdErr, TimedOut, Duration, SignatureStatus (filled with -EnforceSignatureCheck, empty otherwise), RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath. Detected is true only for exit 0 with stdout and no stderr, which is the rule Intune applies.
 
 ## NOTES
 

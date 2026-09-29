@@ -406,7 +406,7 @@ This command does not accept pipeline input. Pass the rule as parameters or as a
 
 ### IntuneScriptLab.RuleResult
 
-Met, Kind (File, Registry or ProductCode), RuleType (Detection or Requirement), Target (the path, key or product code), Operation, Operator, Value, Actual (what was read from the device), Check32BitOn64System and Reason, which names the experiment the behaviour comes from.
+Met, Kind (File, Registry or ProductCode), RuleType (Detection or Requirement), Target (the path, key or product code), Operation, Operator, Value, Actual (what was read from the device), Check32BitOn64System and Reason, which says what was read and, where the agent behaves other than documented, names the experiment.
 
 ## NOTES
 

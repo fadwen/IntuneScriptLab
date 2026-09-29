@@ -35,8 +35,9 @@ behaviour-preserving edit:
                        'return' turns into 'exit 0', 'return <value>' into '<value>; exit 0'.
                        The script does the same as before, and now says so; whether that
                        exit should have been 1 is still the author's call
-    IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, or a UTF-16
-                       file, is rewritten as UTF-8 with a BOM, the encoding Intune expects
+    IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, a UTF-16 file
+                       or an ANSI file (read in the system ANSI code page, so its characters
+                       survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects
     IslOutputIssue     a requirement script's output literal with leading or trailing
                        whitespace is trimmed, so it can match the portal value
 
@@ -237,7 +238,7 @@ Paths, or objects with a FullName property such as the FileInfo objects Get-Chil
 
 ### IntuneScriptLab.Repair
 
-One per script: Path, Applied (fixes made), Remaining (findings still reported afterwards), Written (whether the file changed; false under -WhatIf) and Fixes, one IntuneScriptLab.Fix per edit with RuleName, Line (0 for the encoding), Before and After.
+One per script: Path, Applied (fixes made, or that would be made under -WhatIf), Remaining (findings still reported after the fixes; under -WhatIf, the findings minus the fixes), Written (whether the file changed; false under -WhatIf) and Fixes, one IntuneScriptLab.Fix per edit with RuleName, Line (0 for the encoding), Before and After.
 
 ## NOTES
 

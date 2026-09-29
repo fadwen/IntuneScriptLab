@@ -191,7 +191,7 @@ This command does not accept pipeline input. Pass the script path with -Path.
 
 ### IntuneScriptLab.PlatformScriptResult
 
-RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), Architecture, Context, Host and ScriptPath.
+RunState (Success, Failed or TimedOut), ExitCode, ResultMessage (stdout and stderr as the portal shows them), StdOut, StdErr, TimedOut, Duration, Warnings (on a failure, what Intune does next: three runs in total at policy fetches, then Failed for good), RunAs (the account and logon type the script ran as), Architecture, Context, Host and ScriptPath.
 
 ## NOTES
 

@@ -35,6 +35,9 @@ again.
 The status follows what the device recorded:
 
     Without issues  detection exited 0, remediation skipped
+    Issue detected (no remediation script)
+                    detection non-zero with no -RemediationPath, as a detect-only
+                    remediation records it
     Fixed           detection non-zero, remediation 0, post-detection 0
     Recurred        detection non-zero, remediation 0, post-detection still non-zero
     Failed          remediation exited non-zero (post-detection skipped)
@@ -227,7 +230,7 @@ This command does not accept pipeline input. Pass the scripts with -DetectionPat
 
 ### IntuneScriptLab.RemediationResult
 
-Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput and IntuneError (the last line of each stream, 2,048-character tail, as the portal reports them), RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, Architecture, Context and Host.
+Status (Without issues, Issue detected (no remediation script), Fixed, Recurred, Failed or TimedOut), IntuneOutput (the pre-detection's last stdout line) and IntuneError (its stderr text), each cut to its last 2,048 characters as the portal reports them, RemediationOutput, PostOutput, the PreDetection, Remediation and PostDetection runs, Warnings, RunAs (the account and logon type the scripts ran as), Architecture, Context and Host.
 
 ## NOTES
 

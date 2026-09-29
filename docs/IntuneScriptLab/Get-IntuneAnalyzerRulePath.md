@@ -60,10 +60,11 @@ Only the IntuneScriptLab rules, without the note about the assumed script type.
 
 ### EXAMPLE 3
 
-@{ CustomRulePath = Get-IntuneAnalyzerRulePath; IncludeDefaultRules = $true } |
-    ConvertTo-Json
+$rules = Get-IntuneAnalyzerRulePath
+"@{ CustomRulePath = '$rules'; IncludeDefaultRules = `$true }" |
+    Set-Content .\PSScriptAnalyzerSettings.psd1
 
-The values for a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.
+Writes a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.
 
 ## PARAMETERS
 

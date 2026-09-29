@@ -28,8 +28,9 @@ Assert-PassIntuneAnalysis [[-Actual] <Object>] [-MinimumSeverity <string>] [-Scr
 
 ## DESCRIPTION
 
-Runs Test-IntuneScript on the path and fails with the list of findings, each with its line,
-severity, rule and message, so the test output is the fix list.
+Runs Test-IntuneScript on the path, folder or pipeline of files and fails with the list of
+findings, each with its file, line, severity, rule and message, so the test output is the fix
+list. The IslAssumedContext note is never counted.
 
 ## EXAMPLES
 

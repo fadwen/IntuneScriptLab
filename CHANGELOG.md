@@ -13,6 +13,78 @@ release notes.
 
 Nothing yet.
 
+## [0.26.0] - 2026-09-28
+
+Every claim the module makes, in its README, help, about topic, rule reference, examples and
+changelog, was checked against the code and by running it. What follows is what did not hold.
+
+### Fixed
+
+- **`-Settings` never reached the analysis.** `Test-IntuneDeployedScript` and
+  `Compare-IntuneDeployedScript` overwrote their `Settings` parameter with a body-level
+  `$settings` hashtable (variable names are case-insensitive) and then tested
+  `$PSBoundParameters` inside a nested function, where it is that function's own. The
+  pre-flight ran its normal settings-file search instead, and the drift compare ignored the
+  hashtable. `Get-IntuneScriptHealth` forwarded the parameter to both, so it lost it too.
+- **`-Id` on its own selected every policy** in the three Graph commands, because `-Name`
+  defaults to `*` and selection was name or id. `-Id` alone now selects by id.
+- **`Repair-IntuneScript -Path <folder> -WhatIf` returned nothing.** The folder was enumerated
+  through `ForEach-Object -MemberName`, which honours `-WhatIf`. `Test-IntuneScript` had the
+  same construct and returned no findings for a folder while `$WhatIfPreference` was set.
+- **The encoding fix corrupted ANSI files.** A BOM-less file that was not UTF-8 was decoded as
+  UTF-8 and written back with every non-ASCII character replaced by U+FFFD. Repair now reads
+  such a file in the system ANSI code page, and `IslEncodingIssue` reports it as ANSI
+  (Information) rather than as UTF-8 without a BOM.
+- **A type declared in a directive earned the assumed-context note** and was called a portal
+  default. A directive is a declaration; the note is for inferred types only.
+- **A settings file's `ExcludeRule` beat an explicit `-IncludeRule`.** An explicit include now
+  sets the file's exclusions aside; `-ExcludeRule` still adds to them.
+- **`Should-PassIntuneAnalysis` failed on a pipeline of files**, joining their paths into one.
+  It now analyzes every file and names the ones that fail.
+- **SARIF:** every rule was given the level `warning`; it now carries the level of the most
+  severe finding it produced in the log. A finding outside `-Root` was written as an escaped
+  relative URI under the root; it is now an absolute file URI. A relative `-Path` was resolved
+  against the process directory, as was `Get-IntuneScriptHealth -MarkdownPath`.
+- **A missing script path** made the harness return a result with a made-up exit code instead
+  of an error.
+- **`Get-IntuneAgentTimeline -Id`** returned every timeline whose lines mentioned the id (a
+  relationship report names two apps); it now returns the timeline whose own id it is. A
+  relationship report is an outcome.
+- **`Compare-IntuneDeployedScript`** compared content without regard to case, so a change in
+  letter case only came back as "the bytes differ outside the UTF-8 text".
+- **A user-context Win32 app assigned to All devices** was not flagged, only one assigned to a
+  device group.
+- **`Get-IntuneScriptHealth -SkipAnalysis`** called an unassigned policy Healthy, because the
+  check read a finding. It now reads the assignments.
+- **`IslFilterIssue`** called `-ne` and `-notIn` with a value no device reports "never matches";
+  such a clause matches every device, and is reported so, as Information.
+- **`IslInteractiveCall`** took a bare `-Confirm`, which forces the prompt, as silencing it.
+- **`IslOutputIssue`** took `$ErrorActionPreference = 'Stop'` as guarding a probing cmdlet;
+  Stop puts the miss on stderr, which is the failure the rule warns about.
+- **`IslPowerShell7Syntax`** reported a `using module` the parser could not find as PowerShell 7
+  syntax, and listed `Get-Process -CommandLine` and `New-TemporaryFile -Extension`, which exist
+  on neither host.
+- **`IslScriptSize`** called Win32 detection and requirement scripts remediations; it now names
+  them and says the remediation limits are assumed for them, since only remediations and
+  platform scripts were measured.
+- **`Test-IntuneScript -EnforceSignatureCheck:$false`** was not explicit, so a tenant script's
+  own directive could turn the check on under the pre-flight.
+- A typo in the `IslContextIssue` message; the AgentTimeline `Duration` column dropped days;
+  the workflow template's runtime job did not split a comma-separated `SCRIPT_PATHS`.
+
+### Changed
+
+- The rule reference keeps literal names such as `$PSScriptRoot` in a message instead of
+  replacing them with `<value>`.
+- The manifest description names the whole module; the README's links into the repository are
+  absolute, since the README ships in the package and `docs/` and `Validation/` do not.
+- Help corrections throughout: what each result carries (`RunAs`, `IntuneError` as the stderr
+  tail, `SignatureStatus` always present), the complete status lists, the events
+  `Get-IntuneAgentLog` names, the Id rule, what `-SkipRegistry` leaves out, the ARM64 note on
+  the x64 default, the base requirements `Test-IntuneWin32Requirement` covers, how names are
+  matched and which local files count as `NotInTenant`, the Attention rules, and the
+  `Applied` count under `-WhatIf`.
+
 ## [0.25.0] - 2026-09-28
 
 The first release from this repository, and the first published to the PowerShell Gallery.
@@ -280,5 +352,6 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/fadwen/IntuneScriptLab/releases/tag/v0.25.0
