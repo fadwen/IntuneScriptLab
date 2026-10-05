@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.26.0'
+    ModuleVersion = '0.27.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,19 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.27.0 - Harness: a user-context run started from PowerShell 7 gave the 5.1 host PowerShell 7's
+        module path (no Cert: drive, Security cmdlets failing to load); -Credential did not find
+        a Microsoft Entra account's session, because Windows names such an account after its
+        display name and not its sign-in name; a refused folder grant lost its message under
+        -ErrorAction Stop on 5.1. Rules, from a tenth validation round: IslPowerShell7Syntax says
+        that a 7-only cmdlet, parameter or -Parallel fails where it stands and the script carries
+        on, and flags Out-File -Encoding utf8NoBOM, which was listed and never matched;
+        IslInteractiveCall warns instead of erring when Get-Credential -Credential is handed
+        something that may be a built credential; IslContextIssue's drive-letter finding is
+        Information, since the letter cannot say whether it is a mapped drive.
+        Repair-IntuneScript no longer turns 'return 1; exit 1' into '1; exit 0; exit 1' with no
+        finding left. Help: what Invoke-ScriptAnalyzer -Severity does with the custom rules. See
+        CHANGELOG.md.
 0.26.0 - Every claim in the README, help, about topic, rule reference and examples was checked
         against the code and by running it, and what did not hold was fixed: -Settings never
         reached the pre-flight or the drift compare; -Id alone selected every policy;
