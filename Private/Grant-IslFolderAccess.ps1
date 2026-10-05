@@ -34,6 +34,10 @@ function Grant-IslFolderAccess {
     # icacls looks up
     $resolved = Resolve-IslAccount -Name $Account
     $trustee = if ($resolved) { "*$($resolved.Sid)" } else { $Account }
+    # Windows PowerShell turns a native command's redirected stderr into error records, and under
+    # a caller's -ErrorAction Stop the first one ends the function with icacls' bare line instead
+    # of the message below
+    $ErrorActionPreference = 'Continue'
     $output = & icacls.exe $Path /grant "${trustee}:(OI)(CI)M" 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Could not grant $Account access to ${Path}: $($output -join ' ')"

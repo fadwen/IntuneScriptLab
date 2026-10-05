@@ -31,6 +31,9 @@ release notes.
   Windows gives it, registers the interactive task for that name and grants the run folder by
   SID. Verified on the joined lab device with the sign-in name, `AzureAD\<sign-in name>` and
   the Windows name (Findings, "The harness as another account").
+- Under `-ErrorAction Stop` on Windows PowerShell 5.1, a refused grant on the run folder ended
+  with `icacls`' bare line ("No mapping between account names and security IDs was done")
+  instead of the message naming the account and the folder.
 - **`Repair-IntuneScript` hid the mistake it was run on.** `return 1; exit 1` became
   `1; exit 0; exit 1`: the same behaviour, the exit the author wrote unreachable, and no finding
   left. A script-scope `return` with an exit other than 0 after it in the same block now carries

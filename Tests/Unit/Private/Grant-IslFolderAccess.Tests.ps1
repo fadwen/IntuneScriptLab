@@ -12,8 +12,11 @@ BeforeAll {
     $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 
     function Grant-Access {
-        param([string]$Path, [string]$Account)
-        InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Account = $Account } {
+        param([string]$Path, [string]$Account, [string]$Preference = 'Continue')
+        $parameters = @{ Path = $Path; Account = $Account; Preference = $Preference }
+        InModuleScope IntuneScriptLab -Parameters $parameters {
+            # What a caller's -ErrorAction leaves in force inside the module
+            $ErrorActionPreference = $Preference
             Grant-IslFolderAccess -Path $Path -Account $Account
         }
     }
@@ -55,10 +58,15 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         @($rule).Count | Should-Be 1
     }
 
-    It 'fails with icacls'' own words for an account that does not exist' {
+    It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
+        @{ Preference = 'Continue' }
+        @{ Preference = 'Stop' }
+    ) {
+        # Under Stop, Windows PowerShell 5.1 ended the function at icacls' first stderr line with
+        # that line alone as the message (the CI runner and the lab device both showed it)
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
         $missing = "$env:COMPUTERNAME\no-such-account-for-isl"
-        $failure = { Grant-Access $script:Folder $missing } | Should-Throw
-        $failure.Exception.Message | Should-BeLikeString "Could not grant $missing access to *"
+        $failure = { Grant-Access $script:Folder $missing $Preference } | Should-Throw
+        $failure.Exception.Message | Should-BeLikeString "Could not grant $missing access to *No mapping*"
     }
 }
