@@ -2289,7 +2289,13 @@ built-in rules in the same pass, the same CI gate and the same editor squiggles.
       <maml:alert>
         <maml:para>Author: Jeffrey Stuhr.
 PSScriptAnalyzer invokes a custom rule once per script block in a
-file; the wrapper analyzes the file once at the root and answers from a cache for the rest.</maml:para>
+file; the wrapper answers at the root one only, where the file is analyzed once and the result
+cached for the rules that follow.
+
+Invoke-ScriptAnalyzer -Severity does not filter these records by their own severity:
+PSScriptAnalyzer registers every custom rule as Warning and filters on that, so -Severity Error
+returns none of them and -Severity Warning returns all of them, whatever each record says
+(PSScriptAnalyzer 1.25.0). Filter the output with Where-Object Severity -eq Error instead.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
@@ -4155,7 +4161,10 @@ behaviour-preserving edit:
     IslExitCodeIssue   a script-scope 'return' becomes the exit it already implied:
                        'return' turns into 'exit 0', 'return &lt;value&gt;' into '&lt;value&gt;; exit 0'.
                        The script does the same as before, and now says so; whether that
-                       exit should have been 1 is still the author's call
+                       exit should have been 1 is still the author's call. A return with an
+                       exit other than 0 after it in the same block ('return 1; exit 1') is
+                       left alone: the author meant that exit, and the finding stays until
+                       a person decides
     IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, a UTF-16 file
                        or an ANSI file (read in the system ANSI code page, so its characters
                        survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects

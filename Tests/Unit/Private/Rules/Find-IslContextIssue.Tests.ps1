@@ -23,10 +23,22 @@ Describe 'Find-IslContextIssue' -Tag 'Unit', 'Private', 'Rule' {
         @($findings | Where-Object Severity -eq 'Error').Count | Should-Be 2
     }
 
-    It 'warns on mapped drive letters in SYSTEM context' {
+    It 'notes a drive letter other than C: in SYSTEM context, since it may be a mapped drive' {
+        # A local D: is there for SYSTEM and a mapped X: is not (REM-DRIVES-SYS); the literal cannot
+        # say which it is, so this is a note, not a warning
         $path = New-TestScript 'Detect-D.ps1' "Copy-Item 'H:\file' 'C:\x'; exit 0"
         $findings = @(Get-RuleFinding $path IslContextIssue @{ Context = 'System' })
-        @($findings | Where-Object Message -like '*not mapped*').Count | Should-Be 1
+        $drive = @($findings | Where-Object Message -like 'Drive H:*')
+        $drive.Count | Should-Be 1
+        $drive[0].Severity | Should-Be 'Information'
+        $drive[0].Message | Should-BeLikeString '*only if it is a local volume*mapped*user''s session*UNC*'
+        $drive[0].Evidence | Should-BeLikeString '*(REM-DRIVES-SYS)'
+    }
+
+    It 'says nothing about drive letters in user context' {
+        $path = New-TestScript 'script.ps1' "Copy-Item 'H:\file' 'C:\Users\Public\x'"
+        $findings = @(Get-RuleFinding $path IslContextIssue @{ Context = 'User' })
+        @($findings | Where-Object Message -like 'Drive *').Count | Should-Be 0
     }
 
     It 'warns on HKLM writes and service control in user context' {

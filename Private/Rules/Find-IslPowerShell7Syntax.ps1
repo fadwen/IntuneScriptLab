@@ -1,14 +1,17 @@
 function Find-IslPowerShell7Syntax {
     <#
     .SYNOPSIS
-        Flags syntax, cmdlets and parameters that only exist in PowerShell 7.
+        Flags syntax, cmdlets, parameters and parameter values that only exist in PowerShell 7.
 
     .DESCRIPTION
         The Intune Management Extension runs every script with Windows PowerShell 5.1
         (observed: PSVersion 5.1.26100, Desktop edition, for remediations, platform scripts and
-        Win32 detection). A PowerShell 7-only construct is a parse error there, which means the
-        script never runs: a detection script exits 1 and triggers the remediation, a Win32
-        detection reports "not detected".
+        Win32 detection). PowerShell 7 syntax is a parse error there, which means the script never
+        runs: a detection script exits 1 and triggers the remediation, a Win32 detection reports
+        "not detected". A #Requires -Version 7 ends the same way, before the first line. A cmdlet,
+        a parameter or a parameter value only PowerShell 7 has does parse, so the script starts:
+        that one call fails with an error and the script carries on to its own exit, without the
+        result it was written to use.
 
     .PARAMETER Context
         The IntuneScriptLab.ScriptContext from Get-IslScriptContext: AST, tokens, bytes and the
@@ -28,6 +31,14 @@ function Find-IslPowerShell7Syntax {
     $rule = 'IslPowerShell7Syntax'
     $evidence = ('Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the ' +
         'remediation (REM-PS7-SYNTAX)')
+    $requiresEvidence = ('#Requires -Version 7.0 under the agent: the detection exited 1 without running ' +
+        '(ScriptRequiresUnmatchedPSVersion), the remediation ran and the status was Recurred (REM-PS7-REQUIRES)')
+    $runtimeEvidence = ('Test-Json, ConvertFrom-Json -AsHashtable and ForEach-Object -Parallel each wrote an ' +
+        'error under the agent and the detection ran on to its exit 0: "without issues", the error text in ' +
+        'the error field, no remediation (REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL)')
+    $valueEvidence = ('Out-File -Encoding utf8NoBOM failed validation against the 5.1 set (unknown, string, ' +
+        'unicode, bigendianunicode, utf8, utf7, utf32, ascii, default, oem) under the agent; no file was ' +
+        'written and the detection ran on to its exit 0 (REM-PS7-ENCODING)')
     $ast = $Context.Ast
 
     foreach ($parseError in $Context.ParseErrors) {
@@ -52,8 +63,8 @@ function Find-IslPowerShell7Syntax {
             Context  = $Context
             Extent   = $ast.Extent
             Message  = ("'#Requires -Version $($requires.RequiredPSVersion)' cannot be satisfied: Intune runs " +
-                'Windows PowerShell 5.1')
-            Evidence = $evidence
+                'Windows PowerShell 5.1, so the script exits 1 before its first line')
+            Evidence = $requiresEvidence
         }
         New-IslFinding @findingSplat
     }
@@ -108,6 +119,8 @@ function Find-IslPowerShell7Syntax {
         New-IslFinding @findingSplat
     }
 
+    # From here on the script parses, so it starts: the call fails where it stands and the script
+    # carries on to its own exit, which is the opposite of what a parse error does to a detection
     foreach ($command in (Find-IslCommand -Ast $ast -Name 'ForEach-Object', '%', 'foreach')) {
         if (Test-IslCommandParameter -Command $command -ParameterName 'Parallel') {
             $findingSplat = @{
@@ -115,14 +128,14 @@ function Find-IslPowerShell7Syntax {
                 Severity = 'Error'
                 Context  = $Context
                 Extent   = $command.Extent
-                Message  = 'ForEach-Object -Parallel is PowerShell 7 only'
-                Evidence = $evidence
+                Message  = ('ForEach-Object -Parallel is PowerShell 7 only: under Windows PowerShell 5.1 the ' +
+                    'call fails with an error and the script carries on without its result')
+                Evidence = $runtimeEvidence
             }
             New-IslFinding @findingSplat
         }
     }
 
-    # Cmdlets and parameters that do not exist in 5.1: a runtime error, not a parse error
     $coreOnlyCommands = 'Get-Error', 'Join-String', 'Test-Json', 'ConvertFrom-Markdown', 'Get-Uptime',
     'Remove-Alias', 'Get-ExperimentalFeature', 'Get-MarkdownOption', 'Show-Markdown', 'Switch-Process',
     'ConvertTo-CliXml', 'ConvertFrom-CliXml'
@@ -132,8 +145,9 @@ function Find-IslPowerShell7Syntax {
             Severity = 'Error'
             Context  = $Context
             Extent   = $command.Extent
-            Message  = "$($command.GetCommandName()) does not exist in Windows PowerShell 5.1"
-            Evidence = $evidence
+            Message  = ("$($command.GetCommandName()) does not exist in Windows PowerShell 5.1: the call " +
+                'fails with an error and the script carries on without its result')
+            Evidence = $runtimeEvidence
         }
         New-IslFinding @findingSplat
     }
@@ -152,26 +166,57 @@ function Find-IslPowerShell7Syntax {
         'Get-Content'        = 'AsByteStream'
         'Set-Content'        = 'AsByteStream'
         'Add-Content'        = 'AsByteStream'
-        'Out-File'           = 'Encoding utf8NoBOM'
         'Start-Process'      = 'Environment'
 
         'Compress-Archive'   = 'PassThru'
         'Import-Module'      = 'UseWindowsPowerShell', 'SkipEditionCheck'
-
-        'Rename-Item'        = ''
     }
     foreach ($commandName in $coreOnlyParameters.Keys) {
         foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
-            foreach ($parameter in ($coreOnlyParameters[$commandName] |
-                Where-Object { $_ -and $_ -notmatch ' ' })) {
+            foreach ($parameter in $coreOnlyParameters[$commandName]) {
                 if (Test-IslCommandParameter -Command $command -ParameterName $parameter) {
                     $findingSplat = @{
                         RuleName = $rule
                         Severity = 'Error'
                         Context  = $Context
                         Extent   = $command.Extent
-                        Message  = "$commandName -$parameter does not exist in Windows PowerShell 5.1"
-                        Evidence = $evidence
+                        Message  = ("$commandName -$parameter does not exist in Windows PowerShell 5.1: the " +
+                            'call fails with an error and the script carries on without its result')
+                        Evidence = $runtimeEvidence
+                    }
+                    New-IslFinding @findingSplat
+                }
+            }
+        }
+    }
+
+    # A parameter both hosts have, with a value only PowerShell 7 accepts
+    $coreOnlyValues = @{
+        'Out-File' = @{ Encoding = 'utf8NoBOM' }
+    }
+    foreach ($commandName in $coreOnlyValues.Keys) {
+        foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
+            foreach ($parameter in $coreOnlyValues[$commandName].Keys) {
+                $elements = @($command.CommandElements)
+                $argument = $null
+                for ($index = 1; $index -lt $elements.Count -and -not $argument; $index++) {
+                    $element = $elements[$index]
+                    if ($element.GetType().Name -ne 'CommandParameterAst') { continue }
+                    if (-not $parameter.StartsWith($element.ParameterName, 'OrdinalIgnoreCase')) { continue }
+                    $argument = if ($element.Argument) { $element.Argument }
+                    elseif ($index + 1 -lt $elements.Count) { $elements[$index + 1] }
+                }
+                $isLiteral = $argument -and $argument.GetType().Name -eq 'StringConstantExpressionAst'
+                if ($isLiteral -and $argument.Value -in $coreOnlyValues[$commandName][$parameter]) {
+                    $findingSplat = @{
+                        RuleName = $rule
+                        Severity = 'Error'
+                        Context  = $Context
+                        Extent   = $command.Extent
+                        Message  = ("$commandName -$parameter $($argument.Value) is a PowerShell 7 value: " +
+                            'under Windows PowerShell 5.1 the call fails with an error, writes nothing, and ' +
+                            'the script carries on')
+                        Evidence = $valueEvidence
                     }
                     New-IslFinding @findingSplat
                 }

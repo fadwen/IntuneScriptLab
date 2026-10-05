@@ -34,6 +34,20 @@ function Find-IslExitCodeIssue {
         param($Return)
         if ($Return.Pipeline) { "$($Return.Pipeline.Extent.Text); exit 0" } else { 'exit 0' }
     }
+
+    # An exit other than 0 after the return in the same block is the exit the author meant. Writing
+    # 'exit 0' in front of it would leave it unreachable with no finding left to say so, so that
+    # return gets no edit and stays reported
+    function Test-ExitFollowsReturn {
+        param($Return)
+        $passed = $false
+        foreach ($statement in @($Return.Parent.Statements)) {
+            if ($statement -eq $Return) { $passed = $true; continue }
+            if (-not $passed -or $statement.GetType().Name -ne 'ExitStatementAst') { continue }
+            if ($statement.Pipeline -and $statement.Pipeline.Extent.Text.Trim() -ne '0') { return $true }
+        }
+        $false
+    }
     if ($type -notin 'Detection', 'Remediation', 'Win32Detection') { return }
     $ast = $Context.Ast
 
@@ -71,7 +85,9 @@ function Find-IslExitCodeIssue {
                     'runs, so the remediation never triggers. Use exit 1 directly')
                 Evidence = ('"return 1; exit 1" ran with exit code 0 and the remediation was skipped; ' +
                     'Microsoft''s sample detection scripts use this pattern (REM-RETURN-EXIT)')
-                Fix      = @{ Replacement = Get-ReturnReplacement -Return $return }
+            }
+            if (-not (Test-ExitFollowsReturn -Return $return)) {
+                $findingSplat.Fix = @{ Replacement = Get-ReturnReplacement -Return $return }
             }
             New-IslFinding @findingSplat
         }
@@ -145,7 +161,9 @@ function Find-IslExitCodeIssue {
                 Message  = ('return at script scope ends the remediation with exit 0 (success) regardless of ' +
                     'what was actually done')
                 Evidence = 'Script-scope return produced exit code 0 (REM-RETURN-EXIT)'
-                Fix      = @{ Replacement = Get-ReturnReplacement -Return $return }
+            }
+            if (-not (Test-ExitFollowsReturn -Return $return)) {
+                $findingSplat.Fix = @{ Replacement = Get-ReturnReplacement -Return $return }
             }
             New-IslFinding @findingSplat
         }

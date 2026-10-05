@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneAnalyzerRulePath.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 10/05/2026
 PlatyPS schema version: 2024-05-01
 title: Get-IntuneAnalyzerRulePath
 ---
@@ -91,7 +91,13 @@ The full path of PSScriptAnalyzer\IntuneScriptLab.Rules.psm1 in the installed mo
 
 Author: Jeffrey Stuhr.
 PSScriptAnalyzer invokes a custom rule once per script block in a
-file; the wrapper analyzes the file once at the root and answers from a cache for the rest.
+file; the wrapper answers at the root one only, where the file is analyzed once and the result
+cached for the rules that follow.
+
+Invoke-ScriptAnalyzer -Severity does not filter these records by their own severity:
+PSScriptAnalyzer registers every custom rule as Warning and filters on that, so -Severity Error
+returns none of them and -Severity Warning returns all of them, whatever each record says
+(PSScriptAnalyzer 1.25.0). Filter the output with Where-Object Severity -eq Error instead.
 
 ## RELATED LINKS
 

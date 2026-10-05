@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Repair-IntuneScript.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 10/05/2026
 PlatyPS schema version: 2024-05-01
 title: Repair-IntuneScript
 ---
@@ -34,7 +34,10 @@ behaviour-preserving edit:
     IslExitCodeIssue   a script-scope 'return' becomes the exit it already implied:
                        'return' turns into 'exit 0', 'return <value>' into '<value>; exit 0'.
                        The script does the same as before, and now says so; whether that
-                       exit should have been 1 is still the author's call
+                       exit should have been 1 is still the author's call. A return with an
+                       exit other than 0 after it in the same block ('return 1; exit 1') is
+                       left alone: the author meant that exit, and the finding stays until
+                       a person decides
     IslEncodingIssue   a UTF-8 file without a BOM that holds non-ASCII text, a UTF-16 file
                        or an ANSI file (read in the system ANSI code page, so its characters
                        survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects

@@ -46,7 +46,8 @@ LONG DESCRIPTION
                                      bitness, encoding, interactive calls, sleeps, reboots, relative
                                      paths, execution policy calls, module dependencies, size and
                                      the signature check. Findings carry the evidence.
-        Repair-IntuneScript          Applies the fixes that are mechanical (a missing exit, a BOM).
+        Repair-IntuneScript          Applies the fixes that are mechanical (a script-scope return,
+                                     the encoding, a padded requirement value).
         Get-IntuneAnalyzerRulePath   The same rules as PSScriptAnalyzer custom rules for -CustomRulePath.
         Export-IntuneFindingSarif    Findings as SARIF for GitHub code scanning.
         Assert-PassIntuneAnalysis    The Should-* assertions for a Pester suite (Should-PassIntuneAnalysis,

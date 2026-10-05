@@ -44,6 +44,20 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             [System.IO.File]::ReadAllText($path) |
                 Should-Be "if (`$a) { exit 0 }`nif (`$b) { 'done'; exit 0 }`nexit 0"
         }
+
+        It 'leaves a return alone when an exit other than 0 follows it, and the finding with it' {
+            # 'return 1; exit 1' made explicit would read '1; exit 0; exit 1': the same behaviour, the
+            # exit the author meant unreachable, and nothing left to report it
+            $body = "Write-Output 'found'`nreturn 1`nexit 1"
+            $path = New-TestScript 'Remediations\E\Detect.ps1' $body -Bom
+            $result = Repair-IntuneScript -Path $path
+            $result.Applied | Should-Be 0
+            $result.Written | Should-BeFalse
+            [System.IO.File]::ReadAllText($path) | Should-Be $body
+            $left = @(Test-IntuneScript -Path $path | Where-Object RuleName -eq 'IslExitCodeIssue')
+            $left.Severity | Should-ContainCollection 'Error'
+            $result.Remaining | Should-Be @(Test-IntuneScript -Path $path).Count
+        }
     }
 
     Context 'Encoding' {
@@ -116,7 +130,7 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
 
         It 'expands a folder and reports one object per script' {
             $folder = Join-Path $TestDrive 'Tree'
-            New-TestScript 'Tree\Remediations\One\Detect.ps1' "return 'a'`nexit 1" -Bom | Out-Null
+            New-TestScript 'Tree\Remediations\One\Detect.ps1' "if (`$a) { return 'a' }`nexit 1" -Bom | Out-Null
             New-TestScript 'Tree\Remediations\Two\Detect.ps1' "Write-Output 'b'`nexit 1" -Bom | Out-Null
             $results = @(Repair-IntuneScript -Path $folder)
             $results.Count | Should-Be 2
@@ -126,7 +140,7 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
 
         It 'lists what it would do for a folder under -WhatIf' {
             $folder = Join-Path $TestDrive 'WhatIfTree'
-            $body = "return 'a'`nexit 1"
+            $body = "if (`$a) { return 'a' }`nexit 1"
             $path = New-TestScript 'WhatIfTree\Remediations\One\Detect.ps1' $body -Bom
             $results = @(Repair-IntuneScript -Path $folder -WhatIf)
             $results.Count | Should-Be 1

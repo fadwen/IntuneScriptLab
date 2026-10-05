@@ -39,6 +39,16 @@ Describe 'Runtime harness launch' -Tag 'Integration', 'Runtime' {
         $root | Should-NotBe $TestDrive
     }
 
+    It 'gives the script Windows PowerShell''s own modules whichever PowerShell starts the harness' {
+        # Started from PowerShell 7 with its module path inherited, the 5.1 host loaded PowerShell
+        # 7's Microsoft.PowerShell.* modules: version 7.0.0.0, no Cert: drive, no Security module
+        $path = New-TestScript 'modules.ps1' ('"$((Get-Command Get-Item).Module.Version.Major)|' +
+            '$(Test-Path Cert:\LocalMachine)|$([bool](Get-Command Get-AuthenticodeSignature).Module)"') -Bom
+        $result = Invoke-IntunePlatformScriptTest -Path $path -Architecture $script:Native
+        $result.StdOut.Trim() | Should-Be '3|True|True'
+        $result.StdErr | Should-BeFalsy
+    }
+
     It 'switches between the 32-bit and native hosts' {
         $path = New-TestScript 'arch.ps1' '"$([Environment]::Is64BitProcess)|$env:PROCESSOR_ARCHITECTURE"' -Bom
         (Invoke-IntunePlatformScriptTest -Path $path -Architecture x86).StdOut.Trim() |

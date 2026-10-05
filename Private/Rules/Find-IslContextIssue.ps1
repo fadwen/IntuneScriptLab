@@ -35,6 +35,8 @@ function Find-IslContextIssue {
         $evidence = ('SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, ' +
             ('USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP ' +
                 '(REM-PROBE-SYS64, PS-PROBE-SYS64)'))
+        $driveEvidence = ('A SYSTEM detection listed C:\ and D:\, both local volumes, and found no X:\ while ' +
+            'the signed-in user had X: mapped to a share (REM-DRIVES-SYS)')
 
         $hkcuPattern = '(?i)^(HKCU:|Registry::HKEY_CURRENT_USER|HKEY_CURRENT_USER\\)'
         foreach ($literal in ($literals | Where-Object { $_.Value -match $hkcuPattern })) {
@@ -96,16 +98,18 @@ function Find-IslContextIssue {
             }
             New-IslFinding @findingSplat
         }
+        # A drive letter says nothing about what is behind it: a local volume is there for SYSTEM, a
+        # drive the user mapped is not, and the script's text cannot tell the two apart
         foreach ($literal in ($literals | Where-Object { $_.Value -match '^[D-Zd-z]:\\' })) {
             $findingSplat = @{
                 RuleName = $rule
-                Severity = 'Warning'
+                Severity = 'Information'
                 Context  = $Context
                 Extent   = $literal.Extent
-                Message  = ("Drive $($literal.Value.Substring(0, 2)) is not mapped for SYSTEM; mapped drives " +
-                    'belong to the user session. Use a UNC path and make sure the computer account ' +
-                    'can reach it')
-                Evidence = $evidence
+                Message  = ("Drive $($literal.Value.Substring(0, 2)) exists for SYSTEM only if it is a local " +
+                    'volume: a drive the user mapped belongs to the user''s session. For a mapped drive ' +
+                    'use the UNC path and make sure the computer account can reach it')
+                Evidence = $driveEvidence
             }
             New-IslFinding @findingSplat
         }
