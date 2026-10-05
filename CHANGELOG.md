@@ -49,6 +49,12 @@ release notes.
 - Validation round 10 (Findings, "PowerShell 7 at run time, a built credential, and the drives
   SYSTEM sees"): seven remediations on the joined device, and `New-IslDriveFixture.ps1` in the kit
   for the drive state one of them reports on.
+- Validation kit: `Collect` failed on a device payload in which one chunk had arrived as another
+  chunk's text. The QEMU guest agent answers a status call with the oldest result it holds for a
+  process id, and Windows reuses the ids. `GuestAgent.ps1` now carries the guest calls for the
+  driver and `Invoke-LabGuestScript.ps1`: every command prints a marker of its own, a result
+  without it is passed over, a result lost to a timed-out status call makes the command run
+  again, and the payload is checked against the device's SHA-256.
 - The README and `Get-IntuneAnalyzerRulePath`'s help say what `Invoke-ScriptAnalyzer -Severity`
   does with the custom rules: PSScriptAnalyzer 1.25.0 filters on the rule's registered severity,
   Warning for every custom rule, so `-Severity Error` returns none of the records and

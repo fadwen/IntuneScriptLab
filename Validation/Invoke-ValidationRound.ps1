@@ -68,6 +68,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $prefix = 'ISL-'
 . (Join-Path -Path $PSScriptRoot -ChildPath 'GraphRules.ps1')
+. (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
 
 function Connect-LabGraph {
     if ($Action -notin 'Trigger', 'Prepare' -and -not (Get-MgContext)) {
@@ -156,34 +157,10 @@ function ConvertTo-ScriptContent {
     }
 }
 
-function Invoke-GuestPowerShell {
-    # Runs a script block as SYSTEM inside the VM via the QEMU guest agent; returns stdout.
-    param([Parameter(Mandatory)][string]$Script, [int]$TimeoutSeconds = 120)
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-    # The status poll behind qm guest exec occasionally times out at the QMP layer and prints
-    # "VM <id> qmp command 'guest-exec-status' failed - got timeout" instead of the JSON reply,
-    # even though the command ran; an idempotent command is simply asked again
-    for ($attempt = 1; ; $attempt++) {
-        $raw = ssh -o BatchMode=yes $ProxmoxHost ("qm guest exec $VmId --timeout $TimeoutSeconds -- powershell " +
-            "-NoProfile -NonInteractive -EncodedCommand $encoded") 2>&1
-        $text = ($raw -join "`n").Trim()
-        if ($LASTEXITCODE -eq 0 -and $text.StartsWith('{')) { break }
-        if ($attempt -ge 3) { throw "qm guest exec failed on ${ProxmoxHost}: $text" }
-        Write-Warning "qm guest exec attempt $attempt on ${ProxmoxHost}: $text"
-        Start-Sleep -Seconds 10
-    }
-    $result = $text | ConvertFrom-Json
-    if ($result.exitcode -ne 0) { Write-Warning "Guest script exited $($result.exitcode): $($result.'err-data')" }
-    elseif (-not $result.'out-data') {
-        $reply = $text.Substring(0, [Math]::Min(600, $text.Length))
-        Write-Verbose "Guest script produced no output; agent reply: $reply"
-    }
-    $result.'out-data'
-}
-
 function Invoke-GuestScriptFile {
     # Runs a script that is too long for the guest agent's command line (a few KB): the script is
-    # delivered as base64 in small Add-Content calls, decoded on the VM and run by path.
+    # delivered as base64 in numbered part files, decoded on the VM and run by path. The guest agent
+    # calls themselves are Invoke-GuestPowerShell's, in GuestAgent.ps1.
     param(
         [Parameter(Mandatory)][string]$Script,
         [int]$TimeoutSeconds = 900,
@@ -194,9 +171,9 @@ function Invoke-GuestScriptFile {
     $remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
     $b64 = [Convert]::ToBase64String([Text.UTF8Encoding]::new($true).GetPreamble() +
         [Text.Encoding]::UTF8.GetBytes($Script))
-    # One file per chunk, written with Set-Content: a chunk call retried after a host-side status timeout
-    # then rewrites the same part instead of appending it twice (which once produced a script that no
-    # longer parsed); the device joins the parts in order
+    # One file per chunk, written with Set-Content: a chunk call that ran twice (a start call retried
+    # after a host-side timeout) then rewrites the same part instead of appending it twice, which once
+    # produced a script that no longer parsed; the device joins the parts in order
     $null = Invoke-GuestPowerShell -Script "Remove-Item -Path '$remote.b64*' -ErrorAction SilentlyContinue"
     $index = 0
     for ($offset = 0; $offset -lt $b64.Length; $offset += 1200) {
@@ -214,9 +191,9 @@ function Invoke-GuestScriptFile {
         return Invoke-GuestPowerShell -TimeoutSeconds $TimeoutSeconds -Script (
             "$decode; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & '$remote'")
     }
-    # A command that runs for minutes makes the host's status poll time out, and a retry would start
-    # a second copy: start it detached, poll for the done marker with short calls, read the output file
-    foreach ($suffix in '.out', '.err', '.done') {
+    # A script that runs for minutes is started detached and watched through a done marker with short
+    # calls, so no single guest agent call has to stay open for it; its output is read from a file
+    foreach ($suffix in '.out', '.err', '.done', '.started') {
         $null = Invoke-GuestPowerShell -Script "Remove-Item -Path '$remote$suffix' -ErrorAction SilentlyContinue"
     }
     # A runner batch file carries the redirections, so the launch itself has no nested quoting; it is
@@ -227,9 +204,13 @@ function Invoke-GuestScriptFile {
         "echo done>`"$remote.done`""
     ) -join "`r`n"
     $runnerB64 = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($runner))
-    $launch = "$decode; [IO.File]::WriteAllText('$remote.cmd', " +
+    # A guest call can run twice (GuestAgent.ps1), and a second runner would find the output file held
+    # by the first, skip the script and write the done marker at once: the started marker makes a
+    # repeated launch a no-op
+    $launch = "if (-not (Test-Path -Path '$remote.started')) { " +
+        "Set-Content -Path '$remote.started' -Value started; $decode; [IO.File]::WriteAllText('$remote.cmd', " +
         "[Text.Encoding]::ASCII.GetString([Convert]::FromBase64String('$runnerB64'))); " +
-        "Start-Process -FilePath '$remote.cmd' -WindowStyle Hidden"
+        "Start-Process -FilePath '$remote.cmd' -WindowStyle Hidden }"
     $null = Invoke-GuestPowerShell -Script $launch
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
@@ -742,32 +723,25 @@ $ime = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension'
     # tail) made the guest agent time out its own status call
     $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($_))
     [IO.File]::WriteAllText('C:\ProgramData\IntuneScriptLab\collect.b64', $b64)
-    $b64.Length
+    # The length and a hash of the text, so the host can tell whether every chunk arrived as written
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $hash = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::ASCII.GetBytes($b64))) -replace '-', ''
+    "$($b64.Length) $hash"
 }
 '@
     # The log filters need the policy ids; the device script is a literal, so they are spliced in
     $policyIds = @($remediations.Id) + @($platform.Id) | Where-Object { $_ }
     $deviceScript = $deviceScript.Replace('--POLICYIDS--', ($policyIds -join '|'))
-    $sizeText = Invoke-GuestScriptFile -Script $deviceScript -TimeoutSeconds 1500 -Detach
-    if (-not $sizeText) { throw 'The device collect script returned no payload size; see the warning above' }
-    $size = [int]$sizeText.Trim()
-    $chunk = 100000
-    $parts = for ($offset = 0; $offset -lt $size; $offset += $chunk) {
-        $length = [Math]::Min($chunk, $size - $offset)
-        $read = "[IO.File]::ReadAllText('C:\ProgramData\IntuneScriptLab\collect.b64').Substring($offset, $length)"
-        # A reply without its output (the agent occasionally returns none for a large chunk) is asked again
-        $part = $null
-        for ($try = 1; $try -le 3 -and "$part".Trim().Length -ne $length; $try++) {
-            if ($try -gt 1) { Write-Warning "Payload chunk at $offset came back short; retrying"; Start-Sleep 5 }
-            $part = Invoke-GuestPowerShell -TimeoutSeconds 120 -Script $read
-        }
-        if ("$part".Trim().Length -ne $length) { throw "Payload chunk at $offset could not be read" }
-        "$part".Trim()
+    $summary = Invoke-GuestScriptFile -Script $deviceScript -TimeoutSeconds 1500 -Detach
+    if ("$summary" -notmatch '^\s*(\d+) ([0-9A-Fa-f]{64})\s*$') {
+        throw "The device collect script returned no payload size and hash ('$summary'); see the warning above"
     }
-    $encoded = -join $parts
-    if ($encoded.Length -ne $size) {
-        throw "Device payload incomplete: got $($encoded.Length) of $size characters"
+    $payloadSplat = @{
+        RemotePath = 'C:\ProgramData\IntuneScriptLab\collect.b64'
+        Size       = [int]$Matches[1]
+        Sha256     = $Matches[2]
     }
+    $encoded = Read-GuestPayload @payloadSplat
     $device = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | ConvertFrom-Json
 
     $null = New-Item -ItemType Directory -Path $ResultsPath -Force
