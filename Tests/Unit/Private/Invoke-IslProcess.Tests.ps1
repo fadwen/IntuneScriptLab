@@ -55,6 +55,26 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             $result.TimedOut | Should-BeFalse
         }
 
+        It 'hands the child the session module path without the folders PowerShell 7 adds for itself' {
+            # Under Windows PowerShell there is nothing to remove and the path arrives whole
+            $added = Join-Path $TestDrive 'SessionModules'
+            $saved = $env:PSModulePath
+            $env:PSModulePath = "$saved;$added"
+            try {
+                $result = Invoke-Process @{
+                    FilePath = $script:Cmd; Arguments = '/C echo %PSModulePath%'
+                    WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
+                }
+            }
+            finally { $env:PSModulePath = $saved }
+            $entries = @($result.StdOut.Trim() -split ';')
+            @($entries | Where-Object { $_ -eq $added }).Count | Should-Be 1
+            if ($PSVersionTable.PSEdition -eq 'Core') {
+                @($entries | Where-Object { $_ -eq (Join-Path $PSHOME 'Modules') }).Count | Should-Be 0
+            }
+            else { $result.StdOut.Trim() | Should-Be "$saved;$added" }
+        }
+
         It 'kills the process tree at the timeout and reports no exit code' {
             $result = Invoke-Process @{
                 FilePath = $script:Cmd; Arguments = '/C ping -n 30 127.0.0.1 > nul'

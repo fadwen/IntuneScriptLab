@@ -5,7 +5,9 @@
 
     .DESCRIPTION
         User: a direct child process with stdin closed and both output streams read through
-        the OEM code page, as a console-less powershell.exe writes them.
+        the OEM code page, as a console-less powershell.exe writes them. Started from PowerShell 7,
+        the child gets the session's PSModulePath without PowerShell 7's own folders
+        (Get-IslDesktopModulePath), so a powershell.exe loads its own modules.
 
         System: a one-shot scheduled task registered for NT AUTHORITY\SYSTEM (session 0, the same
         place the Intune agent runs scripts) whose action is cmd.exe redirecting the command's
@@ -76,6 +78,13 @@
         $startInfo.RedirectStandardError = $true
         $startInfo.StandardOutputEncoding = $oem
         $startInfo.StandardErrorEncoding = $oem
+        # From PowerShell 7 the child would inherit PowerShell 7's module folders and a
+        # powershell.exe would load its Microsoft.PowerShell.* modules from them
+        if ($PSVersionTable.PSEdition -eq 'Core') {
+            $desktopModulePath = Get-IslDesktopModulePath
+            if ($desktopModulePath) { $startInfo.Environment['PSModulePath'] = $desktopModulePath }
+            else { $null = $startInfo.Environment.Remove('PSModulePath') }
+        }
 
         $process = [System.Diagnostics.Process]::new()
         $process.StartInfo = $startInfo
