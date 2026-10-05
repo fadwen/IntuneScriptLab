@@ -45,12 +45,12 @@ As SYSTEM, HKCU: is the SYSTEM account's own hive, USERPROFILE is C:\WINDOWS\sys
 | Error | $<value> resolves to the SYSTEM profile (systemprofile), not the signed-in user. Look the user up (e.g. via explorer.exe's owner or HKU) or run in user context | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
 | Information | $<value> is C:\WINDOWS\TEMP under SYSTEM, which is fine if that is what you expect | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
 | Error | GetFolderPath for a per-user folder returns the SYSTEM profile's folder under SYSTEM | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
-| Warning | Drive <value> is not mapped for SYSTEM; mapped drives belong to the user session. Use a UNC path and make sure the computer account can reach it | SYSTEM context: User=NT AUTHORITY\SYSTEM, session 0, USERPROFILE=C:\WINDOWS\system32\config\systemprofile, APPDATA under it, TEMP=C:\WINDOWS\TEMP (REM-PROBE-SYS64, PS-PROBE-SYS64) |
+| Information | Drive <value> exists for SYSTEM only if it is a local volume: a drive the user mapped belongs to the user's session. For a mapped drive use the UNC path and make sure the computer account can reach it | A SYSTEM detection listed C:\ and D:\, both local volumes, and found no X:\ while the signed-in user had X: mapped to a share (REM-DRIVES-SYS) |
 | Warning | <value> to a machine-wide location runs as the signed-in user, who is usually not an administrator; it will fail with access denied | User context ran as AzureAD\<user> in the console session with that user's profile and rights (REM-PROBE-USER64, PS-PROBE-USER) |
 | Warning | <value> needs administrator rights; in user context the script runs as the signed-in user | User context ran as AzureAD\<user> in the console session with that user's profile and rights (REM-PROBE-USER64, PS-PROBE-USER) |
 | Information | User context runs only on Entra joined or hybrid-joined devices: on an Entra-registered device the agent downloads the policy and skips it. Deploy as SYSTEM if registered devices must be covered | IntuneManagementExtension.log on a registered device: "This is not AADJ/HAADJ device, skip user context"; the same scripts ran as AzureAD\<user> on a joined device (join-type experiments, REM-PROBE-USER64, PS-PROBE-USER) |
 
-Experiments: PS-PROBE-SYS64, PS-PROBE-USER, REM-PROBE-SYS64, REM-PROBE-USER64
+Experiments: PS-PROBE-SYS64, PS-PROBE-USER, REM-DRIVES-SYS, REM-PROBE-SYS64, REM-PROBE-USER64
 
 ## IslEncodingIssue
 
@@ -108,11 +108,12 @@ The agent launches powershell.exe with -NoProfile -ExecutionPolicy Bypass -File 
 
 | Severity | Message | Evidence |
 |---|---|---|
+| Warning | Get-Credential -Credential returns a credential that is already built and prompts for the password of a user name: if <value> can ever be a name, the script hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log); handed a PSCredential object, Get-Credential -Credential returned it in 12 ms under the agent, without a prompt (REM-CRED-BUILT) |
 | Error | <value> waits for input that never comes; the script hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
 | Error | <value>.<value>() waits for input; the script hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
 | Warning | <value> can prompt for confirmation (or to trust a repository); add -Force / -Confirm:$false or it hangs until the <value> timeout | Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; AgentExecutor timeout <value> (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log) |
 
-Experiments: PS-PROBE-SYS64, REM-PROBE-SYS64
+Experiments: PS-PROBE-SYS64, REM-CRED-BUILT, REM-PROBE-SYS64
 
 ## IslLongSleep
 
@@ -166,22 +167,23 @@ Experiments: REM-EXIT-ERRNOEXIT, REM-OUT-HOSTLAST, REM-OUT-LONG, REM-OUT-STREAMS
 
 ## IslPowerShell7Syntax
 
-Flags syntax, cmdlets and parameters that only exist in PowerShell 7.
+Flags syntax, cmdlets, parameters and parameter values that only exist in PowerShell 7.
 
-The Intune Management Extension runs every script with Windows PowerShell 5.1 (observed: PSVersion 5.1.26100, Desktop edition, for remediations, platform scripts and Win32 detection). A PowerShell 7-only construct is a parse error there, which means the script never runs: a detection script exits 1 and triggers the remediation, a Win32 detection reports "not detected".
+The Intune Management Extension runs every script with Windows PowerShell 5.1 (observed: PSVersion 5.1.26100, Desktop edition, for remediations, platform scripts and Win32 detection). PowerShell 7 syntax is a parse error there, which means the script never runs: a detection script exits 1 and triggers the remediation, a Win32 detection reports "not detected". A #Requires -Version 7 ends the same way, before the first line. A cmdlet, a parameter or a parameter value only PowerShell 7 has does parse, so the script starts: that one call fails with an error and the script carries on to its own exit, without the result it was written to use.
 
 | Severity | Message | Evidence |
 |---|---|---|
 | Error | Parse error: <value> | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
-| Error | '#Requires -Version <value>' cannot be satisfied: Intune runs Windows PowerShell 5.1 | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
+| Error | '#Requires -Version <value>' cannot be satisfied: Intune runs Windows PowerShell 5.1, so the script exits 1 before its first line | #Requires -Version 7.0 under the agent: the detection exited 1 without running (ScriptRequiresUnmatchedPSVersion), the remediation ran and the status was Recurred (REM-PS7-REQUIRES) |
 | Error | <value> is PowerShell 7 only; Windows PowerShell 5.1 fails to parse the whole script | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
 | Error | Null-coalescing operator (?? / ??=) is PowerShell 7 only; Windows PowerShell 5.1 fails to parse the whole script | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
 | Error | Null-conditional member access (?. / ?[]) is PowerShell 7 only; Windows PowerShell 5.1 fails to parse the whole script | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
-| Error | ForEach-Object -Parallel is PowerShell 7 only | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
-| Error | <value> does not exist in Windows PowerShell 5.1 | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
-| Error | <value> -<value> does not exist in Windows PowerShell 5.1 | Scripts run under Windows PowerShell 5.1; a parse error made the detection exit 1 and run the remediation (REM-PS7-SYNTAX) |
+| Error | ForEach-Object -Parallel is PowerShell 7 only: under Windows PowerShell 5.1 the call fails with an error and the script carries on without its result | Test-Json, ConvertFrom-Json -AsHashtable and ForEach-Object -Parallel each wrote an error under the agent and the detection ran on to its exit 0: "without issues", the error text in the error field, no remediation (REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL) |
+| Error | <value> does not exist in Windows PowerShell 5.1: the call fails with an error and the script carries on without its result | Test-Json, ConvertFrom-Json -AsHashtable and ForEach-Object -Parallel each wrote an error under the agent and the detection ran on to its exit 0: "without issues", the error text in the error field, no remediation (REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL) |
+| Error | <value> -<value> does not exist in Windows PowerShell 5.1: the call fails with an error and the script carries on without its result | Test-Json, ConvertFrom-Json -AsHashtable and ForEach-Object -Parallel each wrote an error under the agent and the detection ran on to its exit 0: "without issues", the error text in the error field, no remediation (REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL) |
+| Error | <value> -<value> <value> is a PowerShell 7 value: under Windows PowerShell 5.1 the call fails with an error, writes nothing, and the script carries on | Out-File -Encoding utf8NoBOM failed validation against the 5.1 set (unknown, string, unicode, bigendianunicode, utf8, utf7, utf32, ascii, default, oem) under the agent; no file was written and the detection ran on to its exit 0 (REM-PS7-ENCODING) |
 
-Experiments: REM-PS7-SYNTAX
+Experiments: REM-PS7-CMDLET, REM-PS7-ENCODING, REM-PS7-PARALLEL, REM-PS7-PARAM, REM-PS7-REQUIRES, REM-PS7-SYNTAX
 
 ## IslRebootCommand
 

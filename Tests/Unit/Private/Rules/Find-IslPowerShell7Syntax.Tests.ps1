@@ -39,6 +39,46 @@ Describe 'Find-IslPowerShell7Syntax' -Tag 'Unit', 'Private', 'Rule' {
         $messages | Should-BeLikeString '*-AsHashtable*'
     }
 
+    It 'cites the parse-error experiment for syntax only, and the run-time ones for what parses' {
+        # A parse error stops the script before its first line (REM-PS7-SYNTAX); a missing cmdlet
+        # or parameter fails where it stands and the script carries on (round 10)
+        $syntax = New-TestScript 'Detect-S.ps1' '$x = $true ? 1 : 2; exit 0'
+        @(Get-RuleFinding $syntax IslPowerShell7Syntax).Evidence | Should-All { $_ -like '*(REM-PS7-SYNTAX)' }
+
+        $path = New-TestScript 'Detect-Rt.ps1' ("'{}' | Test-Json`n`$j = '{}' | ConvertFrom-Json -AsHashtable`n" +
+            "1..3 | ForEach-Object -Parallel { `$_ }`nexit 0")
+        $findings = @(Get-RuleFinding $path IslPowerShell7Syntax)
+        $findings.Count | Should-Be 3
+        $findings.Evidence | Should-All { $_ -like '*(REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL)' }
+        $findings.Evidence | Should-All { $_ -notlike '*parse error*' }
+        $findings.Message | Should-All { $_ -like '*the call fails with an error and the script carries on*' }
+
+        $requires = New-TestScript 'Detect-Rq.ps1' "#Requires -Version 7.0`nexit 0"
+        @(Get-RuleFinding $requires IslPowerShell7Syntax).Evidence | Should-All { $_ -like '*(REM-PS7-REQUIRES)' }
+    }
+
+    It 'flags Out-File -Encoding utf8NoBOM, a value Windows PowerShell 5.1 does not have: <Call>' -ForEach @(
+        @{ Call = "'x' | Out-File -FilePath C:\Windows\Temp\a.txt -Encoding utf8NoBOM" }
+        @{ Call = "'x' | Out-File C:\Windows\Temp\a.txt -Enc:UTF8NOBOM" }
+        @{ Call = "Out-File -Encoding 'utf8NoBOM' -InputObject x -FilePath C:\Windows\Temp\a.txt" }
+    ) {
+        $path = New-TestScript 'Remediate-E.ps1' "$Call`nexit 0"
+        $findings = @(Get-RuleFinding $path IslPowerShell7Syntax)
+        $findings.Count | Should-Be 1
+        $findings[0].Severity | Should-Be 'Error'
+        $findings[0].Message |
+            Should-BeLikeString 'Out-File -Encoding utf8NoBOM is a PowerShell 7 value*writes nothing*'
+        $findings[0].Evidence | Should-BeLikeString '*(REM-PS7-ENCODING)'
+    }
+
+    It 'leaves the encodings both hosts have, a computed encoding and Rename-Item alone' {
+        $path = New-TestScript 'Remediate-K.ps1' ("'x' | Out-File C:\Windows\Temp\a.txt -Encoding utf8`n" +
+            "'x' | Out-File C:\Windows\Temp\b.txt -Encoding `$encoding`n" +
+            "'x' | Out-File C:\Windows\Temp\c.txt`n" +
+            "Rename-Item -Path C:\Windows\Temp\a.txt -NewName d.txt`nexit 0")
+        @(Get-RuleFinding $path IslPowerShell7Syntax).Count | Should-Be 0
+    }
+
     It 'leaves a module the parser cannot find to the dependency rule' {
         $path = New-TestScript 'Detect-U.ps1' "using module NoSuchModuleForIsl`nexit 0"
         @(Get-RuleFinding $path IslPowerShell7Syntax).Count | Should-Be 0

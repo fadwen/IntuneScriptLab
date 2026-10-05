@@ -25,6 +25,37 @@ Describe 'Find-IslExitCodeIssue' -Tag 'Unit', 'Private', 'Rule' {
             Should-Be 1
     }
 
+    It 'carries the exit 0 edit when no exit follows the return in its block' {
+        $path = New-TestScript 'Detect-Fx.ps1' "if (Test-Path C:\x) { return 'ok' }`nexit 1"
+        $finding = @(Get-RuleFinding $path IslExitCodeIssue | Where-Object Message -like '*return*')
+        $finding.Count | Should-Be 1
+        $finding[0].Fix.Replacement | Should-Be "'ok'; exit 0"
+    }
+
+    It 'carries no edit when an exit other than 0 follows the return <Case>' -ForEach @(
+        @{ Case = 'at the top level'; Body = "Write-Output 'found 1'`nreturn 1`nexit 1" }
+        @{ Case = 'inside an if'; Body = "if (`$broken) { return 'bad'; exit 2 }`nexit 0" }
+        @{ Case = 'with a computed value further down'; Body = "return`nWrite-Output 'never'`nexit `$code" }
+    ) {
+        # The author meant that exit; 'exit 0' written in front of it would hide the mistake
+        $path = New-TestScript 'Detect-Nf.ps1' $Body
+        $finding = @(Get-RuleFinding $path IslExitCodeIssue | Where-Object Text -like 'return*')
+        $finding.Count | Should-Be 1
+        $finding[0].Severity | Should-Be 'Error'
+        $finding[0].Fix | Should-BeNull
+    }
+
+    It 'still carries the edit when the exit that follows is exit 0, in a detection and a remediation' {
+        $detect = New-TestScript 'Detect-Z.ps1' "if (`$fine) { return 'ok'; exit 0 }`nexit 1"
+        (Get-RuleFinding $detect IslExitCodeIssue | Where-Object Message -like '*return*').Fix.Replacement |
+            Should-Be "'ok'; exit 0"
+        $remediate = New-TestScript 'Remediate-Z.ps1' "return`nexit 0"
+        (Get-RuleFinding $remediate IslExitCodeIssue | Where-Object Message -like '*return*').Fix.Replacement |
+            Should-Be 'exit 0'
+        $failing = New-TestScript 'Remediate-N.ps1' "return`nexit 1"
+        (Get-RuleFinding $failing IslExitCodeIssue | Where-Object Message -like '*return*').Fix | Should-BeNull
+    }
+
     It 'warns on exit codes other than 0 and 1 in a detection' {
         $path = New-TestScript 'Detect-X.ps1' 'if (1) { exit 2 } else { exit -1 }'
         @(Get-RuleFinding $path IslExitCodeIssue | Where-Object Message -like '*non-zero*').Count | Should-Be 2

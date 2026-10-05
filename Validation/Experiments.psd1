@@ -361,6 +361,111 @@ exit 0
             Detection    = 'Write-ProbeRecord REM-SIZE-250KB detection; Write-Output "big script ran"; exit 0'
             Remediation  = 'Write-ProbeRecord REM-SIZE-250KB remediation; exit 0'
         }
+        # Round 10: what Windows PowerShell 5.1 does under the agent with the PowerShell 7 cmdlets,
+        # parameters and values that parse (REM-PS7-SYNTAX is the one that does not), whether
+        # Get-Credential prompts when it is handed a credential that is already built, and which
+        # drives a SYSTEM script sees while the signed-in user has one mapped. The remediation
+        # writes a probe record if it runs; the detection's last line carries the observation.
+        @{
+            Name         = 'REM-PS7-CMDLET'
+            Question     = 'A cmdlet only PowerShell 7 has (Test-Json): does the detection stop or carry on'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-PS7-CMDLET detection
+Write-Output 'before'
+$valid = '{}' | Test-Json
+Write-Output "after cmdlet valid=[$valid]"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-PS7-CMDLET remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-PS7-PARAM'
+            Question     = 'A parameter only PowerShell 7 has (ConvertFrom-Json -AsHashtable): stop or carry on'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-PS7-PARAM detection
+Write-Output 'before'
+$table = '{"a":1}' | ConvertFrom-Json -AsHashtable
+Write-Output "after parameter table=[$($table.a)]"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-PS7-PARAM remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-PS7-PARALLEL'
+            Question     = 'ForEach-Object -Parallel under 5.1: stop or carry on'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-PS7-PARALLEL detection
+Write-Output 'before'
+$items = 1..2 | ForEach-Object -Parallel { $_ }
+Write-Output "after parallel items=[$(@($items).Count)]"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-PS7-PARALLEL remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-PS7-ENCODING'
+            Question     = 'A value only PowerShell 7 has (Out-File -Encoding utf8NoBOM): is the file written'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-PS7-ENCODING detection
+$target = 'C:\ProgramData\IntuneScriptLab\REM-PS7-ENCODING.txt'
+Remove-Item -Path $target -ErrorAction SilentlyContinue
+'x' | Out-File -FilePath $target -Encoding utf8NoBOM
+Write-Output "after encoding written=[$(Test-Path -Path $target)]"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-PS7-ENCODING remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-PS7-REQUIRES'
+            Question     = 'What the agent reports for #Requires -Version 7.0'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+#Requires -Version 7.0
+Write-ProbeRecord REM-PS7-REQUIRES detection
+Write-Output "ran anyway"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-PS7-REQUIRES remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-CRED-BUILT'
+            Question     = 'Get-Credential -Credential with a PSCredential object: does it prompt or return'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-CRED-BUILT detection
+$secure = New-Object -TypeName System.Security.SecureString
+foreach ($char in 'not-a-secret'.ToCharArray()) { $secure.AppendChar($char) }
+$built = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList 'isl-built', $secure
+$stopwatch = [Diagnostics.Stopwatch]::StartNew()
+$returned = Get-Credential -Credential $built
+Write-Output "returned=[$($returned.UserName)] ms=$($stopwatch.ElapsedMilliseconds)"
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-CRED-BUILT remediation; exit 0'
+        }
+        @{
+            Name         = 'REM-DRIVES-SYS'
+            Question     = 'Which drives SYSTEM sees while the signed-in user has X: mapped to a share'
+            RunAs32Bit   = $false
+            RunAsAccount = 'system'
+            Detection    = @'
+Write-ProbeRecord REM-DRIVES-SYS detection
+$drives = [IO.DriveInfo]::GetDrives() | ForEach-Object { "$($_.Name)=$($_.DriveType)" }
+Write-Output ("drives=" + ($drives -join ',') + " X=[" + (Test-Path -Path 'X:\') + "]")
+exit 0
+'@
+            Remediation  = 'Write-ProbeRecord REM-DRIVES-SYS remediation; exit 0'
+        }
     )
 
 

@@ -24,6 +24,38 @@ Describe 'Find-IslInteractiveCall' -Tag 'Unit', 'Private', 'Rule' {
         $findings.Severity | Should-All { $_ -eq 'Error' }
     }
 
+    It 'flags Get-Credential as an error when it is sure to prompt: <Call>' -ForEach @(
+        @{ Call = 'Get-Credential' }
+        @{ Call = "Get-Credential -Message 'Sign in'" }
+        @{ Call = "Get-Credential -UserName admin -Message 'Sign in'" }
+        @{ Call = "Get-Credential -Credential 'CONTOSO\admin'" }
+        @{ Call = 'Get-Credential admin' }
+        @{ Call = 'Get-Credential "$env:USERDOMAIN\admin"' }
+        @{ Call = 'Get-Credential $name -Message hello' }
+    ) {
+        $path = New-TestScript 'script.ps1' "`$c = $Call"
+        $findings = @(Get-RuleFinding $path IslInteractiveCall)
+        $findings.Count | Should-Be 1
+        $findings[0].Severity | Should-Be 'Error'
+        $findings[0].Message | Should-BeLikeString 'Get-Credential waits for input*'
+    }
+
+    It 'warns when Get-Credential is handed something that may be a built credential: <Call>' -ForEach @(
+        @{ Call = 'Get-Credential -Credential $built'; Handed = '$built' }
+        @{ Call = 'Get-Credential $built'; Handed = '$built' }
+        @{ Call = 'Get-Credential -Cred:$built'; Handed = '$built' }
+        @{ Call = 'Get-Credential -ErrorAction Stop -Credential $settings.Account'; Handed = '$settings.Account' }
+        @{ Call = 'Get-Credential (Import-Clixml C:\x.xml)'; Handed = '(Import-Clixml C:\x.xml)' }
+    ) {
+        # A PSCredential is returned as it is (REM-CRED-BUILT); a user name in the same place prompts
+        $path = New-TestScript 'script.ps1' "`$c = $Call"
+        $findings = @(Get-RuleFinding $path IslInteractiveCall)
+        $findings.Count | Should-Be 1
+        $findings[0].Severity | Should-Be 'Warning'
+        $findings[0].Message | Should-BeLikeString "*already built*if $Handed can ever be a name*30 minutes*"
+        $findings[0].Evidence | Should-BeLikeString '*(REM-CRED-BUILT*'
+    }
+
     It 'warns on Set-ExecutionPolicy and Install-Module without -Force or -Confirm:$false' {
         # A bare -Confirm forces the prompt; only -Confirm:$false switches it off
         $path = New-TestScript 'script.ps1' ("Set-ExecutionPolicy RemoteSigned`nInstall-Module Foo -Force`n" +

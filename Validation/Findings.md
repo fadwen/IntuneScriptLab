@@ -374,6 +374,15 @@ console session active): the stored-password task no longer comes back with `0x8
 anywhere, and the launcher waited out its timeout. 0.26.0 treats five seconds of that after
 `Start-ScheduledTask` as the refusal and reports it with the same hint.
 
+2026-10-05, the same device: `query user`, which `Get-IslLogonSession` parses to find the
+account's session, printed ` USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME`
+and ` isl-user              console             1  Active      none   10/4/2026 11:00 PM`: the
+user name column is 22 characters wide. What it prints for a name that fills or exceeds the column
+is **not measured**: a local account name stops at 20 characters, and no Entra account with a
+longer one was signed in. Fed such a line by hand, the parser takes a 21-character name and the
+session name as one field, so the account would not match and the launcher would fall back to the
+stored-password task.
+
 ### Reporting latency, re-measured (2026-09-29)
 
 | Kind | Device (log line, converted to UTC) | Graph | Lag |
@@ -473,6 +482,39 @@ exclusions (`IslAssignmentIssue`), notes a run-once schedule whose time has pass
 (`IslScheduleIssue`, Information) and a user-context script assigned to a device group (skipped on
 Entra registered devices, round 1). An include and an exclude of the same group cannot be seen
 after the fact, so it is documented only.
+
+## PowerShell 7 at run time, a built credential, and the drives SYSTEM sees
+
+Round 10, 2026-10-05, VM 125 (Entra joined, Windows PowerShell 5.1.26100.9444): seven SYSTEM
+remediations, 64-bit, the agent restarted once. Deployed 05:59 UTC, fetched at the restart, queued
+for 06:10; `REM-INSTALL-MODULE` (round 7) had the runner by 06:19 and held it for about an hour, its
+60-minute timeout as before, so the seven detections ran at 07:19:05-07:20:31 UTC; Graph's run
+states for all seven carry `lastStateUpdateDateTime` 07:22:40. Each row is the device's own result record
+(`SideCarPolicies\Scripts\Reports\...\Result`) next to the probe file and Graph `deviceRunStates`.
+
+REM-PS7-SYNTAX (round 1) is the case that does not parse: the detection never starts and exits 1.
+These are the cases that do parse.
+
+| Rule | Documented | Observed | |
+|---|---|---|---|
+| A cmdlet only PowerShell 7 has (`Test-Json`) | Not documented | **The script carries on.** The call writes `The term 'Test-Json' is not recognized` (`CommandNotFoundException`) and the next line runs: output `after cmdlet valid=[]`, `FirstDetectExitCode` 0, `RemediationStatus` 4 (without issues), the error text in `PreRemediationDetectScriptError`, no remediation run, Graph `detectionState success, remediationState skipped` (REM-PS7-CMDLET) | ⚠️ |
+| A parameter only PowerShell 7 has (`ConvertFrom-Json -AsHashtable`) | Not documented | The same: `A parameter cannot be found that matches parameter name 'AsHashtable'` (`NamedParameterNotFound`), output `after parameter table=[]`, exit 0, without issues, no remediation (REM-PS7-PARAM) | ⚠️ |
+| `ForEach-Object -Parallel` | Not documented | The same: `Parameter set cannot be resolved using the specified named parameters` (`AmbiguousParameterSet`), nothing came out of the pipeline (the reported `items=[1]` is `@($null).Count`), exit 0, without issues, no remediation (REM-PS7-PARALLEL) | ⚠️ |
+| A value only PowerShell 7 has (`Out-File -Encoding utf8NoBOM`) | Not documented | The same, and nothing is written: `The argument "utf8NoBOM" does not belong to the set "unknown,string,unicode,bigendianunicode,utf8,utf7,utf32,ascii,default,oem"` (`ParameterArgumentValidationError`), the target file did not exist afterwards (`written=[False]`), exit 0, without issues, no remediation (REM-PS7-ENCODING) | ⚠️ |
+| `#Requires -Version 7.0` | The script does not run (PS docs on #Requires) | As documented, and what Intune makes of it: the detection exits 1 without running, stderr `The script 'detect.ps1' cannot be run because it contained a "#requires" statement for Windows PowerShell 7.0` (`ScriptRequiresUnmatchedPSVersion`), no output; the remediation script **runs** (its probe record at 07:19:36), the post-detection fails the same way, `RemediationStatus` 2 (recurred), Graph `detectionState fail, remediationState remediationFailed`. The result record carries `RemediationExitCode` 1 although the remediation ends in `exit 0` and wrote its record; not followed up (REM-PS7-REQUIRES) | ✅ |
+| `Get-Credential -Credential` handed a `PSCredential` | Not documented for the agent | **Returns it, no prompt:** `returned=[isl-built] ms=12`, exit 0, nothing on stderr, although the agent launches without `-NonInteractive` (REM-CRED-BUILT). A user name in the same place is the prompting case, which was not run: a prompt holds the runner for the 60-minute timeout (REM-INSTALL-MODULE) | ✅ |
+| Drives a SYSTEM script sees | Not documented | **Local volumes, and not the drives the signed-in user mapped.** With a second local volume `D:` on the device and `X:` mapped to a share in the console user's session (`net use` there listed it before the run and again after it), the SYSTEM detection reported `drives=C:\=Fixed,D:\=Fixed X=[False]` (REM-DRIVES-SYS; the fixture is `New-IslDriveFixture.ps1`) | ⚠️ |
+
+**For the tool:** `IslPowerShell7Syntax` kept one evidence string, the parse error's, for all of
+these; a parse error and a failed call end in opposite verdicts for a detection (exit 1 and a
+remediation run, against the script's own exit 0 and "without issues"). The cmdlet, parameter and
+`-Parallel` findings now say the call fails and the script carries on, and cite these experiments;
+`#Requires` cites its own; `Out-File -Encoding utf8NoBOM`, listed in the rule but never matched,
+is a finding. `IslInteractiveCall` keeps `Get-Credential` an error where it is sure to
+prompt and makes `-Credential` with anything but a literal a warning, since a variable there may
+hold a credential that is already built. `IslContextIssue` no longer calls every drive letter from
+`D:` to `Z:` an unmapped drive: the letter cannot say whether it is a local volume, so the finding
+is a note that says which case fails.
 
 ## Win32 custom detection scripts
 

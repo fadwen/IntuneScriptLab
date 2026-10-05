@@ -29,13 +29,53 @@ function Find-IslInteractiveCall {
     $timeout = if ($Context.ScriptType -eq 'PlatformScript') { '30 minutes' } else { '60 minutes' }
     $evidence = ("Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; " +
         "AgentExecutor timeout $timeout (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log)")
+    $builtEvidence = ($evidence + '; handed a PSCredential object, Get-Credential -Credential returned it ' +
+        'in 12 ms under the agent, without a prompt (REM-CRED-BUILT)')
     $ast = $Context.Ast
+
+    # What Get-Credential is handed as -Credential, by name or as the first positional argument.
+    # Nothing when it is called bare or with -Message, -UserName or -Title, which always prompt
+    function Get-CredentialArgument {
+        param($Command)
+        foreach ($prompting in 'Message', 'UserName', 'Title') {
+            if (Test-IslCommandParameter -Command $Command -ParameterName $prompting) { return }
+        }
+        $elements = @($Command.CommandElements | Select-Object -Skip 1)
+        for ($index = 0; $index -lt $elements.Count; $index++) {
+            $element = $elements[$index]
+            if ($element.GetType().Name -eq 'CommandParameterAst') {
+                if (-not 'Credential'.StartsWith($element.ParameterName, 'OrdinalIgnoreCase')) { continue }
+                if ($element.Argument) { return $element.Argument }
+                if ($index + 1 -lt $elements.Count) { return $elements[$index + 1] }
+                return
+            }
+            # A value right after another parameter belongs to that parameter
+            $previous = if ($index -gt 0) { $elements[$index - 1] } else { $null }
+            $taken = $previous -and $previous.GetType().Name -eq 'CommandParameterAst' -and -not $previous.Argument
+            if (-not $taken) { return $element }
+        }
+    }
 
     $alwaysPrompt = 'Read-Host', 'Pause', 'Out-GridView', 'Show-Command', 'Get-Credential'
     foreach ($command in (Find-IslCommand -Ast $ast -Name $alwaysPrompt)) {
         $name = $command.GetCommandName()
-        if ($name -eq 'Get-Credential' -and $command.CommandElements.Count -gt 1) {
-            # Get-Credential with a name/message still prompts; only a fully built credential doesn't
+        # Get-Credential -Credential returns a credential that is already built and prompts for the
+        # password of a user name. A literal is a name; anything else cannot be told apart here
+        $handed = if ($name -eq 'Get-Credential') { Get-CredentialArgument -Command $command }
+        $literalTypes = 'StringConstantExpressionAst', 'ExpandableStringExpressionAst'
+        if ($handed -and $handed.GetType().Name -notin $literalTypes) {
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Warning'
+                Context  = $Context
+                Extent   = $command.Extent
+                Message  = ('Get-Credential -Credential returns a credential that is already built and ' +
+                    "prompts for the password of a user name: if $($handed.Extent.Text) can ever be a " +
+                    "name, the script hangs until the $timeout timeout")
+                Evidence = $builtEvidence
+            }
+            New-IslFinding @findingSplat
+            continue
         }
         $findingSplat = @{
             RuleName = $rule
