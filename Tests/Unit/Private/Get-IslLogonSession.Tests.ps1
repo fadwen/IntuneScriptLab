@@ -43,6 +43,20 @@ Describe 'Get-IslLogonSession' -Tag 'Unit', 'Private' {
         $sessions[1].State | Should-Be 'Disc'
     }
 
+    It 'reads a 20-character name, the longest Windows gives an account, as printed on VM 125' {
+        # An Entra user named "Isl Verylongdisplayname Testaccount" who signs in as
+        # isl-verylongusername-test01@...: Windows calls it AzureAD\IslVerylongdisplayna, the display
+        # name without spaces cut at 20 characters, and the column still ends in two spaces
+        $sessions = @(Get-SessionFromText -Lines @(
+                ' USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME'
+                ' islverylongdisplayna  console             2  Active      none   10/5/2026 11:05 AM'
+            ))
+        $sessions.Count | Should-Be 1
+        $sessions[0].UserName | Should-Be 'islverylongdisplayna'
+        $sessions[0].SessionName | Should-Be 'console'
+        $sessions[0].Id | Should-Be 2
+    }
+
     It 'returns nothing when nobody is logged on, the tool is missing, or only the header prints' {
         @(Get-SessionFromText -Lines @()).Count | Should-Be 0
         @(Get-SessionFromText -Lines @(' USERNAME  SESSIONNAME  ID  STATE  IDLE TIME  LOGON TIME')).Count |

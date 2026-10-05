@@ -168,6 +168,8 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Mock Unregister-ScheduledTask -ModuleName IntuneScriptLab { }
             Mock Stop-ScheduledTask -ModuleName IntuneScriptLab { }
             Mock Get-ScheduledTask -ModuleName IntuneScriptLab { [pscustomobject]@{ State = 'Ready' } }
+            # The accounts in these tests do not exist here: Windows resolves none of them
+            Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
             Mock Start-ScheduledTask -ModuleName IntuneScriptLab {
                 $folder = Join-Path ([IO.Path]::GetTempPath()) $TaskName.Substring('IntuneScriptLab-'.Length)
                 [IO.File]::WriteAllText((Join-Path $folder 'stdout.txt'), "user-out`r`n")
@@ -235,6 +237,48 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             $result = Invoke-Process $launchSplat
             $result.LogonType | Should-Be 'Interactive'
             $result.UserName | Should-Be 'isl-user@lab.local'
+        }
+
+        It 'finds an Entra account''s session by the name Windows gives it, not by its sign-in name (VM 125)' {
+            # Signed in as isl-verylongusername-test01@..., listed by "query user" as
+            # islverylongdisplayna; the scheduler takes the Windows name and refuses the sign-in name
+            Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
+                [pscustomobject]@{
+                    Name = 'AzureAD\IslVerylongdisplayna'
+                    Sid  = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
+                }
+            }
+            Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
+                [pscustomobject]@{
+                    UserName = 'islverylongdisplayna'; SessionName = 'console'; Id = 2; State = 'Active'
+                }
+            }
+            $launchSplat = $script:LaunchSplat.Clone()
+            $signInName = 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
+            $launchSplat.Credential = [pscredential]::new($signInName, $script:Credential.Password)
+            $result = Invoke-Process $launchSplat
+            $result.LogonType | Should-Be 'Interactive'
+            $result.UserName | Should-Be $signInName
+            Should-Invoke Resolve-IslAccount -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
+                $Name -eq 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
+            }
+            Should-Invoke Register-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
+                $Principal.UserId -eq 'AzureAD\IslVerylongdisplayna' -and
+                "$($Principal.LogonType)" -eq 'Interactive' -and $null -eq $Password
+            }
+        }
+
+        It 'does not take another account''s session for a sign-in name that only looks like it' {
+            # The part before the @ of one account can be the Windows name of another
+            Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ Name = 'AzureAD\SomeoneElse'; Sid = 'S-1-12-1-1-2-3-4' }
+            }
+            Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ UserName = 'isl-user'; SessionName = 'console'; Id = 2; State = 'Active' }
+            }
+            $launchSplat = $script:LaunchSplat.Clone()
+            $launchSplat.Credential = [pscredential]::new('isl-user@lab.local', $script:Credential.Password)
+            (Invoke-Process $launchSplat).LogonType | Should-Be 'Password'
         }
 
         It 'reports a logon the scheduler refuses instead of waiting for the timeout (VM 125, isl-user)' {

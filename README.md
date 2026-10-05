@@ -251,7 +251,11 @@ profile loaded, and `RunAs` says `(Password)` so you know the session differs; t
 the "Log on as a batch job" right, which a standard user does not have by default, and the launcher
 reports the refusal with that hint within seconds, whether the scheduler answers `0x80070569` or
 simply never starts the task (`0x00041303`, "has not run yet", which is what the lab device does
-today). Needs an elevated session. On
+today). Needs an elevated session. A Microsoft Entra account can be named by its sign-in name
+(`user@domain`) or by the name Windows gives it: Windows calls such an account
+`AzureAD\<display name without spaces, cut at 20 characters>`, which is neither the sign-in name nor
+a part of it, so the launcher asks Windows which account the credential means and looks for its
+session under that name. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
 harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the

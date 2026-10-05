@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRequirementTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 10/05/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneRequirementTest
 ---
@@ -117,7 +117,7 @@ HelpMessage: ''
 
 ### -Credential
 
-Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
+Run as this account instead of the current user, with -Context User: a one-shot scheduled task registered for the account, interactive inside the account's own session when it holds one (the way the agent runs user-context scripts inside the signed-in user's session, REM-PROBE-USER64), otherwise a stored-password logon in session 0, which needs the account to hold the "Log on as a batch job" right (a standard user does not; the scheduler then never starts the task, and the launcher reports that within seconds rather than at the timeout); the result's RunAs says which. Needs an elevated session, and is refused with -Context System. A Microsoft Entra account can be named by its sign-in name (user@domain, with or without AzureAD\ in front) or by the name Windows gives it (AzureAD\Name, the display name without spaces, cut at 20 characters): the launcher asks Windows which account is meant and finds its session by the Windows name. Validation\New-IslHarnessUser.ps1 creates a lab account with a stored credential to use here.
 
 ```yaml
 Type: System.Management.Automation.PSCredential

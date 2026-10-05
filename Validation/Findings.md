@@ -374,14 +374,25 @@ console session active): the stored-password task no longer comes back with `0x8
 anywhere, and the launcher waited out its timeout. 0.26.0 treats five seconds of that after
 `Start-ScheduledTask` as the refusal and reports it with the same hint.
 
-2026-10-05, the same device: `query user`, which `Get-IslLogonSession` parses to find the
-account's session, printed ` USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME`
-and ` isl-user              console             1  Active      none   10/4/2026 11:00 PM`: the
-user name column is 22 characters wide. What it prints for a name that fills or exceeds the column
-is **not measured**: a local account name stops at 20 characters, and no Entra account with a
-longer one was signed in. Fed such a line by hand, the parser takes a 21-character name and the
-session name as one field, so the account would not match and the launcher would fall back to the
-stored-password task.
+2026-10-05, the same device, a Microsoft Entra account at the console. The tenant user
+`isl-verylongusername-test01@4nlnm3.onmicrosoft.com` (27 characters before the `@`), display name
+"Isl Verylongdisplayname Testaccount", signed in at the "Other user" prompt:
+
+| Question | Observed |
+|---|---|
+| What Windows calls the account | `AzureAD\IslVerylongdisplayna`: the **display name** without its spaces, cut at 20 characters. Not the sign-in name and not a part of it (round 1 had the same shape: signed in as `betar@...`, running as `AzureAD\JeffStuhr`). `USERNAME`, the owner of the session's `explorer.exe` and the profile folder (`C:\Users\IslVerylongdisplayna`) all carry it; `whoami /upn` gives the sign-in name |
+| What `query user` prints | ` islverylongdisplayna  console             2  Active      none   10/5/2026 11:05 AM`: the same name in lower case. The user name column is 22 characters wide and this name was cut at 20, so two spaces remained and the parser's split held. No name longer than 20 characters was seen |
+| Name to SID (`NTAccount.Translate`, as SYSTEM) | `AzureAD\<sign-in name>` and `AzureAD\IslVerylongdisplayna` resolve to the account's SID (`S-1-12-1-...`), and the SID translates back to `AzureAD\IslVerylongdisplayna`. The bare sign-in name, the bare Windows name, `AzureAD\<part before the @>` and `AzureAD\<whole display name>` do not resolve |
+| Which name a scheduled task takes for an interactive principal | Only `AzureAD\IslVerylongdisplayna`. The sign-in name and the SID string were both refused at registration: "No mapping between account names and security IDs was done" |
+| The module before the change, `-Credential` named three ways | Sign-in name: refused at once, `No mapping between account names and security IDs was done`. `AzureAD\<sign-in name>`: no session found, fell back to the stored-password task, "The user name or password is incorrect". `AzureAD\IslVerylongdisplayna`: ran in the session |
+| The module after it | All three ran the script inside the account's session: `who=AzureAD\IslVerylongdisplayna session=2 interactive=True`, `RunAs` naming the credential as given with `(Interactive)`; no task and no run folder left behind |
+
+**For the tool:** the launcher matched `query user` against the credential's user name taken
+apart as text, which can only work when the Windows name happens to equal that text. That holds
+for a local account and fails for an Entra account whatever its length: the Windows name comes
+from the display name. `Resolve-IslAccount` now asks Windows for the account's SID (trying
+`AzureAD\` in front of a sign-in name) and for the name behind that SID; the session is matched on
+that name, the interactive task is registered for it, and the run folder is granted by SID.
 
 ### Reporting latency, re-measured (2026-09-29)
 
