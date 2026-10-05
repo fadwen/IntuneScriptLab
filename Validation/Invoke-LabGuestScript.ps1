@@ -51,11 +51,13 @@
         System.String. The script's stdout on the VM; its stderr and a non-zero exit become warnings.
 
     .NOTES
-        Author: Jeffrey Stuhr. Never run two guest execs at once on the same VM; a status poll that
-        times out is retried, and a second exec would start a second copy.
+        Author: Jeffrey Stuhr. The guest agent calls are GuestAgent.ps1's: each command is started
+        once and its result asked for by process id, so a status call that times out is asked
+        again without running the script a second time. A start call that times out is retried and
+        can run it twice.
 #>
 [CmdletBinding()]
-# ProxmoxHost is read inside Invoke-GuestPowerShell; the analyzer cannot see that
+# ProxmoxHost is read inside Invoke-GuestPowerShell (GuestAgent.ps1); the analyzer cannot see that
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'ProxmoxHost')]
 param(
     [Parameter(Mandatory)]
@@ -75,39 +77,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Invoke-GuestPowerShell {
-    param([Parameter(Mandatory)][string]$Script, [int]$TimeoutSeconds = 120)
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-    for ($attempt = 1; ; $attempt++) {
-        $raw = ssh -o BatchMode=yes $ProxmoxHost ("qm guest exec $VmId --timeout $TimeoutSeconds -- powershell " +
-            "-NoProfile -NonInteractive -EncodedCommand $encoded") 2>&1
-        $text = ($raw -join "`n").Trim()
-        if ($LASTEXITCODE -eq 0 -and $text.StartsWith('{')) { break }
-        if ($attempt -ge 3) { throw "qm guest exec failed on ${ProxmoxHost}: $text" }
-        Write-Warning "qm guest exec attempt $attempt on ${ProxmoxHost}: $text"
-        Start-Sleep -Seconds 10
-    }
-    $result = $text | ConvertFrom-Json
-    # Windows PowerShell writes stderr as CLIXML: progress records ("Preparing modules for first
-    # use") are noise, error records are what the caller needs to read
-    $errorText = "$($result.'err-data')"
-    if ($errorText -match '#< CLIXML') {
-        $messages = foreach ($chunk in ($errorText -split '#< CLIXML')) {
-            if (-not $chunk.Trim()) { continue }
-            try {
-                foreach ($item in [System.Management.Automation.PSSerializer]::Deserialize($chunk.Trim())) {
-                    if ($item -is [string]) { $item }
-                    elseif ($item.PSObject.TypeNames -match 'ErrorRecord') { "$item" }
-                }
-            }
-            catch { $chunk.Trim() }
-        }
-        $errorText = ($messages -join "`n")
-    }
-    if ($result.exitcode -ne 0) { Write-Warning "Guest script exited $($result.exitcode): $errorText" }
-    elseif ($errorText.Trim()) { Write-Warning $errorText.Trim() }
-    $result.'out-data'
-}
+. (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
 
 $remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
 $content = Get-Content -Path (Resolve-Path -Path $ScriptPath) -Raw

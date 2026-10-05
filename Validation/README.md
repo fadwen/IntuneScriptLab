@@ -12,6 +12,7 @@ with the documented behaviour next to the observed one.
 | `Probe.ps1` | Header prepended to every experiment. Records user, bitness, PowerShell version, command line, encoding and paths to `C:\ProgramData\IntuneScriptLab\<experiment>.jsonl` on the device. Windows PowerShell 5.1 only. |
 | `Experiments.psd1` | The experiments: `Remediations`, `PlatformScripts` and `Win32Apps`. Each has a `Question`, a script body and optional `RunAs32Bit`, `RunAsAccount`, `Bom`, `Requirement`. Win32 entries can also carry `DetectionRules` / `RequirementRules` (file, registry, product code and script rule specs), `Intent` (`required` or `uninstall`), `EnforceSignatureCheck`, `Requirements` (base requirement properties by Graph name), `Filter` (an assignment filter rule and mode), `InstallContext`, `DependsOn`, `Supersedes`, `Assign = $false` and `Package` (a real MSI); remediations a `Schedule` (`RunOnce`, `Daily` or hourly with an `Interval`) and `DetectOnly`. |
 | `GraphRules.ps1` | Builds the Graph rule objects (`win32LobAppFileSystemRule`, `win32LobAppRegistryRule`, `win32LobAppProductCodeRule`, `win32LobAppPowerShellScriptRule`) and remediation run schedules from experiment entries. No Graph calls, so `Tests\Unit` covers it directly. |
+| `GuestAgent.ps1` | Runs PowerShell inside a lab VM through the QEMU guest agent (`Invoke-GuestPowerShell`) and fetches a large text file from it in checked chunks (`Read-GuestPayload`). Dot-sourced by the driver and by `Invoke-LabGuestScript.ps1`; see the guest agent notes under "Timing notes" for why it works the way it does. |
 | `Fixtures.ps1` | Device-side fixtures the file, registry and MSI rule experiments look at: files with a known version, size and modified date, a `Program Files (x86)`-only file, `HKLM\SOFTWARE\IntuneScriptLab` in both registry views, and an MSI product survey. Run by `Prepare`. |
 | `Invoke-ValidationRound.ps1` | Driver: `Prepare`, `Deploy`, `Trigger`, `Collect`, `Remove`. `Deploy -Name` and `Collect -AppName` take wildcards to keep a round to its own experiments (each app's install status is one report export job of 20-30 seconds, and the service runs them one at a time). |
 | `Win32Content.ps1` | Packages `Win32Install.ps1` with IntuneWinAppUtil.exe and uploads the content to each app. |
@@ -101,9 +102,26 @@ Every action supports `-WhatIf`.
 - The OOBE web sign-in expires after ~10 minutes idle ("Sorry, your sign-in timed out"); a user with
   no MFA method cannot get past "Keep your account secure" while the tenant requires MFA to register
   or join devices, and the Windows Hello PIN page after the account phase has no skip either.
-- The guest agent's status poll times out on commands that run for minutes, and a retry would start
-  a second copy; `Collect` therefore runs the device script detached and polls a done marker, and
-  uploads are numbered part files so a retried chunk cannot be appended twice.
+- The guest agent as a transport, measured on VM 125 on 2026-10-05 after `Collect` failed with a
+  JSON error in the middle of the device payload (the payload file on the device was intact; chunk
+  154 of 179 had arrived with the right length and another chunk's text):
+  - A result nobody collects stays with the agent, and a status call for a process id returns the
+    **oldest** result held under it. Windows reuses process ids quickly: of 245 commands started
+    without collecting their results, 29 ids were used two or three times, and asking for one of
+    them returned the first command's output, then the second's, then the third's.
+  - A status call that times out on the host (`qmp command 'guest-exec-status' failed - got
+    timeout`) has still been answered by the agent. If the command had finished, the next call
+    says `PID does not exist`: the result went with the reply nobody read.
+  - So `GuestAgent.ps1` starts each command without waiting, asks for its result by id, has every
+    command print a marker of its own first and passes over a result without it, and runs the
+    command again when the agent holds nothing after a timed-out call. A snippet sent this way has
+    to be safe to run twice. `Collect` also compares the SHA-256 of the assembled payload with the
+    one the device computed.
+  - A second copy of the detached runner finds the output file held by the first, skips the script
+    and writes the done marker at once, so the launch sits behind a started marker.
+- `Collect` runs the device script detached and polls a done marker, so no single guest agent call
+  has to stay open for minutes, and uploads are numbered part files so a chunk written twice
+  replaces itself.
 
 ## Adding an experiment
 
