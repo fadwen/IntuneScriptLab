@@ -11,6 +11,13 @@ release notes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.27.0] - 2026-10-05
+
+Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
+round on the lab device. No command changes shape.
+
 ### Fixed
 
 - **A user-context run started from PowerShell 7 loaded PowerShell 7's modules.** The 5.1 host
@@ -424,6 +431,7 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...HEAD
+[0.27.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/fadwen/IntuneScriptLab/releases/tag/v0.25.0
