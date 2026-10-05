@@ -22,6 +22,18 @@ release notes.
   `-Credential`), are unchanged.
 - A backtick line continuation in `Get-IslSetting`, the one left in the module since 0.6.0 said
   there were none.
+- **`-Credential` did not find a Microsoft Entra account's session.** The launcher looked for
+  the credential's user name, taken apart as text, in `query user`. Windows calls an Entra
+  account `AzureAD\<display name without spaces, cut at 20 characters>`, which is neither the
+  sign-in name nor a part of it, so a credential naming `user@domain` was refused ("No mapping
+  between account names and security IDs") or fell back to the stored-password task. The
+  launcher now asks Windows which account the credential means, finds the session by the name
+  Windows gives it, registers the interactive task for that name and grants the run folder by
+  SID. Verified on the joined lab device with the sign-in name, `AzureAD\<sign-in name>` and
+  the Windows name (Findings, "The harness as another account").
+- Under `-ErrorAction Stop` on Windows PowerShell 5.1, a refused grant on the run folder ended
+  with `icacls`' bare line ("No mapping between account names and security IDs was done")
+  instead of the message naming the account and the folder.
 - **`Repair-IntuneScript` hid the mistake it was run on.** `return 1; exit 1` became
   `1; exit 0; exit 1`: the same behaviour, the exit the author wrote unreachable, and no finding
   left. A script-scope `return` with an exit other than 0 after it in the same block now carries

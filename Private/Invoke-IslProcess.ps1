@@ -140,7 +140,11 @@
         }
         else {
             $userName = $Credential.UserName
-            $account = if ($userName -match '\\') { ($userName -split '\\')[-1] }
+            # "query user" lists the name Windows gives the account, which for an Entra account is
+            # neither the sign-in name nor a part of it; ask Windows before taking the name apart
+            $resolved = Resolve-IslAccount -Name $userName
+            $account = if ($resolved) { ($resolved.Name -split '\\')[-1] }
+            elseif ($userName -match '\\') { ($userName -split '\\')[-1] }
             elseif ($userName -match '@') { ($userName -split '@')[0] }
             else { $userName }
             $sessions = @(Get-IslLogonSession | Where-Object { $_.UserName -eq $account })
@@ -149,7 +153,9 @@
             else { 'Password' }
             Write-Verbose "Task for ${userName}: logon type $logon, $($sessions.Count) session(s) found"
             if ($logon -eq 'Interactive') {
-                $principalSplat = @{ UserId = $userName; LogonType = 'Interactive'; RunLevel = 'Limited' }
+                # The scheduler takes an Entra account by its Windows name only
+                $principalName = if ($resolved) { $resolved.Name } else { $userName }
+                $principalSplat = @{ UserId = $principalName; LogonType = 'Interactive'; RunLevel = 'Limited' }
                 $registerTaskSplat.Principal = New-ScheduledTaskPrincipal @principalSplat
             }
             else {
