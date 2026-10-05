@@ -122,6 +122,23 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
         $only.Count | Should-Be 1
     }
 
+    It 'is filtered by -Severity as a Warning rule, whatever the record says (PSScriptAnalyzer 1.25.0)' {
+        # The README and the help say so; a PSScriptAnalyzer that filters on the record fails this
+        # and both need rewriting
+        $scriptAnalyzerSplat = @{
+            Path                = $script:Detect
+            CustomRulePath      = $script:RulePath
+            IncludeDefaultRules = $false
+        }
+        @($script:Direct | Where-Object Severity -eq 'Error').Count | Should-BeGreaterThan 0
+        @($script:Direct | Where-Object Severity -ne 'Warning').Count | Should-BeGreaterThan 1
+        @(Invoke-ScriptAnalyzer @scriptAnalyzerSplat -Severity Error).Count | Should-Be 0
+        @(Invoke-ScriptAnalyzer @scriptAnalyzerSplat -Severity Information).Count | Should-Be 0
+        @(Invoke-ScriptAnalyzer @scriptAnalyzerSplat -Severity Warning).Count | Should-Be $script:Direct.Count
+        $filtered = @(Invoke-ScriptAnalyzer @scriptAnalyzerSplat | Where-Object Severity -eq 'Error')
+        $filtered.Count | Should-Be @($script:Direct | Where-Object Severity -eq 'Error').Count
+    }
+
     It 'analyzes a -ScriptDefinition the same way, reading the type from the directive' {
         # A definition has no file name to infer from; the directive names the type, and a declared
         # type earns no assumed-context note

@@ -11,7 +11,51 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **A user-context run started from PowerShell 7 loaded PowerShell 7's modules.** The 5.1 host
+  inherited the session's `PSModulePath` and took `Microsoft.PowerShell.Management`, `Utility`
+  and `Security` from PowerShell 7's folders: no `Cert:` drive, and `Get-AuthenticodeSignature`
+  and `ConvertTo-SecureString` failed to load, so a script that works under the agent failed in
+  the harness. The child now gets the session's path without the three folders PowerShell 7
+  adds for itself. Runs started from Windows PowerShell, and the scheduled-task runs (SYSTEM,
+  `-Credential`), are unchanged.
+- A backtick line continuation in `Get-IslSetting`, the one left in the module since 0.6.0 said
+  there were none.
+- **`Repair-IntuneScript` hid the mistake it was run on.** `return 1; exit 1` became
+  `1; exit 0; exit 1`: the same behaviour, the exit the author wrote unreachable, and no finding
+  left. A script-scope `return` with an exit other than 0 after it in the same block now carries
+  no edit and stays reported; a `return` with nothing, or `exit 0`, after it is fixed as before.
+- **`IslPowerShell7Syntax` gave the parse error's evidence for errors that are not parse errors.**
+  A cmdlet or parameter only PowerShell 7 has, and `ForEach-Object -Parallel`, parse under 5.1:
+  the call fails, the script carries on and a detection reaches its own exit 0, the opposite of
+  the exit 1 the evidence described. The messages say so and cite the new experiments
+  (REM-PS7-CMDLET, REM-PS7-PARAM, REM-PS7-PARALLEL); `#Requires -Version 7` cites its own
+  (REM-PS7-REQUIRES).
+- **`Out-File -Encoding utf8NoBOM` was in the rule's table and never matched**, filtered out by
+  the code that read the table. It is a finding now, with what the agent did with it
+  (REM-PS7-ENCODING). An empty `Rename-Item` entry is gone.
+- **`IslInteractiveCall` called `Get-Credential -Credential $credential` an error**, although a
+  credential that is already built is returned without a prompt (12 ms under the agent,
+  REM-CRED-BUILT). It stays an error where it is sure to prompt (bare, with `-Message` or
+  `-UserName`, or handed a literal name) and is a warning when handed anything else.
+
+### Changed
+
+- `IslContextIssue` reported every path from `D:\` to `Z:\` in a SYSTEM script as an unmapped
+  drive, a warning. A SYSTEM detection saw a local `D:` and not the `X:` the signed-in user had
+  mapped (REM-DRIVES-SYS), and the letter cannot say which of the two a script means, so the
+  finding is now Information and says which case fails.
+- Validation round 10 (Findings, "PowerShell 7 at run time, a built credential, and the drives
+  SYSTEM sees"): seven remediations on the joined device, and `New-IslDriveFixture.ps1` in the kit
+  for the drive state one of them reports on.
+- The README and `Get-IntuneAnalyzerRulePath`'s help say what `Invoke-ScriptAnalyzer -Severity`
+  does with the custom rules: PSScriptAnalyzer 1.25.0 filters on the rule's registered severity,
+  Warning for every custom rule, so `-Severity Error` returns none of the records and
+  `-Severity Warning` all of them. They also describe the cache as it works: nested script
+  blocks are skipped, and the cache serves the other rules at the root.
+- The about topic named "a missing exit" among `Repair-IntuneScript`'s fixes; they are a
+  script-scope return, the encoding and a padded requirement value.
 
 ## [0.26.0] - 2026-09-28
 

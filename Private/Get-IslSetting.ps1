@@ -110,8 +110,8 @@ function Get-IslSetting {
     while ($probe) {
         $candidate = Join-Path -Path $probe -ChildPath 'IntuneScriptLab.settings.psd1'
         if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-            $found = ConvertTo-SettingsObject -Table (Import-PowerShellDataFile -LiteralPath $candidate) `
-                -Source $candidate
+            $candidateTable = Import-PowerShellDataFile -LiteralPath $candidate
+            $found = ConvertTo-SettingsObject -Table $candidateTable -Source $candidate
             break
         }
         $probe = Split-Path -Path $probe -Parent

@@ -67,12 +67,12 @@ the unit tests fail when it is stale). `Get-Help about_IntuneScriptLab` is the c
 
 | Rule | What it catches | Observed behaviour behind it |
 |---|---|---|
-| `IslPowerShell7Syntax` | Ternary, `&&`/`\|\|`, `??`, `?.`, `-Parallel`, `#Requires -Version 7`, 7-only cmdlets and parameters | Scripts run under Windows PowerShell 5.1. A parse error makes a detection exit 1 (remediation runs) and a Win32 detection "not detected" |
+| `IslPowerShell7Syntax` | Ternary, `&&`/`\|\|`, `??`, `?.`, `-Parallel`, `#Requires -Version 7`, 7-only cmdlets, parameters and parameter values | Scripts run under Windows PowerShell 5.1. A parse error or an unmet `#Requires` makes a detection exit 1 (remediation runs) and a Win32 detection "not detected". A 7-only cmdlet, parameter or value parses: the call fails and the script carries on to its own exit |
 | `IslEncodingIssue` | Non-ASCII in a UTF-8 file without BOM; UTF-16; non-ASCII in reported output | Files arrive byte-for-byte; without a BOM, 5.1 decodes them as ANSI. Output goes through the OEM code page |
-| `IslInteractiveCall` | `Read-Host`, `Pause`, `Get-Credential`, `Out-GridView`, console reads, confirming cmdlets without `-Force` | The agent never passes `-NonInteractive`; prompts hang until the 30/60-minute timeout |
+| `IslInteractiveCall` | `Read-Host`, `Pause`, `Get-Credential`, `Out-GridView`, console reads, confirming cmdlets without `-Force` | The agent never passes `-NonInteractive`; prompts hang until the 30/60-minute timeout. `Get-Credential -Credential` handed a credential that is already built returns it, so a variable there is a warning, not an error |
 | `IslExitCodeIssue` | `return` before `exit 1`, exit codes other than 0/1, unhandled `throw`, missing `exit` | Any non-zero exit runs the remediation; `return` ends the script with exit 0 (Microsoft's own samples do this); `throw` exits 1 |
 | `IslOutputIssue` | A trailing `Write-Host`/`Warning`/`Verbose` displacing the summary; many `Write-Output` lines; Win32 detection: no stdout, `Write-Error`, unguarded cmdlets; Win32 requirement: a second output line (`Write-Host` included), whitespace in the value, no output, `Write-Error`, non-zero exit | Remediations report the last console line (last 2,048 chars), host streams included: a trailing `Write-Warning` is reported as `WARNING: ...`. Win32 detection: installed = exit 0 **and** stdout; any stderr = not detected; `Write-Host` counts as stdout. Win32 requirement: the whole console output minus its final line break is compared (case-insensitively for strings), so a second line or trailing spaces never match; exit 1 or stderr fails the rule |
-| `IslContextIssue` | `HKCU:`, `$env:APPDATA`/`USERPROFILE`, per-user folders, mapped drives in SYSTEM scripts; HKLM writes and service control in user scripts; a note that user context needs an Entra-joined device | SYSTEM runs in session 0 with the `systemprofile` profile and `C:\WINDOWS\TEMP`; user context runs as the signed-in user, and only on Entra joined / hybrid-joined devices: on an Entra-registered device the agent downloads the policy and skips it ("not AADJ/HAADJ device") |
+| `IslContextIssue` | `HKCU:`, `$env:APPDATA`/`USERPROFILE`, per-user folders in SYSTEM scripts, and a note on drive letters other than `C:`, which may be mapped drives; HKLM writes and service control in user scripts; a note that user context needs an Entra-joined device | SYSTEM runs in session 0 with the `systemprofile` profile and `C:\WINDOWS\TEMP`, sees local volumes and not the drives the signed-in user mapped; user context runs as the signed-in user, and only on Entra joined / hybrid-joined devices: on an Entra-registered device the agent downloads the policy and skips it ("not AADJ/HAADJ device") |
 | `IslArchitectureIssue` | `HKLM:\SOFTWARE`, `Program Files`, `System32` in 32-bit scripts; `Sysnative` in 64-bit | `runAs32Bit` launches `SysWOW64\...\powershell.exe`; the portal defaults scripts and remediations to 32-bit |
 | `IslArm64Assumption` | `'AMD64'` used to mean "64-bit", x64-only installers, `Program Files (x86)` checked without `Program Files (Arm)` | On Windows on ARM the native host reports `ARM64`; the x86 host is emulated and reports `ARCHITEW6432=ARM64`; there is no x64 PowerShell host (local survey of an ARM64 device) |
 | `IslRebootCommand` | `Restart-Computer`, `Stop-Computer`, `shutdown /r` | Unsupported in remediations; a reboot loses the run result |
@@ -172,7 +172,10 @@ first (`return 'ok'` to `'ok'; exit 0`); a UTF-16 or BOM-less non-ASCII file is 
 with a BOM; a padded requirement value (`' ok '`) is trimmed. `Repair-IntuneScript` applies them
 per script, reports what it changed and how many findings remain, and previews with `-WhatIf`.
 Whether that `exit 0` should have been an `exit 1` is still the author's call, which is why the
-finding stays an error until the intent is made explicit. Findings carry the edit as `Fix`.
+finding stays an error until the intent is made explicit. Where the script already says which exit
+was meant, a `return` with an exit other than 0 after it in the same block (`return 1; exit 1`),
+there is no edit: `1; exit 0; exit 1` would behave the same, hide the exit the author wrote and
+leave no finding behind, so that one stays for a person. Findings carry the edit as `Fix`.
 
 ## Runtime harness (0.2)
 
@@ -495,8 +498,14 @@ for `-CustomRulePath` or for a `PSScriptAnalyzerSettings.psd1`; `-IncludeRule` a
 `Measure-` names (a `-CustomRulePath` switches the built-in rules off unless `-IncludeDefaultRules`
 asks for them), and a `-ScriptDefinition` is analyzed too, with its type from a
 `# IntuneScriptLab: ScriptType=...` directive. Each record carries the observed Intune behaviour
-after the message. The wrapper analyzes a file once at its root script block and answers from a
-cache for the nested ones PSScriptAnalyzer also hands it.
+after the message. PSScriptAnalyzer hands a rule every script block in a file; the wrapper answers
+at the root one only, where the file is analyzed once and the result cached for the rules that
+follow.
+
+`Invoke-ScriptAnalyzer -Severity` does not filter these records by their own severity.
+PSScriptAnalyzer registers every custom rule as Warning and filters on that, so `-Severity Error`
+returns none of them and `-Severity Warning` returns all of them, whatever each record says
+(PSScriptAnalyzer 1.25.0). Filter the output instead: `... | Where-Object Severity -eq Error`.
 
 ### Pre-flight against the tenant (0.11)
 
