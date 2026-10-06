@@ -18,7 +18,8 @@ function Get-IslAgentLogEvent {
         in the module scope as IslAgentLogEvents for Get-IntuneAgentLog -ListEvent.
 
     .PARAMETER Message
-        The log entry's message.
+        The log entries' messages; one result per message, in the same order. A call per entry
+        costs more than the classification, so Get-IntuneAgentLog sends a log's messages in one.
 
     .EXAMPLE
         Get-IslAgentLogEvent -Message 'Powershell execution is done, exitCode = 1'
@@ -30,7 +31,8 @@ function Get-IslAgentLogEvent {
     param(
         [Parameter(Mandatory)]
         [AllowEmptyString()]
-        [string]$Message
+        [AllowEmptyCollection()]
+        [string[]]$Message
     )
 
     if (-not $script:IslAgentLogEvents) {
@@ -157,40 +159,167 @@ function Get-IslAgentLogEvent {
             }
             @{ Event = 'ExecutorError'; Pattern = '^error from script =(.*)$' }
         )
+        # The literal text a pattern starts with, which a matching message must contain somewhere:
+        # cheaper to look for than to run the pattern, and most messages match no pattern at all.
+        # Read up to the first metacharacter; an escaped punctuation character is a literal, an
+        # escaped letter is a class. A quantifier would make the last literal optional, so it goes
+        function Get-LiteralPrefix {
+            param([string]$Pattern)
+            $literal = [System.Text.StringBuilder]::new()
+            $index = if ($Pattern.StartsWith('^')) { 1 } else { 0 }
+            while ($index -lt $Pattern.Length) {
+                $character = $Pattern[$index]
+                if ($character -eq '\') {
+                    if ($index + 1 -ge $Pattern.Length) { break }
+                    $next = $Pattern[$index + 1]
+                    if ([char]::IsLetterOrDigit($next)) { break }
+                    $null = $literal.Append($next)
+                    $index += 2
+                    continue
+                }
+                if ('()[]{}.*+?|^$'.IndexOf($character) -ge 0) { break }
+                $null = $literal.Append($character)
+                $index++
+            }
+            if ($index -lt $Pattern.Length -and '*?{'.IndexOf($Pattern[$index]) -ge 0 -and $literal.Length) {
+                $literal.Length--
+            }
+            $literal.ToString()
+        }
+        # The same pattern with its capturing groups named <prefix><n>, so every group of the
+        # combined expression below has a name and the matched alternative is the first group that
+        # succeeded. A "(" opens a capture unless it is escaped, inside a class, or followed by "?"
+        function ConvertTo-NamedGroup {
+            param([string]$Pattern, [string]$Prefix)
+            $named = [System.Text.StringBuilder]::new()
+            $count = 0
+            $inClass = $false
+            for ($index = 0; $index -lt $Pattern.Length; $index++) {
+                $character = $Pattern[$index]
+                if ($character -eq '\' -and $index + 1 -lt $Pattern.Length) {
+                    $null = $named.Append($character).Append($Pattern[$index + 1])
+                    $index++
+                    continue
+                }
+                if ($inClass) {
+                    if ($character -eq ']') { $inClass = $false }
+                    $null = $named.Append($character)
+                    continue
+                }
+                if ($character -eq '[') { $inClass = $true }
+                $opensCapture = $character -eq '(' -and
+                    ($index + 1 -ge $Pattern.Length -or $Pattern[$index + 1] -ne '?')
+                if ($opensCapture) {
+                    $count++
+                    $null = $named.Append("(?<$Prefix$count>")
+                    continue
+                }
+                $null = $named.Append($character)
+            }
+            @{ Pattern = $named.ToString(); Count = $count }
+        }
+        # One expression for the whole table: 44 patterns tried one by one cost 44 statements a
+        # message, which was most of what reading a log cost; one Match is one. Alternation keeps
+        # the table's order at a given position, so two patterns that fit the same text still
+        # resolve to the earlier one
         $singleline = [System.Text.RegularExpressions.RegexOptions]::Singleline
+        $combined = [System.Text.StringBuilder]::new()
+        $position = 0
         $script:IslAgentLogEvents = @(foreach ($definition in $definitions) {
+                $prefix = Get-LiteralPrefix -Pattern $definition.Pattern
+                $group = "e$position"
+                $renamed = ConvertTo-NamedGroup -Pattern $definition.Pattern -Prefix "${group}g"
+                if ($position -gt 0) { $null = $combined.Append('|') }
+                $null = $combined.Append("(?<$group>").Append($renamed.Pattern).Append(')')
+                $position++
                 [pscustomobject]@{
-                    Event = $definition.Event
-                    Regex = [regex]::new($definition.Pattern, $singleline)
+                    Event    = $definition.Event
+                    Regex    = [regex]::new($definition.Pattern, $singleline)
+                    Needle   = if ($prefix.Length -ge 3) { $prefix } else { $null }
+                    Group    = $group
+                    Captures = $renamed.Count
                 }
             })
+        $script:IslAgentLogEventByGroup = @{}
+        foreach ($definition in $script:IslAgentLogEvents) {
+            $script:IslAgentLogEventByGroup[$definition.Group] = $definition
+        }
+        $compiled = $singleline -bor [System.Text.RegularExpressions.RegexOptions]::Compiled
+        $script:IslAgentLogEventRegex = [regex]::new($combined.ToString(), $compiled)
     }
 
-    $eventName = $null
-    $detail = $null
-    foreach ($candidate in $script:IslAgentLogEvents) {
-        $match = $candidate.Regex.Match($Message)
-        if (-not $match.Success) { continue }
-        $eventName = $candidate.Event
-        $groups = @(for ($i = 1; $i -lt $match.Groups.Count; $i++) { $match.Groups[$i].Value.Trim() })
-        $detail = ($groups | Where-Object { $_ }) -join ' '
-        if (-not $detail) { $detail = $null }
-        break
-    }
+    $combinedRegex = $script:IslAgentLogEventRegex
+    $byGroup = $script:IslAgentLogEventByGroup
+    $firstSuccess = $script:IslAgentLogFirstSuccess
     # The policy or app id is the first GUID that is not the empty one: the device's user id on a
     # userless check-in is 00000000-... and comes before the policy id on some lines
-    $guidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-    $id = $null
-    foreach ($match in [regex]::Matches($Message, $guidPattern)) {
-        $candidate = $match.Value.ToLower()
-        if ($null -eq $id) { $id = $candidate }
-        if ($candidate -ne '00000000-0000-0000-0000-000000000000') { $id = $candidate; break }
-    }
+    $guidRegex = $script:IslAgentLogGuidRegex
+    foreach ($text in $Message) {
+        $eventName = $null
+        $detail = $null
+        $match = $combinedRegex.Match($text)
+        if ($match.Success) {
+            # Group 0 is the whole match; the first successful group after it is the alternative
+            $winner = & $firstSuccess $match.Groups
+            $definition = $byGroup[$winner.Name]
+            $eventName = $definition.Event
+            $groups = @(for ($i = 1; $i -le $definition.Captures; $i++) {
+                    $match.Groups["$($definition.Group)g$i"].Value.Trim()
+                })
+            $detail = ($groups | Where-Object { $_ }) -join ' '
+            if (-not $detail) { $detail = $null }
+        }
+        $id = $null
+        # A GUID has four hyphens; a message without one has no id to look for
+        if ($text.IndexOf('-') -ge 0) {
+            foreach ($match in $guidRegex.Matches($text)) {
+                $candidate = $match.Value.ToLower()
+                if ($null -eq $id) { $id = $candidate }
+                if ($candidate -ne '00000000-0000-0000-0000-000000000000') { $id = $candidate; break }
+            }
+        }
 
-    [pscustomobject]@{
-        PSTypeName = 'IntuneScriptLab.AgentLogEvent'
-        Event      = $eventName
-        Detail     = $detail
-        Id         = $id
+        [pscustomobject]@{
+            PSTypeName = 'IntuneScriptLab.AgentLogEvent'
+            Event      = $eventName
+            Detail     = $detail
+            Id         = $id
+        }
     }
+}
+
+$script:IslAgentLogGuidRegex = [regex]::new(
+    '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+    [System.Text.RegularExpressions.RegexOptions]::Compiled)
+
+# The first group after group 0 that took part in a match, found without a PowerShell loop over the
+# groups: Enumerable.Skip(1) then FirstOrDefault with Group.Success as the predicate. The generic
+# methods are closed by reflection once, because Windows PowerShell 5.1 has no syntax for it, and
+# GroupCollection is cast to IEnumerable<Group> first because .NET Framework's is not one
+$script:IslAgentLogFirstSuccess = & {
+    $groupType = [System.Text.RegularExpressions.Group]
+    $enumerable = [System.Linq.Enumerable]
+    $cast = $enumerable.GetMethod('Cast').MakeGenericMethod($groupType)
+    $skip = ($enumerable.GetMethods() | Where-Object {
+            $_.Name -eq 'Skip' -and $_.GetParameters()[1].ParameterType -eq [int]
+        } | Select-Object -First 1).MakeGenericMethod($groupType)
+    $first = ($enumerable.GetMethods() | Where-Object {
+            $_.Name -eq 'FirstOrDefault' -and $_.GetParameters().Count -eq 2 -and
+            $_.GetParameters()[1].ParameterType.Name -like 'Func*'
+        } | Select-Object -First 1).MakeGenericMethod($groupType)
+    $success = [System.Delegate]::CreateDelegate([System.Func[System.Text.RegularExpressions.Group, bool]],
+        $groupType.GetProperty('Success').GetGetMethod())
+    {
+        param($Groups)
+        # Argument arrays built by hand: PowerShell would enumerate the collection into @()
+        $castArguments = [object[]]::new(1)
+        $castArguments[0] = $Groups
+        $skipArguments = [object[]]::new(2)
+        $skipArguments[0] = $cast.Invoke($null, $castArguments)
+        $skipArguments[1] = 1
+        $firstArguments = [object[]]::new(2)
+        $firstArguments[0] = $skip.Invoke($null, $skipArguments)
+        $firstArguments[1] = $success
+        $first.Invoke($null, $firstArguments)
+    }.GetNewClosure()
 }

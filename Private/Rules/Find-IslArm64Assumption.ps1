@@ -46,6 +46,14 @@ function Find-IslArm64Assumption {
                 "match 'ARM64|AMD64'")
             Evidence = $evidence
         }
+        # Only where the literal is the pattern of a -match: as the right side of -eq the alternation
+        # would match nothing at all
+        $parent = $literal.Parent
+        $matched = $parent.GetType().Name -eq 'BinaryExpressionAst' -and
+            "$($parent.Operator)" -in 'Imatch', 'Inotmatch', 'Cmatch', 'Cnotmatch' -and $parent.Right -eq $literal
+        if ($matched) {
+            $findingSplat.Fix = @{ Replacement = $literal.Extent.Text.Replace($literal.Value, 'ARM64|AMD64') }
+        }
         New-IslFinding @findingSplat
     }
 

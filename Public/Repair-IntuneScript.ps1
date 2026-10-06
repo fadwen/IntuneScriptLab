@@ -15,9 +15,17 @@ function Repair-IntuneScript {
         [ValidateSet('Auto', 'Detection', 'Remediation', 'PlatformScript', 'Win32Detection', 'Win32Requirement')]
         [string]$ScriptType = 'Auto',
 
+        [ValidateSet('Auto', 'System', 'User')]
+        [string]$Context = 'Auto',
+
+        [ValidateSet('Auto', 'x86', 'x64', 'arm64')]
+        [string]$Architecture = 'Auto',
+
         [string[]]$IncludeRule,
 
         [string[]]$ExcludeRule,
+
+        [switch]$EnforceSignatureCheck,
 
         $Settings
     )
@@ -34,7 +42,13 @@ function Repair-IntuneScript {
         }
 
         foreach ($file in $files) {
-            $testSplat = @{ Path = $file; ScriptType = $ScriptType }
+            # The analysis sees the script the way the caller deploys it, so the findings, their
+            # fixes and the Remaining count are the ones Test-IntuneScript would give for the same
+            # options
+            $testSplat = @{
+                Path = $file; ScriptType = $ScriptType; Context = $Context; Architecture = $Architecture
+            }
+            if ($EnforceSignatureCheck) { $testSplat.EnforceSignatureCheck = $true }
             if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }
             if ($ExcludeRule) { $testSplat.ExcludeRule = $ExcludeRule }
             if ($PSBoundParameters.ContainsKey('Settings')) { $testSplat.Settings = $Settings }

@@ -30,6 +30,16 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
             $command.Parameters['Operator'].Attributes.ValidValues.Count | Should-Be 6
         }
 
+        It 'takes script paths from the pipeline, with the rule given once' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+            }
+            $results = @('C:\lab\a.ps1', 'C:\lab\b.ps1' |
+                    Invoke-IntuneRequirementTest -OutputType String -Operator Equal -Value ok)
+            $results.Count | Should-Be 2
+            $results.Applicable | Should-All { $_ }
+        }
+
         It 'defaults to the 64-bit host, as the portal does for requirement rules' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "ok`r`n"; StdErr = '' }

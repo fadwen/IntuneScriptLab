@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Repair-IntuneScript.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/05/2026
+ms.date: 10/06/2026
 PlatyPS schema version: 2024-05-01
 title: Repair-IntuneScript
 ---
@@ -20,8 +20,9 @@ Applies the mechanical fixes for findings that have one, and reports what is lef
 ### __AllParameterSets
 
 ```
-Repair-IntuneScript [-Path] <string[]> [-ScriptType <string>] [-IncludeRule <string[]>]
- [-ExcludeRule <string[]>] [-Settings <Object>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Repair-IntuneScript [-Path] <string[]> [-ScriptType <string>] [-Context <string>]
+ [-Architecture <string>] [-IncludeRule <string[]>] [-ExcludeRule <string[]>]
+ [-EnforceSignatureCheck] [-Settings <Object>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## ALIASES
@@ -42,9 +43,30 @@ behaviour-preserving edit:
                        or an ANSI file (read in the system ANSI code page, so its characters
                        survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects
     IslOutputIssue     a requirement script's output literal with leading or trailing
-                       whitespace is trimmed, so it can match the portal value
+                       whitespace is trimmed, so it can match the portal value; a probing
+                       cmdlet without -ErrorAction gets -ErrorAction SilentlyContinue, so a
+                       missing target no longer writes to stderr
+    IslInteractiveCall Install-Module, Install-PackageProvider, Install-Package, Update-Module
+                       and Uninstall-Module get -Force, Register-PSRepository gets
+                       -Confirm:$false; a Get-Credential -Credential handed a credential that
+                       can only be one already built is replaced by that credential
+    IslExecutionPolicyCall
+                       a Set-ExecutionPolicy call that is a statement of its own is removed;
+                       the agent launches the script with -ExecutionPolicy Bypass
+    IslExitCodeIssue   'exit N' with N other than 0 or 1 becomes 'exit 1', the value Intune
+                       reads it as
+    IslArchitectureIssue
+                       $env:ProgramFiles becomes $env:ProgramW6432, the 64-bit folder in
+                       either host
+    IslArm64Assumption 'AMD64' as the pattern of a -match becomes 'ARM64|AMD64'
+    IslRelativePath    $PWD becomes $PSScriptRoot where no member follows it
+    IslPowerShell7Syntax
+                       a '#Requires -Version 7' line is removed; what the script then does
+                       under Windows PowerShell 5.1, the other findings say
 
-Everything else stays as it is and is counted in Remaining.
+Everything else stays as it is and is counted in Remaining. Where an edit would leave a broken
+statement, Set-ExecutionPolicy inside a pipeline, 'AMD64' compared with -eq, $PWD.Path, the
+finding has no fix and stays.
 Text edits are applied from the
 end of the file backwards so line numbers stay valid, line endings are kept, and an edit
 whose text no longer matches the file is skipped with a warning.
@@ -71,7 +93,39 @@ Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -I
 
 Trims padded requirement values only, in every requirement script under Win32.
 
+### EXAMPLE 4
+
+Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System
+
+Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
+on either, and the Remaining count, match Test-IntuneScript run with the same options.
+
 ## PARAMETERS
+
+### -Architecture
+
+The host the script runs in, passed to the analysis: x86 (portal default for scripts and
+remediations), x64 (Win32 detection default) or arm64. Auto (default) infers per script as
+Test-IntuneScript does. The findings an architecture decides, System32 against Sysnative among
+them, and the fixes and Remaining count that follow from them, are then the ones
+Test-IntuneScript gives for the same value.
+
+```yaml
+Type: System.String
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
 
 ### -Confirm
 
@@ -83,6 +137,53 @@ DefaultValue: ''
 SupportsWildcards: false
 Aliases:
 - cf
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Context
+
+System or User, passed to the analysis. Auto (default) uses the directive or the type's portal
+default, as Test-IntuneScript does. HKCU: and the profile variables are errors under System and
+not under User, so Remaining follows the context the script is deployed in.
+
+```yaml
+Type: System.String
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -EnforceSignatureCheck
+
+Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
+check" were on: an unsigned script gets an IslSignatureIssue error, which has no fix and is
+counted in Remaining. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true"
+does the same for one script, and the settings key EnforceSignatureCheck = $true for a folder.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
 ParameterSets:
 - Name: (All)
   Position: Named

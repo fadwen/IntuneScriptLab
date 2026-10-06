@@ -2698,7 +2698,7 @@ Test-IntuneScript's IslContextIssue flags statically.</maml:para>
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Invoke-IntuneDetectionTest</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
           <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
@@ -2795,7 +2795,7 @@ in the reason, which is what AgentExecutor returned for an unsigned script (W32-
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
         </dev:type>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>The detection script.</maml:para>
@@ -2820,10 +2820,11 @@ Intune allows 60 minutes; the default here is 5.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>System.String</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>This command does not accept pipeline input. Pass the script path with -Path.</maml:para>
+          <maml:para>A script path, or an object with a FullName or PSPath property such as Get-ChildItem gives,
+one result per script.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -2927,7 +2928,7 @@ through a scheduled task (elevated session required).</maml:para>
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Invoke-IntunePlatformScriptTest</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
           <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
@@ -3005,7 +3006,7 @@ hybrid-joined devices run them.</maml:para>
           <maml:name>System.Management.Automation.PSCredential</maml:name>
         </dev:type>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>The script.</maml:para>
@@ -3030,10 +3031,11 @@ Intune allows 30 minutes; the default here is 5.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>System.String</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>This command does not accept pipeline input. Pass the script path with -Path.</maml:para>
+          <maml:para>A script path, or an object with a FullName or PSPath property such as Get-ChildItem gives,
+one result per script.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -3390,7 +3392,7 @@ Under Intune the requirement runs before the install and after the detection has
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Invoke-IntuneRequirementTest</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
           <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
@@ -3515,7 +3517,7 @@ Version or Boolean.</maml:para>
           <maml:name>System.String</maml:name>
         </dev:type>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>The requirement script.</maml:para>
@@ -3550,10 +3552,11 @@ Intune allows 60 minutes; the default here is 5.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>System.String</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>This command does not accept pipeline input. Pass the script path with -Path.</maml:para>
+          <maml:para>A script path, or an object with a FullName or PSPath property such as Get-ChildItem gives,
+one result per script.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -4169,9 +4172,30 @@ behaviour-preserving edit:
                        or an ANSI file (read in the system ANSI code page, so its characters
                        survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects
     IslOutputIssue     a requirement script's output literal with leading or trailing
-                       whitespace is trimmed, so it can match the portal value
+                       whitespace is trimmed, so it can match the portal value; a probing
+                       cmdlet without -ErrorAction gets -ErrorAction SilentlyContinue, so a
+                       missing target no longer writes to stderr
+    IslInteractiveCall Install-Module, Install-PackageProvider, Install-Package, Update-Module
+                       and Uninstall-Module get -Force, Register-PSRepository gets
+                       -Confirm:$false; a Get-Credential -Credential handed a credential that
+                       can only be one already built is replaced by that credential
+    IslExecutionPolicyCall
+                       a Set-ExecutionPolicy call that is a statement of its own is removed;
+                       the agent launches the script with -ExecutionPolicy Bypass
+    IslExitCodeIssue   'exit N' with N other than 0 or 1 becomes 'exit 1', the value Intune
+                       reads it as
+    IslArchitectureIssue
+                       $env:ProgramFiles becomes $env:ProgramW6432, the 64-bit folder in
+                       either host
+    IslArm64Assumption 'AMD64' as the pattern of a -match becomes 'ARM64|AMD64'
+    IslRelativePath    $PWD becomes $PSScriptRoot where no member follows it
+    IslPowerShell7Syntax
+                       a '#Requires -Version 7' line is removed; what the script then does
+                       under Windows PowerShell 5.1, the other findings say
 
-Everything else stays as it is and is counted in Remaining.
+Everything else stays as it is and is counted in Remaining. Where an edit would leave a broken
+statement, Set-ExecutionPolicy inside a pipeline, 'AMD64' compared with -eq, $PWD.Path, the
+finding has no fix and stays.
 Text edits are applied from the
 end of the file backwards so line numbers stay valid, line endings are kept, and an edit
 whose text no longer matches the file is skipped with a warning.
@@ -4198,6 +4222,22 @@ The command supports
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Context</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Architecture</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
           <maml:name>IncludeRule</maml:name>
           <maml:description />
           <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
@@ -4211,6 +4251,13 @@ The command supports
           <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
             <maml:name>System.String[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>EnforceSignatureCheck</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
@@ -4238,10 +4285,48 @@ The command supports
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Architecture</maml:name>
+        <maml:description>
+          <maml:para>The host the script runs in, passed to the analysis: x86 (portal default for scripts and
+remediations), x64 (Win32 detection default) or arm64. Auto (default) infers per script as
+Test-IntuneScript does. The findings an architecture decides, System32 against Sysnative among
+them, and the fixes and Remaining count that follow from them, are then the ones
+Test-IntuneScript gives for the same value.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="cf">
         <maml:name>Confirm</maml:name>
         <maml:description>
           <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Context</maml:name>
+        <maml:description>
+          <maml:para>System or User, passed to the analysis. Auto (default) uses the directive or the type's portal
+default, as Test-IntuneScript does. HKCU: and the profile variables are errors under System and
+not under User, so Remaining follows the context the script is deployed in.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>EnforceSignatureCheck</maml:name>
+        <maml:description>
+          <maml:para>Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
+check" were on: an unsigned script gets an IslSignatureIssue error, which has no fix and is
+counted in Remaining. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true"
+does the same for one script, and the settings key EnforceSignatureCheck = $true for a folder.</maml:para>
         </maml:description>
         <dev:type>
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -4361,6 +4446,17 @@ script already did, or changes the file's encoding, never what the script decide
           <maml:para>Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -IncludeRule IslOutputIssue</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Trims padded requirement values only, in every requirement script under Win32.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 4 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
+on either, and the Remaining count, match Test-IntuneScript run with the same options.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />

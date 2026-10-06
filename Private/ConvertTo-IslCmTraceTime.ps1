@@ -30,17 +30,18 @@ function ConvertTo-IslCmTraceTime {
         [string]$Date
     )
 
-    $timeMatch = [regex]::Match($Time, '^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d{1,7}))?')
-    $dateMatch = [regex]::Match($Date, '^(\d{1,2})-(\d{1,2})-(\d{4})$')
-    if (-not $timeMatch.Success -or -not $dateMatch.Success) {
-        throw "Not a CMTrace timestamp: date=$Date time=$Time"
-    }
-    $timeParts = $timeMatch.Groups
-    $dateParts = $dateMatch.Groups
-    $value = [datetime]::new([int]$dateParts[3].Value, [int]$dateParts[1].Value, [int]$dateParts[2].Value,
-        [int]$timeParts[1].Value, [int]$timeParts[2].Value, [int]$timeParts[3].Value)
-    if ($timeParts[4].Success) {
-        $value = $value.AddTicks([long]$timeParts[4].Value.PadRight(7, '0'))
-    }
+    # This runs once per log entry. The bias is cut off at the first + or - after the seconds, and
+    # one TryParseExact reads the rest: the F specifiers take any number of fraction digits up to
+    # seven, and none at all
+    $bias = $Time.IndexOfAny([char[]]@('+', '-'), [Math]::Min(7, $Time.Length))
+    $plain = if ($bias -ge 0) { $Time.Substring(0, $bias) } else { $Time }
+    $value = [datetime]::MinValue
+    $parsed = [datetime]::TryParseExact("$Date $plain", $script:IslCmTraceTimeFormat,
+        [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$value)
+    if (-not $parsed) { throw "Not a CMTrace timestamp: date=$Date time=$Time" }
     $value
 }
+
+# M-d-yyyy and H:mm:ss as the agent writes them: no leading zero on the month, day or hour is
+# required, and the fraction is optional
+$script:IslCmTraceTimeFormat = 'M-d-yyyy H:mm:ss.FFFFFFF'

@@ -129,10 +129,15 @@ function Test-IntuneDeployedScript {
         $isDeviceGroup = $false
         if (-not $SkipGroupLookup -and -not $groupState.Blocked) {
             try {
-                $members = Invoke-IslGraphRequest -Uri "/v1.0/groups/$GroupId/members?`$select=id&`$top=20"
-                $types = @($members.value | ForEach-Object { "$($_.'@odata.type')" })
-                $others = @($types | Where-Object { $_ -ne '#microsoft.graph.device' })
-                $isDeviceGroup = $types.Count -gt 0 -and $others.Count -eq 0
+                # Two counts, every member and the devices among them, rather than a page of
+                # members: a page of 20 decided for the whole group, and a mixed group whose first
+                # 20 members were devices passed as a device group. $count needs the eventual
+                # consistency header and answers with the number as text (dev tenant, 2026-10-06)
+                $countSplat = @{ Headers = @{ ConsistencyLevel = 'eventual' } }
+                $total = [int](Invoke-IslGraphRequest -Uri "/v1.0/groups/$GroupId/members/`$count" @countSplat)
+                $deviceUri = "/v1.0/groups/$GroupId/members/microsoft.graph.device/`$count"
+                $devices = [int](Invoke-IslGraphRequest -Uri $deviceUri @countSplat)
+                $isDeviceGroup = $total -gt 0 -and $devices -eq $total
             }
             catch {
                 $groupState.Blocked = $true

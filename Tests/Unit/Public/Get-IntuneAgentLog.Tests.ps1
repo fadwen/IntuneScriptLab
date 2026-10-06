@@ -153,6 +153,19 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
             @(Get-IntuneAgentLog -Path $script:Logs -Pattern 'Get \d+ policies').Count | Should-Be 2
         }
 
+        It 'does not read a rolled-over file whose last write is before -After' {
+            # The rolled-over agent log in the fixture is written on 9-24; its entries cannot be after
+            # the 25th, so the file is skipped on its timestamp alone
+            $rolled = Join-Path $script:Logs 'IntuneManagementExtension-20260924-131114.log'
+            (Get-Item $rolled).LastWriteTime = [datetime]'2026-09-24 13:11:14'
+            Mock ConvertFrom-IslCmTraceLog -ModuleName IntuneScriptLab { @() }
+            $null = Get-IntuneAgentLog -Path $script:Logs -Log Agent -After ([datetime]'2026-09-25')
+            $invokeSplat = @{ ModuleName = 'IntuneScriptLab'; Exactly = $true; Times = 1 }
+            Should-Invoke ConvertFrom-IslCmTraceLog @invokeSplat -ParameterFilter {
+                $Path -like '*\IntuneManagementExtension.log'
+            }
+        }
+
         It 'keeps the most recent entries with -Last, after the other filters' {
             $last = @(Get-IntuneAgentLog -Path $script:Logs -Last 2)
             $last.Message | Should-BeCollection @(

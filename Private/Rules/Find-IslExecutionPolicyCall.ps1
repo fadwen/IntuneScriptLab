@@ -64,6 +64,12 @@ function Find-IslExecutionPolicyCall {
                 Evidence = $evidence
             }
         }
+        # The call is removed when it is a statement on its own: in a pipeline, or as a value, taking
+        # it out would leave a broken statement with nothing to say so
+        $pipeline = $command.Parent
+        $alone = $pipeline.GetType().Name -eq 'PipelineAst' -and @($pipeline.PipelineElements).Count -eq 1 -and
+            $pipeline.Parent.GetType().Name -in 'NamedBlockAst', 'StatementBlockAst'
+        if ($alone) { $findingSplat.Fix = @{ Replacement = '' } }
         New-IslFinding @findingSplat
     }
 }

@@ -89,6 +89,8 @@ function Find-IslArchitectureIssue {
                 Message  = ("`$env:ProgramFiles is 'Program Files (x86)' in the 32-bit host$suffix. Use " +
                     "`$env:ProgramW6432 for the 64-bit folder")
                 Evidence = $evidence
+                # ProgramW6432 is set in 32-bit and 64-bit processes alike on a 64-bit Windows
+                Fix      = @{ Replacement = ($variable.Extent.Text -replace '(?i)ProgramFiles', 'ProgramW6432') }
             }
             New-IslFinding @findingSplat
         }

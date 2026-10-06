@@ -53,6 +53,17 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         $text.Length | Should-BeLessThanOrEqual $Limit
     }
 
+    It 'has a format view for every output type an exported command declares' {
+        # A result type without a view prints as a property dump; the view is part of the command's contract
+        $declared = @(Get-Command -Module IntuneScriptLab -CommandType Function | ForEach-Object {
+                $_.OutputType.Name
+            } | Where-Object { $_ -like 'IntuneScriptLab.*' } | Sort-Object -Unique)
+        $declared.Count | Should-BeGreaterThan 10
+        [xml]$format = Get-Content (Join-Path $script:ModuleRoot 'IntuneScriptLab.Format.ps1xml') -Raw
+        $viewed = @($format.Configuration.ViewDefinitions.View.ViewSelectedBy.TypeName | Sort-Object -Unique)
+        @($declared | Where-Object { $_ -notin $viewed }) | Should-BeCollection @()
+    }
+
     It 'exports exactly the public functions' {
         $exported = @((Get-Command -Module IntuneScriptLab -CommandType Function).Name | Sort-Object)
         $exported | Should-BeCollection @(

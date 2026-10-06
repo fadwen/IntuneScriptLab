@@ -19,6 +19,15 @@ AfterAll {
 Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
 
     Context 'Parameter Validation' {
+        It 'takes script paths from the pipeline, one result each' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+            }
+            $results = @('C:\lab\a.ps1', 'C:\lab\b.ps1' | Invoke-IntunePlatformScriptTest)
+            $results.Count | Should-Be 2
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 2 -Exactly
+        }
+
         It 'defaults to the 32-bit host and the current user, as the portal does' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }

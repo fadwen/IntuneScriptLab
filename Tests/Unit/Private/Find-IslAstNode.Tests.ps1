@@ -36,6 +36,26 @@ Describe 'Find-IslAstNode' -Tag 'Unit', 'Private' {
         }
     }
 
+    It 'returns nodes of several types in document order, and the same tree is indexed once' {
+        InModuleScope IntuneScriptLab -Parameters @{ Ast = $script:Ast } {
+            $nodes = @(Find-IslAstNode -Ast $Ast -TypeName ExitStatementAst, FunctionDefinitionAst)
+            $nodes.Count | Should-Be 4
+            $nodes[0].GetType().Name | Should-Be 'FunctionDefinitionAst'
+            $offsets = @($nodes | ForEach-Object { $_.Extent.StartOffset })
+            $offsets | Should-BeCollection @($offsets | Sort-Object)
+            $first = Get-IslAstIndex -Ast $Ast
+            $second = Get-IslAstIndex -Ast $Ast
+            [object]::ReferenceEquals($first, $second) | Should-BeTrue
+            # The index lists what FindAll finds, in the order FindAll finds it
+            $walked = @($Ast.FindAll({ param($node) $node.GetType().Name -eq 'CommandAst' }, $true))
+            $indexed = @($first.ByType['CommandAst'])
+            $indexed.Count | Should-Be $walked.Count
+            for ($i = 0; $i -lt $walked.Count; $i++) {
+                [object]::ReferenceEquals($walked[$i], $indexed[$i]) | Should-BeTrue
+            }
+        }
+    }
+
     It 'returns nothing for a type that is not in the tree' {
         InModuleScope IntuneScriptLab -Parameters @{ Ast = $script:Ast } {
             @(Find-IslAstNode -Ast $Ast -TypeName TernaryExpressionAst).Count | Should-Be 0
@@ -48,7 +68,11 @@ Describe 'Find-IslCommand' -Tag 'Unit', 'Private' {
     It 'matches command names case-insensitively, any of several' {
         InModuleScope IntuneScriptLab -Parameters @{ Ast = $script:Ast } {
             @(Find-IslCommand -Ast $Ast -Name 'get-item').Count | Should-Be 2
-            @(Find-IslCommand -Ast $Ast -Name 'Get-Item', 'Write-Output').Count | Should-Be 3
+            $several = @(Find-IslCommand -Ast $Ast -Name 'Write-Output', 'Get-Item')
+            $several.Count | Should-Be 3
+            # Document order whatever the order of the names asked for
+            $names = @($several | ForEach-Object { $_.GetCommandName() })
+            $names | Should-BeCollection @('Get-Item', 'Get-Item', 'Write-Output')
             @(Find-IslCommand -Ast $Ast -Name 'Remove-Item').Count | Should-Be 0
         }
     }

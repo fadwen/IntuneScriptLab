@@ -98,6 +98,73 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
         }
     }
 
+    Context 'Mechanical fixes' {
+        It 'applies the <Rule> fix: <Before> becomes <After>' -ForEach @(
+            @{ Rule = 'IslInteractiveCall'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = 'Install-Module Foo'; After = 'Install-Module Foo -Force' }
+            @{ Rule = 'IslInteractiveCall'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = "Register-PSRepository -Name r -SourceLocation 'https://x'"
+                After = "Register-PSRepository -Name r -SourceLocation 'https://x' -Confirm:`$false" }
+            @{ Rule = 'IslInteractiveCall'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = "`$c = Import-Clixml C:\c.xml`n`$cred = Get-Credential -Credential `$c"
+                After = "`$c = Import-Clixml C:\c.xml`n`$cred = `$c" }
+            @{ Rule = 'IslExecutionPolicyCall'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = "Set-ExecutionPolicy Bypass -Scope Process -Force`nWrite-Output 'x'"
+                After = "`nWrite-Output 'x'" }
+            @{ Rule = 'IslArchitectureIssue'; Type = 'Remediation'; Name = 'Detect.ps1'
+                Before = 'Test-Path "$env:ProgramFiles\Widget\w.exe"'
+                After = 'Test-Path "$env:ProgramW6432\Widget\w.exe"' }
+            @{ Rule = 'IslArm64Assumption'; Type = 'Remediation'; Name = 'Detect.ps1'; Architecture = 'arm64'
+                Before = "if (`$env:PROCESSOR_ARCHITECTURE -match 'AMD64') { 'x64' }"
+                After = "if (`$env:PROCESSOR_ARCHITECTURE -match 'ARM64|AMD64') { 'x64' }" }
+            @{ Rule = 'IslOutputIssue'; Type = 'Win32Detection'; Name = 'Detect-App.ps1'
+                Before = 'Get-Item C:\Widget\w.exe'
+                After = 'Get-Item C:\Widget\w.exe -ErrorAction SilentlyContinue' }
+            @{ Rule = 'IslExitCodeIssue'; Type = 'Detection'; Name = 'Detect.ps1'
+                Before = "if (Test-Path C:\x) { exit 2 }`nexit 0"
+                After = "if (Test-Path C:\x) { exit 1 }`nexit 0" }
+            @{ Rule = 'IslRelativePath'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = 'Get-Content (Join-Path $PWD settings.json)'
+                After = 'Get-Content (Join-Path $PSScriptRoot settings.json)' }
+            @{ Rule = 'IslPowerShell7Syntax'; Type = 'Remediation'; Name = 'Remediate.ps1'
+                Before = "#Requires -Version 7.0`nWrite-Output 'x'"; After = "`nWrite-Output 'x'" }
+        ) {
+            # Each is the edit the finding's own message asks for, so the finding and its fix agree
+            $folder = if ($Type -eq 'Win32Detection') { 'Win32\M' } else { 'Remediations\M' }
+            $path = New-TestScript "$folder\$Name" $Before -Bom
+            $repairSplat = @{ Path = $path; ScriptType = $Type; IncludeRule = $Rule }
+            if ($Architecture) { $repairSplat.Architecture = $Architecture }
+            $result = Repair-IntuneScript @repairSplat
+            $result.Applied | Should-Be 1
+            $result.Fixes[0].RuleName | Should-Be $Rule
+            [System.IO.File]::ReadAllText($path) | Should-Be $After
+            $testSplat = @{ Path = $path; ScriptType = $Type; IncludeRule = $Rule }
+            if ($Architecture) { $testSplat.Architecture = $Architecture }
+            @(Test-IntuneScript @testSplat | Where-Object { $_.Fix }).Count | Should-Be 0
+        }
+
+        It 'withholds a fix that would break the script: <Case>' -ForEach @(
+            @{ Case = 'Set-ExecutionPolicy inside a pipeline'; Rule = 'IslExecutionPolicyCall'
+                Body = 'Set-ExecutionPolicy Bypass -Scope Process -Force | Out-Null' }
+            @{ Case = "'AMD64' compared with -eq"; Rule = 'IslArm64Assumption'; Architecture = 'arm64'
+                Body = "if (`$env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 'x64' }" }
+            @{ Case = '$PWD with a member after it'; Rule = 'IslRelativePath'
+                Body = 'Get-Content "$($PWD.Path)\s.json"' }
+            @{ Case = 'Set-ExecutionPolicy without -Force, which another rule removes'; Rule = 'IslInteractiveCall'
+                Body = 'Set-ExecutionPolicy RemoteSigned' }
+        ) {
+            $path = New-TestScript 'Remediations\N\Remediate.ps1' $Body -Bom
+            $testSplat = @{ Path = $path; ScriptType = 'Remediation'; IncludeRule = $Rule }
+            if ($Architecture) { $testSplat.Architecture = $Architecture }
+            $findings = @(Test-IntuneScript @testSplat)
+            $findings.Count | Should-BeGreaterThan 0
+            @($findings | Where-Object { $_.Fix }).Count | Should-Be 0
+            $result = Repair-IntuneScript @testSplat
+            $result.Applied | Should-Be 0
+            [System.IO.File]::ReadAllText($path) | Should-Be $Body
+        }
+    }
+
     Context 'Behaviour' {
         It 'changes nothing under -WhatIf but still reports what it would do' {
             $body = "if (Test-Path C:\x) { return 'ok' }`nexit 1"
@@ -126,6 +193,37 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             [System.IO.File]::ReadAllText($path) | Should-Be $body
             $fixed = Get-ChildItem $path | Repair-IntuneScript -IncludeRule IslExitCodeIssue
             $fixed.Applied | Should-Be 1
+        }
+
+        It 'hands -Context and -EnforceSignatureCheck to the analysis, on both runs' {
+            # Without them the repair analyzed every script under the inferred context whatever the
+            # caller deployed to, so Remaining could disagree with Test-IntuneScript run with the
+            # same options. HKCU: and USERPROFILE are two errors under System (REM-PROBE-SYS64) and
+            # under User the rule gives one note; an unsigned Win32 detection is an error only with
+            # the signature check enforced
+            $body = "Get-ItemProperty HKCU:\Software\Contoso`nTest-Path `$env:USERPROFILE\x`nexit 1"
+            $path = New-TestScript 'Remediations\F\Detect.ps1' $body -Bom
+            $asUser = Repair-IntuneScript -Path $path -Context User -IncludeRule IslContextIssue
+            $asSystem = Repair-IntuneScript -Path $path -Context System -IncludeRule IslContextIssue
+            $asUser.Remaining | Should-Be 1
+            $asSystem.Remaining | Should-Be 2
+
+            $unsigned = New-TestScript 'Win32\F\Detect-App.ps1' "if (Test-Path C:\x) { exit 0 }`nexit 1" -Bom
+            $enforced = Repair-IntuneScript -Path $unsigned -ScriptType Win32Detection -EnforceSignatureCheck
+            $plain = Repair-IntuneScript -Path $unsigned -ScriptType Win32Detection
+            $enforced.Remaining | Should-Be ($plain.Remaining + 1)
+        }
+
+        It 'counts the architecture the caller names, not the inferred one, in Remaining' {
+            # x86 is the portal default for a remediation, so the 32-bit System32 finding is there
+            # under Auto and gone under -Architecture x64 (REM-PROBE-SYS32)
+            $body = "Start-Process C:\Windows\System32\msiexec.exe -Wait`nexit 0"
+            $folder = New-TestScript 'Remediations\G\Detect.ps1' $body -Bom
+            $inferred = Repair-IntuneScript -Path $folder
+            $native = Repair-IntuneScript -Path $folder -Architecture x64
+            $inferred.Remaining | Should-Be (@(Test-IntuneScript -Path $folder).Count)
+            $native.Remaining | Should-Be (@(Test-IntuneScript -Path $folder -Architecture x64).Count)
+            $native.Remaining | Should-BeLessThan $inferred.Remaining
         }
 
         It 'expands a folder and reports one object per script' {

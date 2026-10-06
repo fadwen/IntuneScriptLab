@@ -1,4 +1,4 @@
-﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     The Graph pre-flight against a fake tenant: the Graph seam (Invoke-IslGraphRequest) is mocked
@@ -143,9 +143,13 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
                 }
                 '^/beta/deviceAppManagement/mobileApps\?' { & $summary $tenant.apps }
                 '^/beta/deviceAppManagement/mobileApps/([^?]+)' { $tenant.apps | Where-Object id -eq $Matches[1] }
-                '^/v1.0/groups/([^/]+)/members' {
+                '^/v1.0/groups/([^/]+)/members(/microsoft\.graph\.device)?/\$count$' {
+                    # $count answers with the number as text; the device cast counts devices only
                     if (-not $tenant.groups.ContainsKey($Matches[1])) { throw 'Insufficient privileges' }
-                    $tenant.groups[$Matches[1]]
+                    if ($Headers.ConsistencyLevel -ne 'eventual') { throw 'ConsistencyLevel header is required' }
+                    $members = @($tenant.groups[$Matches[1]].value)
+                    $devices = @($members | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.device' })
+                    if ($Matches[2]) { "$($devices.Count)" } else { "$($members.Count)" }
                 }
                 default { throw "unexpected uri $Uri" }
             }
@@ -206,9 +210,22 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $findings[0].Severity | Should-Be 'Warning'
             $findings[0].Message | Should-BeLikeString '*assigned to devices (*grp-devices*'
             $findings[0].Message | Should-BeLikeString '*all devices*'
+            # Two counts per group, members and devices, once per group however often it is assigned
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '/v1.0/groups/*'
-            } -Times 1 -Exactly
+            } -Times 2 -Exactly
+        }
+
+        It 'does not take a mixed group for a device group, however many devices lead its members' {
+            # The check used to read the first page of 20 members: a group of 20 devices and 5 users
+            # passed as a device group. The counts say 25 members, 20 devices
+            Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
+                $Uri -like '/v1.0/groups/grp-devices/members/*$count'
+            } { if ($Uri -like '*microsoft.graph.device*') { '20' } else { '25' } }
+            $findings = @(Test-IntuneDeployedScript -Kind Win32App -IncludeRule IslAssignmentIssue)
+            $findings.Count | Should-Be 1
+            $findings[0].Message | Should-BeLikeString '*assigned to devices (all devices)*'
+            $findings[0].Message | Should-NotBeLikeString '*grp-devices*'
         }
 
         It 'notes a remediation without a remediation script (REM-DETECTONLY)' {

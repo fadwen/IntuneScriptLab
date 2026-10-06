@@ -56,6 +56,10 @@ function Find-IslRelativePath {
                 'the script')
             Evidence = $evidence
         }
+        # $PSScriptRoot is a string where $PWD is a PathInfo, so $PWD.Path and the like get no edit
+        if ($variable.Parent.GetType().Name -ne 'MemberExpressionAst') {
+            $findingSplat.Fix = @{ Replacement = ($variable.Extent.Text -replace '(?i)PWD', 'PSScriptRoot') }
+        }
         New-IslFinding @findingSplat
     }
 }
