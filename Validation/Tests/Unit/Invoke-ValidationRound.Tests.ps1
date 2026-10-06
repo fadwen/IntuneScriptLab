@@ -280,93 +280,142 @@ Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:($PSVe
         }
     }
 
-    Context 'Read-GuestPayload' {
-        BeforeAll {
-            $script:Payload = 'QUJDREVGR0hJSktMTU5PUFFSU1RVVg=='   # 32 characters, read 10 at a time
-            $sha = [Security.Cryptography.SHA256]::Create()
-            $bytes = $sha.ComputeHash([Text.Encoding]::ASCII.GetBytes($script:Payload))
-            $script:PayloadHash = [BitConverter]::ToString($bytes) -replace '-', ''
-            $sha.Dispose()
-            $script:PayloadSplat = @{
-                RemotePath = 'C:\ProgramData\IntuneScriptLab\collect.b64'; Size = 32
-                Sha256 = $script:PayloadHash; ChunkSize = 10
-            }
-        }
-
+    Context 'Send-GuestFile' {
         BeforeEach {
-            Set-Content -Path (Join-Path $TestDrive 'payload.txt') -Value $script:Payload -NoNewline
-            Remove-Item -Path (Join-Path $TestDrive 'fault.txt') -ErrorAction SilentlyContinue
-            # The VM: answers a Substring read from the payload. fault.txt names one offset and what
-            # goes wrong there once ('short') or always ('stale': the chunk at offset 0 instead)
-            Mock Invoke-GuestPowerShell {
-                Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value $Script
-                $payload = Get-Content -Path (Join-Path $TestDrive 'payload.txt') -Raw
-                $null = $Script -match '\.Substring\((\d+), (\d+)\)'
-                $offset, $length = [int]$Matches[1], [int]$Matches[2]
-                $faultFile = Join-Path $TestDrive 'fault.txt'
-                $fault = if (Test-Path -Path $faultFile) { (Get-Content -Path $faultFile -Raw).Trim() }
-                if ($fault -eq "short $offset") { Remove-Item -Path $faultFile; return '' }
-                if ($fault -eq "stale $offset") { return $payload.Substring(0, $length) + "`r`n" }
-                $payload.Substring($offset, $length) + "`r`n"
+            # The fake host accepts every file-write; the fake VM answers the join call with the hash
+            # the test put in hash.txt
+            Mock ssh {
+                Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value ($args -join ' ')
+                $global:LASTEXITCODE = 0
             }
+            Mock Invoke-GuestPowerShell {
+                Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value "guest|$Script"
+                if ($Script -like '*Get-FileHash*') {
+                    (Get-Content -Path (Join-Path $TestDrive 'hash.txt') -Raw).Trim()
+                }
+            }
+            $script:Bytes = [Text.Encoding]::ASCII.GetBytes('y' * 50000)
+            $sha = [Security.Cryptography.SHA256]::Create()
+            $script:BytesHash = [BitConverter]::ToString($sha.ComputeHash($script:Bytes)) -replace '-', ''
+            $sha.Dispose()
+            Set-Content -Path (Join-Path $TestDrive 'hash.txt') -Value $script:BytesHash
         }
 
-        It 'reads the file in chunks, in order, and returns its text when the hash matches' {
-            Read-GuestPayload @script:PayloadSplat | Should-Be $script:Payload
+        It 'writes the bytes as 30,000-character base64 parts, joins them on the VM and checks the hash' {
+            Send-GuestFile -RemotePath 'C:\ProgramData\IntuneScriptLab\thing.bin' -Bytes $script:Bytes
             $calls = @(Get-CallLog)
-            $calls.Count | Should-Be 4
-            $calls[0] |
-                Should-Be "[IO.File]::ReadAllText('C:\ProgramData\IntuneScriptLab\collect.b64').Substring(0, 10)"
-            $calls[3] | Should-BeLikeString '*.Substring(30, 2)'
+            $calls[0] | Should-BeLikeString ("guest|`$null = New-Item -ItemType Directory -Path " +
+                "'C:\ProgramData\IntuneScriptLab' -Force; " +
+                "Remove-Item -Path 'C:\ProgramData\IntuneScriptLab\thing.bin.b64.*'*")
+            $writes = @($calls | Where-Object { $_ -like '*file-write*' })
+            $writes.Count | Should-Be 3
+            $shape = "-o BatchMode=yes pve pvesh create /nodes/`$(hostname)/qemu/125/agent/file-write " +
+                "--file 'C:\ProgramData\IntuneScriptLab\thing.bin.b64.000?' --content '*'"
+            foreach ($write in $writes) { $write | Should-BeLikeString $shape }
+            $parts = $writes | ForEach-Object { [regex]::Match($_, "--content '([^']*)'").Groups[1].Value }
+            @($parts | ForEach-Object Length) | Should-BeCollection @(30000, 30000, 6668)
+            (-join $parts) | Should-Be ([Convert]::ToBase64String($script:Bytes))
+            $join = $calls[-1]
+            $join |
+                Should-BeLikeString "guest|*Get-ChildItem -Path 'C:\ProgramData\IntuneScriptLab\thing.bin.b64.*'*"
+            $join | Should-BeLikeString "*WriteAllBytes('C:\ProgramData\IntuneScriptLab\thing.bin'*"
+            $join |
+                Should-BeLikeString "*Remove-Item -Path '*\thing.bin.b64.*'*Get-FileHash*"
         }
 
-        It 'asks again for a chunk that comes back short' {
-            Set-Content -Path (Join-Path $TestDrive 'fault.txt') -Value 'short 10'
-            Read-GuestPayload @script:PayloadSplat -WarningAction SilentlyContinue | Should-Be $script:Payload
-            @(Get-CallLog | Where-Object { $_ -like '*.Substring(10, 10)' }).Count | Should-Be 2
+        It 'refuses a file the VM hashes differently' {
+            Set-Content -Path (Join-Path $TestDrive 'hash.txt') -Value ('0' * 64)
+            { Send-GuestFile -RemotePath 'C:\x\thing.bin' -Bytes $script:Bytes } |
+                Should-Throw -ExceptionMessage ("*thing.bin did not arrive intact: the VM hashes it 000*" +
+                    "local bytes hash $($script:BytesHash)")
         }
 
-        It 'refuses a payload whose chunk has the right length and the wrong content' {
-            Set-Content -Path (Join-Path $TestDrive 'fault.txt') -Value 'stale 10'
-            $expected = "*did not arrive intact: 32 characters*the VM's copy has $($script:PayloadHash)*"
-            { Read-GuestPayload @script:PayloadSplat } | Should-Throw -ExceptionMessage $expected
+        It 'fails naming the part when the host refuses a file-write' {
+            Mock ssh { $global:LASTEXITCODE = 255; 'no such VM' }
+            { Send-GuestFile -RemotePath 'C:\x\thing.bin' -Bytes $script:Bytes } |
+                Should-Throw -ExceptionMessage "*file-write of C:\x\thing.bin.b64.0000 failed on pve: no such VM*"
+        }
+    }
+
+    Context 'Receive-GuestFile' {
+        BeforeAll {
+            $sha = [Security.Cryptography.SHA256]::Create()
+            $digest = $sha.ComputeHash([Text.Encoding]::ASCII.GetBytes('abc'))
+            $script:AbcHash = [BitConverter]::ToString($digest) -replace '-', ''
+            $sha.Dispose()
+        }
+
+        It 'reads the file in one file-read call and returns its text when the hash matches' {
+            Mock ssh {
+                Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value ($args -join ' ')
+                $global:LASTEXITCODE = 0
+                '{', '   "bytes-read" : 3,', '   "content" : "abc"', '}'
+            }
+            Receive-GuestFile -RemotePath 'C:\ProgramData\IntuneScriptLab\collect.b64' -Sha256 $script:AbcHash |
+                Should-Be 'abc'
+            @(Get-CallLog)[0] | Should-Be ("-o BatchMode=yes pve pvesh get /nodes/`$(hostname)/qemu/125/agent/" +
+                "file-read " +
+                "--file 'C:\ProgramData\IntuneScriptLab\collect.b64' --output-format json")
+        }
+
+        It 'refuses a reply the agent marked truncated' {
+            Mock ssh { $global:LASTEXITCODE = 0; '{"bytes-read":3,"content":"abc","truncated":true}' }
+            { Receive-GuestFile -RemotePath 'C:\x\big.b64' -Sha256 $script:AbcHash } |
+                Should-Throw -ExceptionMessage '*big.b64 is longer than the 16 MB*'
+        }
+
+        It 'refuses text whose hash is not the VM''s' {
+            Mock ssh { $global:LASTEXITCODE = 0; '{"bytes-read":3,"content":"abd"}' }
+            { Receive-GuestFile -RemotePath 'C:\x\collect.b64' -Sha256 $script:AbcHash } |
+                Should-Throw -ExceptionMessage ("*did not arrive intact: 3 characters with SHA-256 *" +
+                    "the VM's copy has $($script:AbcHash)")
+        }
+
+        It 'fails with the host output when file-read fails' {
+            Mock ssh { $global:LASTEXITCODE = 2; 'file not found' }
+            { Receive-GuestFile -RemotePath 'C:\x\missing.b64' -Sha256 $script:AbcHash } |
+                Should-Throw -ExceptionMessage '*file-read of C:\x\missing.b64 failed on pve: file not found'
+        }
+    }
+
+    Context 'Expand-GzipText' {
+        It 'turns the base64 of gzip of UTF-8 text back into the text' {
+            $text = '{"NonAscii":"Gr' + [char]0xFC + [char]0xDF + 'e"}' + ('x' * 5000)
+            $packed = [System.IO.MemoryStream]::new()
+            $mode = [System.IO.Compression.CompressionMode]::Compress
+            $gzip = [System.IO.Compression.GZipStream]::new($packed, $mode)
+            $bytes = [Text.Encoding]::UTF8.GetBytes($text)
+            $gzip.Write($bytes, 0, $bytes.Length)
+            $gzip.Dispose()
+            $encoded = [Convert]::ToBase64String($packed.ToArray())
+            $encoded.Length | Should-BeLessThan $text.Length
+            Expand-GzipText -Base64 $encoded | Should-Be $text
         }
     }
 
     Context 'Invoke-GuestScriptFile' {
         BeforeEach {
-            # Every guest call is logged with its script; the run call's stdout is what comes back
+            # The delivery is Send-GuestFile's; the run call's stdout is what comes back
+            Mock Send-GuestFile {
+                $encoded = [Convert]::ToBase64String($Bytes)
+                Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value "send|$RemotePath|$encoded"
+            }
             Mock Invoke-GuestPowerShell {
                 Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value $Script
-                if ($Script -like '*WriteAllBytes*') { 'ran' }
+                if ($Script -like "*& 'C:\ProgramData\IntuneScriptLab\*.ps1'") { 'ran' }
             }
         }
 
-        It 'clears old parts, delivers the script as numbered 1,200-character part files and runs it by path' {
+        It 'sends the script with a BOM through Send-GuestFile and runs it by path' {
             $body = 'Write-Output ' + ('x' * 2000)
-            $result = Invoke-GuestScriptFile -Script $body -TimeoutSeconds 60
-            $result | Should-Be 'ran'
-
+            Invoke-GuestScriptFile -Script $body -TimeoutSeconds 60 | Should-Be 'ran'
             $calls = @(Get-CallLog)
-            $calls[0] | Should-BeLikeString "Remove-Item -Path 'C:\ProgramData\IntuneScriptLab\collect.ps1.b64*'*"
-            $chunks = @($calls | Where-Object { $_ -like 'Set-Content*' })
-            $chunks.Count | Should-BeGreaterThan 1
-            $chunkShape = "Set-Content -Path 'C:\ProgramData\IntuneScriptLab\collect.ps1.b64.00??' " +
-                "-Value '*' -NoNewline"
-            foreach ($chunk in $chunks) {
-                $chunk | Should-BeLikeString $chunkShape
-                ([regex]::Match($chunk, "-Value '([^']*)'").Groups[1].Value.Length) | Should-BeLessThanOrEqual 1200
-            }
-            $encoded = -join ($chunks | ForEach-Object { [regex]::Match($_, "-Value '([^']*)'").Groups[1].Value })
-            $bytes = [Convert]::FromBase64String($encoded)
+            $calls[0] | Should-BeLikeString "send|C:\ProgramData\IntuneScriptLab\collect.ps1|*"
+            $bytes = [Convert]::FromBase64String(($calls[0] -split '\|')[2])
             [Convert]::ToHexString($bytes[0..2]) | Should-Be 'EFBBBF'
             [Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3) | Should-Be $body
-
-            $calls[-1] | Should-BeLikeString ("*Get-ChildItem -Path " +
-                "'C:\ProgramData\IntuneScriptLab\collect.ps1.b64.*'*")
-            $calls[-1] | Should-BeLikeString "*WriteAllBytes('C:\ProgramData\IntuneScriptLab\collect.ps1'*"
-            $calls[-1] | Should-BeLikeString ('*Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass ' +
-                "-Force; & 'C:\ProgramData\IntuneScriptLab\collect.ps1'")
+            $calls[-1] | Should-Be ('Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; ' +
+                "& 'C:\ProgramData\IntuneScriptLab\collect.ps1'")
         }
 
         It 'starts a detached script behind a started marker, so a launch that runs twice starts it once' {
@@ -391,17 +440,18 @@ Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:($PSVe
 
         It 'names the remote file after -RemoteName' {
             $null = Invoke-GuestScriptFile -Script 'x' -RemoteName 'fixtures.ps1'
-            (Get-CallLog)[-1] | Should-BeLikeString "*& 'C:\ProgramData\IntuneScriptLab\fixtures.ps1'"
+            $calls = @(Get-CallLog)
+            $calls[0] | Should-BeLikeString 'send|C:\ProgramData\IntuneScriptLab\fixtures.ps1|*'
+            $calls[-1] | Should-BeLikeString "*& 'C:\ProgramData\IntuneScriptLab\fixtures.ps1'"
         }
 
-        It 'passes the run timeout only to the run call' {
+        It 'passes the run timeout to the run call' {
             Mock Invoke-GuestPowerShell {
                 Add-Content -Path (Join-Path $TestDrive 'calls.log') -Value "$TimeoutSeconds|$Script"
             }
             $null = Invoke-GuestScriptFile -Script 'x' -TimeoutSeconds 777
             $calls = @(Get-CallLog)
-            $calls[-1] | Should-BeLikeString '777|*'
-            @($calls | Where-Object { $_ -like '777|*' }).Count | Should-Be 1
+            $calls[-1] | Should-BeLikeString "777|*& 'C:\ProgramData\IntuneScriptLab\collect.ps1'"
         }
     }
 }

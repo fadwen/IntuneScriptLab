@@ -51,6 +51,10 @@ param(
     # install-status export job of 20-30 seconds
     [string[]]$AppName,
 
+    # Collect: only the probe records written at or after this time (the records of a device that
+    # has run the hourly experiments for weeks are most of the payload); every record when omitted
+    [datetime]$Since,
+
     [string]$GroupName = 'ISL-Validation-Devices',
 
     # Deploy: leave the group's membership alone (a user group for user-targeted experiments)
@@ -157,10 +161,21 @@ function ConvertTo-ScriptContent {
     }
 }
 
+function Expand-GzipText {
+    # The collect payload as the device wrote it: base64 of gzip of UTF-8 JSON, back to the JSON text
+    param([Parameter(Mandatory)][string]$Base64)
+    $packed = [System.IO.MemoryStream]::new([Convert]::FromBase64String($Base64))
+    $gzip = [System.IO.Compression.GZipStream]::new($packed, [System.IO.Compression.CompressionMode]::Decompress)
+    $plain = [System.IO.MemoryStream]::new()
+    try { $gzip.CopyTo($plain) }
+    finally { $gzip.Dispose(); $packed.Dispose() }
+    [Text.Encoding]::UTF8.GetString($plain.ToArray())
+}
+
 function Invoke-GuestScriptFile {
     # Runs a script that is too long for the guest agent's command line (a few KB): the script is
-    # delivered as base64 in numbered part files, decoded on the VM and run by path. The guest agent
-    # calls themselves are Invoke-GuestPowerShell's, in GuestAgent.ps1.
+    # written to the VM through Send-GuestFile and run by path. The guest agent calls themselves
+    # are in GuestAgent.ps1.
     param(
         [Parameter(Mandatory)][string]$Script,
         [int]$TimeoutSeconds = 900,
@@ -169,27 +184,14 @@ function Invoke-GuestScriptFile {
         [switch]$Detach
     )
     $remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
-    $b64 = [Convert]::ToBase64String([Text.UTF8Encoding]::new($true).GetPreamble() +
-        [Text.Encoding]::UTF8.GetBytes($Script))
-    # One file per chunk, written with Set-Content: a chunk call that ran twice (a start call retried
-    # after a host-side timeout) then rewrites the same part instead of appending it twice, which once
-    # produced a script that no longer parsed; the device joins the parts in order
-    $null = Invoke-GuestPowerShell -Script "Remove-Item -Path '$remote.b64*' -ErrorAction SilentlyContinue"
-    $index = 0
-    for ($offset = 0; $offset -lt $b64.Length; $offset += 1200) {
-        $part = $b64.Substring($offset, [Math]::Min(1200, $b64.Length - $offset))
-        $partPath = '{0}.b64.{1:D4}' -f $remote, $index++
-        $null = Invoke-GuestPowerShell -Script "Set-Content -Path '$partPath' -Value '$part' -NoNewline"
-    }
-    $decode = "`$parts = Get-ChildItem -Path '$remote.b64.*' | Sort-Object Name | " +
-        "ForEach-Object { Get-Content -Path `$_.FullName -Raw }; " +
-        "[IO.File]::WriteAllBytes('$remote', [Convert]::FromBase64String((-join `$parts)))"
+    $bytes = [Text.UTF8Encoding]::new($true).GetPreamble() + [Text.Encoding]::UTF8.GetBytes($Script)
+    Send-GuestFile -RemotePath $remote -Bytes $bytes
     if (-not $Detach) {
         # The agent's own powershell.exe runs under the machine execution policy, which refuses a
         # script file on a fresh device; the process-scoped bypass is what -File -ExecutionPolicy
         # Bypass would have given
         return Invoke-GuestPowerShell -TimeoutSeconds $TimeoutSeconds -Script (
-            "$decode; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & '$remote'")
+            "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & '$remote'")
     }
     # A script that runs for minutes is started detached and watched through a done marker with short
     # calls, so no single guest agent call has to stay open for it; its output is read from a file
@@ -208,7 +210,7 @@ function Invoke-GuestScriptFile {
     # by the first, skip the script and write the done marker at once: the started marker makes a
     # repeated launch a no-op
     $launch = "if (-not (Test-Path -Path '$remote.started')) { " +
-        "Set-Content -Path '$remote.started' -Value started; $decode; [IO.File]::WriteAllText('$remote.cmd', " +
+        "Set-Content -Path '$remote.started' -Value started; [IO.File]::WriteAllText('$remote.cmd', " +
         "[Text.Encoding]::ASCII.GetString([Convert]::FromBase64String('$runnerB64'))); " +
         "Start-Process -FilePath '$remote.cmd' -WindowStyle Hidden }"
     $null = Invoke-GuestPowerShell -Script $launch
@@ -683,8 +685,11 @@ function Get-RegTree($Path) {
 }
 $ime = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension'
 [ordered]@{
+    # Every probe record, or only those from -Since on: Time is written with ToString('o') in UTC,
+    # so the strings compare in time order
     Probes          = Get-ChildItem 'C:\ProgramData\IntuneScriptLab\*.jsonl' | ForEach-Object {
-        Get-Content -Path $_.FullName -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json }
+        Get-Content -Path $_.FullName -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json } |
+            Where-Object { -not '--SINCE--' -or "$($_.Time)" -ge '--SINCE--' }
     }
     Markers         = @(Get-ChildItem 'C:\ProgramData\IntuneScriptLab' -File |
         Where-Object { $_.Extension -in '.marker', '.uninstalled', '.installed' } | ForEach-Object Name)
@@ -718,31 +723,35 @@ $ime = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension'
         } |
         Select-Object -Last 600)
 } | ConvertTo-Json -Depth 8 -Compress | ForEach-Object {
-    # Base64 so non-ASCII survives the guest agent's console code page. Written to a file and
-    # fetched in chunks: returned in one piece, the payload (27 apps' registry trees plus the log
-    # tail) made the guest agent time out its own status call
-    $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($_))
+    # Gzip, then base64 so non-ASCII survives the guest agent's console code page: the JSON of a
+    # device with a month of hourly probe records is 13 MB and packs to under 400 KB, which the
+    # host reads in one guest agent call
+    $json = [Text.Encoding]::UTF8.GetBytes($_)
+    $packed = New-Object System.IO.MemoryStream
+    $mode = [System.IO.Compression.CompressionMode]::Compress
+    $gzip = New-Object System.IO.Compression.GZipStream $packed, $mode
+    $gzip.Write($json, 0, $json.Length)
+    $gzip.Dispose()
+    $b64 = [Convert]::ToBase64String($packed.ToArray())
     [IO.File]::WriteAllText('C:\ProgramData\IntuneScriptLab\collect.b64', $b64)
-    # The length and a hash of the text, so the host can tell whether every chunk arrived as written
+    # The length and a hash of the text, so the host can tell whether it arrived as written
     $sha = [Security.Cryptography.SHA256]::Create()
     $hash = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::ASCII.GetBytes($b64))) -replace '-', ''
     "$($b64.Length) $hash"
 }
 '@
-    # The log filters need the policy ids; the device script is a literal, so they are spliced in
+    # The log filters need the policy ids and the probe filter its time; the device script is a
+    # literal, so they are spliced in
     $policyIds = @($remediations.Id) + @($platform.Id) | Where-Object { $_ }
-    $deviceScript = $deviceScript.Replace('--POLICYIDS--', ($policyIds -join '|'))
+    # A nested function's $PSBoundParameters is its own; an unbound [datetime] is MinValue
+    $sinceText = if ($Since -gt [datetime]::MinValue) { $Since.ToUniversalTime().ToString('o') } else { '' }
+    $deviceScript = $deviceScript.Replace('--POLICYIDS--', ($policyIds -join '|')).Replace('--SINCE--', $sinceText)
     $summary = Invoke-GuestScriptFile -Script $deviceScript -TimeoutSeconds 1500 -Detach
     if ("$summary" -notmatch '^\s*(\d+) ([0-9A-Fa-f]{64})\s*$') {
         throw "The device collect script returned no payload size and hash ('$summary'); see the warning above"
     }
-    $payloadSplat = @{
-        RemotePath = 'C:\ProgramData\IntuneScriptLab\collect.b64'
-        Size       = [int]$Matches[1]
-        Sha256     = $Matches[2]
-    }
-    $encoded = Read-GuestPayload @payloadSplat
-    $device = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | ConvertFrom-Json
+    $encoded = Receive-GuestFile -RemotePath 'C:\ProgramData\IntuneScriptLab\collect.b64' -Sha256 $Matches[2]
+    $device = Expand-GzipText -Base64 $encoded | ConvertFrom-Json
 
     $null = New-Item -ItemType Directory -Path $ResultsPath -Force
     $file = Join-Path -Path $ResultsPath -ChildPath ("round-{0:yyyyMMdd-HHmmss}.json" -f (Get-Date))
