@@ -226,6 +226,15 @@ if (-not $manifest.Description) {
 if (-not $manifest.Tags) {
     throw 'The manifest needs Tags for the module to be discoverable.'
 }
+# The Gallery refuses the upload with a 400 when the notes pass this length (v0.27.0, the first
+# attempt: 11,319 characters, every version since 0.1.0). Keep the newest few in the manifest;
+# CHANGELOG.md ships in the package and holds the rest.
+$releaseNotesLimit = 10600
+$releaseNotesLength = "$($manifest.ReleaseNotes)".Length
+if ($releaseNotesLength -gt $releaseNotesLimit) {
+    throw ("The manifest's ReleaseNotes is $releaseNotesLength characters; the Gallery accepts at most " +
+        "$releaseNotesLimit. Move the older versions out, CHANGELOG.md has them.")
+}
 
 # --- 3. Already published? --------------------------------------------------------
 # A version number is consumed forever on first publish. Learning that from a rejected

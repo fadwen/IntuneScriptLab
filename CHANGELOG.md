@@ -81,6 +81,10 @@ round on the lab device. No command changes shape.
   blocks are skipped, and the cache serves the other rules at the root.
 - The about topic named "a missing exit" among `Repair-IntuneScript`'s fixes; they are a
   script-scope return, the encoding and a padded requirement value.
+- The manifest's `ReleaseNotes` keeps the newest three versions and points at this file for the
+  rest. The Gallery refused the first 0.27.0 upload with a 400: the notes, every version since
+  0.1.0, had passed its 10,600-character limit, and nothing local measured them. The release
+  rehearsal (`Build/Publish-Module.ps1 -WhatIf`) now does.
 
 ## [0.26.0] - 2026-09-28
 
