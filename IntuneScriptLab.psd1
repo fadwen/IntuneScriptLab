@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.27.0'
+    ModuleVersion = '0.28.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,19 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.28.0 - Test-IntuneScript analyzes a script about two and a half times faster, with the syntax tree
+        walked once and indexed instead of once per rule; Get-IntuneAgentLog reads a large log
+        filtered in a fifth of the time. Repair-IntuneScript takes -Context, -Architecture and
+        -EnforceSignatureCheck like Test-IntuneScript, and applies eight more edits: -Force on
+        Install-Module and its kin, -ErrorAction SilentlyContinue on a probing cmdlet, exit 1 for an
+        exit code Intune reads as 1, $env:ProgramW6432, 'ARM64|AMD64', $PSScriptRoot, a
+        Get-Credential -Credential call that returns what it was handed, a Set-ExecutionPolicy or
+        #Requires -Version 7 line removed. Test-IntuneDeployedScript judges a device group by its
+        member counts rather than its first 20 members; every Graph request is retried on 429, 503
+        and 504. Invoke-IntuneDetectionTest, Invoke-IntunePlatformScriptTest and
+        Invoke-IntuneRequirementTest take script paths from the pipeline; every result type has a
+        format view. The in-box module table is held against the host's Windows PowerShell by a
+        test, as the PowerShell 7-only tables are. See CHANGELOG.md.
 0.27.0 - Harness: a user-context run started from PowerShell 7 gave the 5.1 host PowerShell 7's
         module path (no Cert: drive, Security cmdlets failing to load); -Credential did not find
         a Microsoft Entra account's session, because Windows names such an account after its
@@ -89,11 +102,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         -ne/-notIn filter values; a bare -Confirm; Stop as a guard; using module and two
         parameters in the PowerShell 7 rule; Win32 scripts in the size rule. Help corrected
         throughout. See CHANGELOG.md.
-0.25.0 - The first release from the module's own repository, github.com/fadwen/IntuneScriptLab, and
-        the first published to the PowerShell Gallery. Nothing any command does has changed: the
-        build scripts moved under Build\, the manifest points at the new repository, and releases
-        run from a version tag through the repository's release workflow.
-Earlier versions, 0.1.0 to 0.24.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.25.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }

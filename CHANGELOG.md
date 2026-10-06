@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.28.0] - 2026-10-06
+
+Two commands run several times faster, the fixer applies eight more edits, the Graph calls are retried
+and judge a device group by its whole membership, three harness commands take the pipeline, and two
+tables the rules report from are held against real hosts by tests. The first items are the slow ones
+found by measuring; the lab device was started once, to re-capture the in-box module list.
+
 ### Added
 
 - `Invoke-IntuneDetectionTest`, `Invoke-IntunePlatformScriptTest` and `Invoke-IntuneRequirementTest` take script
@@ -18,6 +27,7 @@ release notes.
   Invoke-IntuneDetectionTest` runs each one. `Test-IntuneWin32Rule`, `Test-IntuneWin32Requirement` and
   `Export-IntuneAgentDiagnostic` results have a format view, like every other result type; the module contract
   test now requires one for every output type an exported command declares.
+
 - `Repair-IntuneScript` applies eight more edits, each the one the finding's message asks for: `-Force` on
   `Install-Module`, `Install-PackageProvider`, `Install-Package`, `Update-Module` and `Uninstall-Module`,
   `-Confirm:$false` on `Register-PSRepository`, `-ErrorAction SilentlyContinue` on a probing cmdlet in a Win32
@@ -34,42 +44,12 @@ release notes.
 - CI: the Windows PowerShell 5.1 job runs the integration suite as well as the unit suites, so a 5.1 trap in the
   harness fails a pull request rather than a device run. Every test job writes its results as NUnit XML and the
   pwsh job its coverage as JaCoCo XML, uploaded as artifacts whether the job passes or fails.
+
 - The in-box module table `IslModuleDependency` reports from is held against the Windows client the tests run
   on: every listed module must be under the host's system module paths, except the engine module and the seven
   a Home edition lacks, and nothing may be under the Windows module folder that the table or the test does not
   account for, Hyper-V and the container family being features a host may have turned on. The table
   was re-captured as SYSTEM on the lab device on 2026-10-06 and is unchanged.
-
-### Fixed
-
-- **`Test-IntuneDeployedScript` decided whether a group holds devices from its first 20 members.** A mixed group
-  whose first page was all devices passed as a device group, and a user-context app assigned to it was flagged
-  as never installing. The check now counts the group's members and the devices among them with two `$count`
-  queries, so the whole group decides.
-- **`Repair-IntuneScript` analyzed every script under the inferred context and architecture**, whatever the
-  caller deployed to, because it had no `-Context`, `-Architecture` or `-EnforceSignatureCheck` to pass on.
-  It takes the three now and hands them to both analyses, so its findings, fixes and `Remaining` count are
-  the ones `Test-IntuneScript` gives for the same options.
-- **`-Credential` found no session on Windows Home editions, and matched by name.** The session
-  list came from parsing `query user`, which Home editions do not ship (every run there fell back
-  to the stored-password task) and which prints localized text. Sessions now come from the owners
-  of each desktop's `explorer.exe` and `sihost.exe` through CIM, and the account is matched by
-  its SID when Windows resolves the credential's name, by the owner's name otherwise. Verified on
-  this Home machine and on the joined lab device with the Entra user signed in.
-
-- **The stored-password task was registered with the credential's name as given**, which the
-  scheduler refuses for an Entra account's sign-in name ("No mapping between account names and
-  security IDs"). It is registered for the name Windows gives the account. On the lab device such
-  a task then never starts for an Entra account, with or without the "Log on as a batch job"
-  right, so the refusal names that instead of the right.
-
-- **`IslPowerShell7Syntax` listed three things that are not PowerShell 7-only.** `Switch-Process`
-  exists on Linux and macOS only, so a script calling it fails on both Windows hosts;
-  `Invoke-WebRequest -StatusCodeVariable` exists on neither host (only `Invoke-RestMethod` has
-  it); `Get-ChildItem -FollowSymlink` has been in Windows PowerShell since 5.0. All three are
-  gone from the rule.
-
-### Changed
 
 - Validation kit: `Collect` moves its payload through the guest agent's file-read call in one
   reply, gzipped on the device before base64, instead of 179 guest exec calls of 100,000
@@ -94,20 +74,54 @@ release notes.
   The tags counted are the ones the Gallery lists, the manifest's plus `PSModule`, the editions and two per
   exported command, so a new command costs about twice its name. The module contract test holds the same
   three limits, so a pull request fails before a release does.
+
 - `Test-IntuneScript` runs about two and a half times faster: 91 ms a script against 233 ms for a 95-line
   detection, 60 scripts in 5.4 s against 14.0 s. Every rule walked the syntax tree itself, some once per
   command name they look for; the tree is now walked once per script and the nodes indexed by type and
   the commands by name, and the rules read the index. Findings are unchanged.
+
 - `Get-IntuneAgentLog` and `Get-IntuneAgentTimeline` read a large log in a fraction of the time. On a 15 MB
   agent log of 80,000 entries: every entry in 30 s against 62 s; the entries of one policy, by `-Id`, in
   5 s against 25 s; `-EventName` with `-Last` in 12 s against 90 s; a timeline by id in 5 s against 26 s.
   The filters now run on the raw record before an entry is built, which was most of an entry's cost; the
   44 event patterns are one expression matched once per message instead of 44 statements; a rolled-over
   file last written before `-After` is not read at all. Results are unchanged.
+
 - Every Graph request the tenant commands make is sent again when Graph throttles it (429) or is briefly
   unavailable (503, 504): after the `Retry-After` seconds when the header is there, after 2, 4 and 8 seconds
   when it is not, three times at most before the failure is thrown as it came. A pre-flight over a few hundred
   policies makes two requests per policy and meets the throttle.
+
+### Fixed
+
+- **`Test-IntuneDeployedScript` decided whether a group holds devices from its first 20 members.** A mixed group
+  whose first page was all devices passed as a device group, and a user-context app assigned to it was flagged
+  as never installing. The check now counts the group's members and the devices among them with two `$count`
+  queries, so the whole group decides.
+
+- **`Repair-IntuneScript` analyzed every script under the inferred context and architecture**, whatever the
+  caller deployed to, because it had no `-Context`, `-Architecture` or `-EnforceSignatureCheck` to pass on.
+  It takes the three now and hands them to both analyses, so its findings, fixes and `Remaining` count are
+  the ones `Test-IntuneScript` gives for the same options.
+
+- **`-Credential` found no session on Windows Home editions, and matched by name.** The session
+  list came from parsing `query user`, which Home editions do not ship (every run there fell back
+  to the stored-password task) and which prints localized text. Sessions now come from the owners
+  of each desktop's `explorer.exe` and `sihost.exe` through CIM, and the account is matched by
+  its SID when Windows resolves the credential's name, by the owner's name otherwise. Verified on
+  this Home machine and on the joined lab device with the Entra user signed in.
+
+- **The stored-password task was registered with the credential's name as given**, which the
+  scheduler refuses for an Entra account's sign-in name ("No mapping between account names and
+  security IDs"). It is registered for the name Windows gives the account. On the lab device such
+  a task then never starts for an Entra account, with or without the "Log on as a batch job"
+  right, so the refusal names that instead of the right.
+
+- **`IslPowerShell7Syntax` listed three things that are not PowerShell 7-only.** `Switch-Process`
+  exists on Linux and macOS only, so a script calling it fails on both Windows hosts;
+  `Invoke-WebRequest -StatusCodeVariable` exists on neither host (only `Invoke-RestMethod` has
+  it); `Get-ChildItem -FollowSymlink` has been in Windows PowerShell since 5.0. All three are
+  gone from the rule.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
@@ -530,7 +544,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/fadwen/IntuneScriptLab/releases/tag/v0.25.0
