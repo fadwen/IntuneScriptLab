@@ -61,6 +61,10 @@ release notes.
   The tags counted are the ones the Gallery lists, the manifest's plus `PSModule`, the editions and two per
   exported command, so a new command costs about twice its name. The module contract test holds the same
   three limits, so a pull request fails before a release does.
+- `Test-IntuneScript` runs about two and a half times faster: 91 ms a script against 233 ms for a 95-line
+  detection, 60 scripts in 5.4 s against 14.0 s. Every rule walked the syntax tree itself, some once per
+  command name they look for; the tree is now walked once per script and the nodes indexed by type and
+  the commands by name, and the rules read the index. Findings are unchanged.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
