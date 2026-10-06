@@ -87,26 +87,39 @@ function Get-IntuneAgentLog {
         return
     }
 
-    $idPatterns = @(foreach ($value in $Id) { [regex]::Escape($value) })
+    # The parser applies the filters to the raw record, before it builds an entry; the event filter
+    # waits for the classification, which runs once per file over every kept message rather than
+    # once per entry
+    $parseSplat = @{}
+    foreach ($name in 'Level', 'After', 'Before', 'Pattern', 'Id') {
+        if ($PSBoundParameters.ContainsKey($name)) { $parseSplat[$name] = $PSBoundParameters[$name] }
+    }
+    if ($EventName) {
+        # A message that holds none of the wanted events' leading literals cannot be one of them.
+        # One event without a literal (its pattern starts with a group) means no such shortcut
+        $needles = @(foreach ($definition in $script:IslAgentLogEvents) {
+                if ($definition.Event -in $EventName) { $definition.Needle }
+            })
+        if ($needles.Count -eq @($EventName | Select-Object -Unique).Count) { $parseSplat.Contains = $needles }
+    }
     $entries = foreach ($file in $files) {
+        # A file's last write is at or after its newest entry, so a rolled-over file written
+        # before -After has nothing to give and is not read
+        if ($PSBoundParameters.ContainsKey('After') -and (Get-Item -LiteralPath $file).LastWriteTime -lt $After) {
+            Write-Verbose "Skipping $file, last written before $After"
+            continue
+        }
         Write-Verbose "Reading $file"
-        foreach ($entry in ConvertFrom-IslCmTraceLog -Path $file) {
-            if ($Level -and $entry.Level -notin $Level) { continue }
-            if ($PSBoundParameters.ContainsKey('After') -and $entry.Time -lt $After) { continue }
-            if ($PSBoundParameters.ContainsKey('Before') -and $entry.Time -ge $Before) { continue }
-            if ($Pattern -and $entry.Message -notmatch $Pattern) { continue }
-            if ($idPatterns.Count) {
-                $found = $false
-                foreach ($idPattern in $idPatterns) {
-                    if ($entry.Message -imatch $idPattern) { $found = $true; break }
-                }
-                if (-not $found) { continue }
-            }
-            $classified = Get-IslAgentLogEvent -Message $entry.Message
-            if ($EventName -and $classified.Event -notin $EventName) { continue }
-            $entry.Event = $classified.Event
-            $entry.Detail = $classified.Detail
-            $entry.Id = $classified.Id
+        $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
+        if (-not $kept.Count) { continue }
+        $classified = @(Get-IslAgentLogEvent -Message @($kept | ForEach-Object { $_.Message }))
+        for ($index = 0; $index -lt $kept.Count; $index++) {
+            $entry = $kept[$index]
+            $classification = $classified[$index]
+            if ($EventName -and $classification.Event -notin $EventName) { continue }
+            $entry.Event = $classification.Event
+            $entry.Detail = $classification.Detail
+            $entry.Id = $classification.Id
             $entry
         }
     }

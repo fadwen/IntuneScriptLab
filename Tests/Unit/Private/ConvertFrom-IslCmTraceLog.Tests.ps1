@@ -97,6 +97,23 @@ Describe 'ConvertFrom-IslCmTraceLog' -Tag 'Unit', 'Private' {
         }
     }
 
+    It 'applies <Name> to the raw record and still numbers the kept entries by their file line' -ForEach @(
+        @{ Name = '-Level'; Filter = @{ Level = 'Warning', 'Error' }; Lines = @(2, 5) }
+        @{ Name = '-After'; Filter = @{ After = [datetime]'2026-09-25 08:45:19.5' }; Lines = @(2, 5) }
+        @{ Name = '-Before'; Filter = @{ Before = [datetime]'2026-09-25 08:45:19.5' }; Lines = @(1) }
+        @{ Name = '-Pattern'; Filter = @{ Pattern = 'compliance result is \w+' }; Lines = @(5) }
+        @{ Name = '-Id'; Filter = @{ Id = 'BBF7E139-FE9D-4783-80DF-627B8E084059' }; Lines = @(1) }
+        @{ Name = '-Contains'; Filter = @{ Contains = 'error from script =', 'nothing' }; Lines = @(2) }
+        @{ Name = 'two filters'; Filter = @{ Level = 'Error', 'Warning'; Pattern = 'compliance' }; Lines = @(5) }
+    ) {
+        # The filters Get-IntuneAgentLog offers run here on the raw match, so an entry nobody wants
+        # is never built; lines are counted over the skipped text all the same
+        $entries = @(InModuleScope IntuneScriptLab -Parameters @{ Path = $script:LogPath; Filter = $Filter } {
+                ConvertFrom-IslCmTraceLog -Path $Path @Filter
+            })
+        @($entries.Line) | Should-BeCollection $Lines
+    }
+
     It 'returns nothing for an empty file and fails for a missing one' {
         $empty = Join-Path $TestDrive 'empty.log'
         [System.IO.File]::WriteAllText($empty, '')

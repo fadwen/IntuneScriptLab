@@ -260,6 +260,41 @@ Describe 'Get-IslAgentLogEvent' -Tag 'Unit', 'Private' {
         if ($null -eq $Detail) { $result.Detail | Should-BeNull } else { $result.Detail | Should-Be $Detail }
     }
 
+    It 'classifies a batch of messages in one call, one result per message in order' {
+        # Get-IntuneAgentLog sends a file's messages at once; a call per entry cost more than
+        # the classification
+        $results = @(InModuleScope IntuneScriptLab {
+                Get-IslAgentLogEvent -Message @(
+                    'Powershell execution is done, exitCode = 1'
+                    'nothing the table knows'
+                    ''
+                    '[HS] Runner: script bbf7e139-fe9d-4783-80df-627b8e084059 will try to execute now.'
+                )
+            })
+        $results.Count | Should-Be 4
+        @($results.Event) | Should-BeCollection @('ScriptExit', $null, $null, 'RemediationStart')
+        $results[0].Detail | Should-Be '1'
+        $results[3].Id | Should-Be 'bbf7e139-fe9d-4783-80df-627b8e084059'
+        @(InModuleScope IntuneScriptLab { Get-IslAgentLogEvent -Message @() }).Count | Should-Be 0
+    }
+
+    It 'resolves a message two patterns fit to the earlier one in the table' {
+        # The relationship report fits AppRelationshipReport and, being a status report too, AppReport,
+        # which is later in the table. Alternation keeps the table's order at a position, which is
+        # what the one-by-one match did
+        $text = '[Win32App][ReportingManager] Sending status to company portal based on report: ' +
+            '{"ApplicationId":"ec9586f0-3333-4cfb-a8fb-d780079278f6","ResultantAppState":3,' +
+            '"ReportingImpact":{"DesiredState":3,"Classification":1,"ConflictReason":2,"ImpactingApps":' +
+            '[{"AppId":"b107041b-4444-4cfb-a8fb-d780079278f6","RelationshipType":0}]},"ReportingImpact2":{}}'
+        $table = InModuleScope IntuneScriptLab { $script:IslAgentLogEvents }
+        $fitting = @($table | Where-Object { $_.Regex.IsMatch($text) } | ForEach-Object { $_.Event })
+        $fitting | Should-BeCollection @('AppRelationshipReport', 'AppReport')
+        $result = InModuleScope IntuneScriptLab -Parameters @{ Text = $text } {
+            Get-IslAgentLogEvent -Message $Text
+        }
+        $result.Event | Should-Be 'AppRelationshipReport'
+    }
+
     It 'takes the first GUID in the message as the policy or app id, lower-cased' {
         $upper = '[HS] Runner: script BBF7E139-FE9D-4783-80DF-627B8E084059 will try to execute now.'
         $result = InModuleScope IntuneScriptLab -Parameters @{ Message = $upper } {

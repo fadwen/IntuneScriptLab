@@ -65,6 +65,12 @@ release notes.
   detection, 60 scripts in 5.4 s against 14.0 s. Every rule walked the syntax tree itself, some once per
   command name they look for; the tree is now walked once per script and the nodes indexed by type and
   the commands by name, and the rules read the index. Findings are unchanged.
+- `Get-IntuneAgentLog` and `Get-IntuneAgentTimeline` read a large log in a fraction of the time. On a 15 MB
+  agent log of 80,000 entries: every entry in 30 s against 62 s; the entries of one policy, by `-Id`, in
+  5 s against 25 s; `-EventName` with `-Last` in 12 s against 90 s; a timeline by id in 5 s against 26 s.
+  The filters now run on the raw record before an entry is built, which was most of an entry's cost; the
+  44 event patterns are one expression matched once per message instead of 44 statements; a rolled-over
+  file last written before `-After` is not read at all. Results are unchanged.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
