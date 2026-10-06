@@ -413,6 +413,65 @@
       </ListControl>
     </View>
     <View>
+      <Name>IntuneScriptLab.RuleResult</Name>
+      <ViewSelectedBy>
+        <TypeName>IntuneScriptLab.RuleResult</TypeName>
+      </ViewSelectedBy>
+      <ListControl>
+        <ListEntries>
+          <ListEntry>
+            <ListItems>
+              <ListItem><PropertyName>Met</PropertyName></ListItem>
+              <ListItem><Label>Rule</Label><ScriptBlock>"$($_.Kind) $($_.Operation)$(if ($_.Operator) { " $($_.Operator) '$($_.Value)'" })"</ScriptBlock></ListItem>
+              <ListItem><PropertyName>Target</PropertyName></ListItem>
+              <ListItem><PropertyName>Actual</PropertyName></ListItem>
+              <ListItem><PropertyName>Reason</PropertyName></ListItem>
+              <ListItem><PropertyName>Check32BitOn64System</PropertyName></ListItem>
+            </ListItems>
+          </ListEntry>
+        </ListEntries>
+      </ListControl>
+    </View>
+    <View>
+      <Name>IntuneScriptLab.ApplicabilityResult</Name>
+      <ViewSelectedBy>
+        <TypeName>IntuneScriptLab.ApplicabilityResult</TypeName>
+      </ViewSelectedBy>
+      <ListControl>
+        <ListEntries>
+          <ListEntry>
+            <ListItems>
+              <ListItem><PropertyName>Applicable</PropertyName></ListItem>
+              <ListItem><PropertyName>Reason</PropertyName></ListItem>
+              <ListItem><PropertyName>Applicability</PropertyName></ListItem>
+              <ListItem><PropertyName>Details</PropertyName></ListItem>
+              <ListItem><Label>Checks</Label><ScriptBlock>($_.Checks | ForEach-Object { "$($_.Requirement): $(if ($_.Met) { 'met' } else { 'not met' })" }) -join "; "</ScriptBlock></ListItem>
+            </ListItems>
+          </ListEntry>
+        </ListEntries>
+      </ListControl>
+    </View>
+    <View>
+      <Name>IntuneScriptLab.Diagnostic</Name>
+      <ViewSelectedBy>
+        <TypeName>IntuneScriptLab.Diagnostic</TypeName>
+      </ViewSelectedBy>
+      <ListControl>
+        <ListEntries>
+          <ListEntry>
+            <ListItems>
+              <ListItem><PropertyName>Path</PropertyName></ListItem>
+              <ListItem><Label>Size</Label><ScriptBlock>"{0:N1} MB" -f ($_.SizeBytes / 1MB)</ScriptBlock></ListItem>
+              <ListItem><PropertyName>Files</PropertyName></ListItem>
+              <ListItem><PropertyName>Logs</PropertyName></ListItem>
+              <ListItem><PropertyName>Registry</PropertyName></ListItem>
+              <ListItem><PropertyName>Timeline</PropertyName></ListItem>
+            </ListItems>
+          </ListEntry>
+        </ListEntries>
+      </ListControl>
+    </View>
+    <View>
       <Name>IntuneScriptLab.RequirementResult</Name>
       <ViewSelectedBy>
         <TypeName>IntuneScriptLab.RequirementResult</TypeName>

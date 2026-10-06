@@ -1,4 +1,4 @@
----
+﻿---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Repair-IntuneScript.md
@@ -22,7 +22,7 @@ Applies the mechanical fixes for findings that have one, and reports what is lef
 ```
 Repair-IntuneScript [-Path] <string[]> [-ScriptType <string>] [-Context <string>]
  [-Architecture <string>] [-IncludeRule <string[]>] [-ExcludeRule <string[]>]
- [-EnforceSignatureCheck] [-Settings <Object>] [-WhatIf] [-Confirm]
+ [-EnforceSignatureCheck] [-Settings <Object>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## ALIASES

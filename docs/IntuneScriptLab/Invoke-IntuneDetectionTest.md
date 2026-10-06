@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneDetectionTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/05/2026
+ms.date: 10/06/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneDetectionTest
 ---
@@ -165,13 +165,15 @@ The detection script.
 Type: System.String
 DefaultValue: ''
 SupportsWildcards: false
-Aliases: []
+Aliases:
+- FullName
+- PSPath
 ParameterSets:
 - Name: (All)
   Position: 0
   IsRequired: true
-  ValueFromPipeline: false
-  ValueFromPipelineByPropertyName: false
+  ValueFromPipeline: true
+  ValueFromPipelineByPropertyName: true
   ValueFromRemainingArguments: false
 DontShow: false
 AcceptedValues: []
@@ -209,9 +211,10 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-### None
+### System.String
 
-This command does not accept pipeline input. Pass the script path with -Path.
+A script path, or an object with a FullName or PSPath property such as Get-ChildItem gives,
+one result per script.
 
 ## OUTPUTS
 

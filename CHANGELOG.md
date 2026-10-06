@@ -13,6 +13,11 @@ release notes.
 
 ### Added
 
+- `Invoke-IntuneDetectionTest`, `Invoke-IntunePlatformScriptTest` and `Invoke-IntuneRequirementTest` take script
+  paths from the pipeline, by value or from a `FullName` or `PSPath` property, so `Get-ChildItem .\Detections |
+  Invoke-IntuneDetectionTest` runs each one. `Test-IntuneWin32Rule`, `Test-IntuneWin32Requirement` and
+  `Export-IntuneAgentDiagnostic` results have a format view, like every other result type; the module contract
+  test now requires one for every output type an exported command declares.
 - `Repair-IntuneScript` applies eight more edits, each the one the finding's message asks for: `-Force` on
   `Install-Module`, `Install-PackageProvider`, `Install-Package`, `Update-Module` and `Uninstall-Module`,
   `-Confirm:$false` on `Register-PSRepository`, `-ErrorAction SilentlyContinue` on a probing cmdlet in a Win32

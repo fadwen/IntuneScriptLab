@@ -28,6 +28,19 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
             $command.Parameters['Context'].Attributes.ValidValues | Should-BeCollection @('User', 'System')
         }
 
+        It 'takes script paths from the pipeline, as Get-ChildItem gives them' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                # The result's ScriptPath comes from the launch, which is mocked here
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path }
+            }
+            $one = New-TestScript 'Pipe\Detect-One.ps1' 'exit 0'
+            $two = New-TestScript 'Pipe\Detect-Two.ps1' 'exit 0'
+            $results = @(Get-ChildItem (Split-Path $one) -Filter *.ps1 | Invoke-IntuneDetectionTest)
+            $results.Count | Should-Be 2
+            @($results.ScriptPath | Sort-Object) | Should-BeCollection @($one, $two)
+            @('a.ps1', 'b.ps1' | Invoke-IntuneDetectionTest).Count | Should-Be 2
+        }
+
         It 'rejects a timeout outside 1..86400' {
             { Invoke-IntuneDetectionTest -Path $script:Detect -TimeoutSeconds 0 } | Should-Throw
         }

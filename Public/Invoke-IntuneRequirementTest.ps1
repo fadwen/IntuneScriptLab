@@ -7,7 +7,8 @@ function Invoke-IntuneRequirementTest {
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.RequirementResult')]
     param(
-        [Parameter(Mandatory, Position = 0)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias('FullName', 'PSPath')]
         [string]$Path,
 
         [Parameter(Mandatory)]
@@ -37,51 +38,54 @@ function Invoke-IntuneRequirementTest {
         [ValidateRange(1, 86400)]
         [int]$TimeoutSeconds = 300
     )
-    Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
 
-    $scriptRunSplat = @{
-        Path           = $Path
-        Architecture   = $Architecture
-        Context        = $Context
-        Phase          = 'requirement'
-        TimeoutSeconds = $TimeoutSeconds
-    }
-    if ($Credential) {
-        if ($Context -eq 'System') {
-            throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+    process {
+        Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+
+        $scriptRunSplat = @{
+            Path           = $Path
+            Architecture   = $Architecture
+            Context        = $Context
+            Phase          = 'requirement'
+            TimeoutSeconds = $TimeoutSeconds
         }
-        $scriptRunSplat.Credential = $Credential
-    }
-    $run = Invoke-IslScriptRun @scriptRunSplat
-    $compareSplat = @{
-        StdOut     = $run.StdOut
-        StdErr     = $run.StdErr
-        ExitCode   = $run.ExitCode
-        TimedOut   = $run.TimedOut
-        OutputType = $OutputType
-        Operator   = $Operator
-        Value      = $Value
-    }
-    $verdict = Compare-IslRequirementOutput @compareSplat
+        if ($Credential) {
+            if ($Context -eq 'System') {
+                throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+            }
+            $scriptRunSplat.Credential = $Credential
+        }
+        $run = Invoke-IslScriptRun @scriptRunSplat
+        $compareSplat = @{
+            StdOut     = $run.StdOut
+            StdErr     = $run.StdErr
+            ExitCode   = $run.ExitCode
+            TimedOut   = $run.TimedOut
+            OutputType = $OutputType
+            Operator   = $Operator
+            Value      = $Value
+        }
+        $verdict = Compare-IslRequirementOutput @compareSplat
 
-    Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
-    [pscustomobject]@{
-        PSTypeName   = 'IntuneScriptLab.RequirementResult'
-        Applicable   = $verdict.Met
-        Reason       = $verdict.Reason
-        Output       = $verdict.Output
-        ExitCode     = $run.ExitCode
-        StdOut       = $run.StdOut
-        StdErr       = $run.StdErr
-        TimedOut     = $run.TimedOut
-        Duration     = $run.Duration
-        OutputType   = $OutputType
-        Operator     = $Operator
-        Value        = $Value
-        Architecture = $Architecture
-        Context      = $Context
-        RunAs        = $run.RunAs
-        Host         = $run.Host
-        ScriptPath   = $run.ScriptPath
+        Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
+        [pscustomobject]@{
+            PSTypeName   = 'IntuneScriptLab.RequirementResult'
+            Applicable   = $verdict.Met
+            Reason       = $verdict.Reason
+            Output       = $verdict.Output
+            ExitCode     = $run.ExitCode
+            StdOut       = $run.StdOut
+            StdErr       = $run.StdErr
+            TimedOut     = $run.TimedOut
+            Duration     = $run.Duration
+            OutputType   = $OutputType
+            Operator     = $Operator
+            Value        = $Value
+            Architecture = $Architecture
+            Context      = $Context
+            RunAs        = $run.RunAs
+            Host         = $run.Host
+            ScriptPath   = $run.ScriptPath
+        }
     }
 }
