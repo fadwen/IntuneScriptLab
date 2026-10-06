@@ -56,13 +56,122 @@ function Find-IslInteractiveCall {
         }
     }
 
+    $credentialType = '^(System\.Management\.Automation\.)?PSCredential$'
+
+    # How an expression builds a credential, when it can only ever produce one: the constructor,
+    # New-Object with the type, a cast, or Import-Clixml, which hands back a credential that
+    # Export-Clixml wrote. Nothing for anything else, a member or a call included
+    function Get-CredentialSource {
+        param($Expression)
+        # Parentheses, a one-element pipeline and the expression statement around a value are wrappers
+        $unwrapped = $false
+        while ($Expression -and -not $unwrapped) {
+            $kind = $Expression.GetType().Name
+            if ($kind -eq 'ParenExpressionAst') { $Expression = $Expression.Pipeline }
+            elseif ($kind -eq 'PipelineAst' -and @($Expression.PipelineElements).Count -eq 1) {
+                $Expression = $Expression.PipelineElements[0]
+            }
+            elseif ($kind -eq 'CommandExpressionAst') { $Expression = $Expression.Expression }
+            else { $unwrapped = $true }
+        }
+        if (-not $Expression) { return }
+        switch ($Expression.GetType().Name) {
+            'CommandAst' {
+                $commandName = $Expression.GetCommandName()
+                if ($commandName -eq 'Import-Clixml') { return 'Import-Clixml' }
+                if ($commandName -ne 'New-Object') { return }
+                $typeName = $null
+                $elements = @($Expression.CommandElements | Select-Object -Skip 1)
+                for ($index = 0; $index -lt $elements.Count; $index++) {
+                    $element = $elements[$index]
+                    if ($element.GetType().Name -eq 'CommandParameterAst') {
+                        if (-not 'TypeName'.StartsWith($element.ParameterName, 'OrdinalIgnoreCase')) { continue }
+                        if ($element.Argument) { $typeName = $element.Argument.Extent.Text }
+                        elseif ($index + 1 -lt $elements.Count) { $typeName = $elements[$index + 1].Extent.Text }
+                        break
+                    }
+                    $previous = if ($index -gt 0) { $elements[$index - 1] } else { $null }
+                    $taken = $previous -and $previous.GetType().Name -eq 'CommandParameterAst' -and
+                        -not $previous.Argument
+                    if (-not $taken) { $typeName = $element.Extent.Text; break }
+                }
+                if ("$typeName".Trim('''"') -match $credentialType) { return 'New-Object PSCredential' }
+            }
+            'InvokeMemberExpressionAst' {
+                $onType = $Expression.Expression.GetType().Name -eq 'TypeExpressionAst' -and
+                    $Expression.Expression.TypeName.FullName -match $credentialType
+                if ($onType -and "$($Expression.Member.Value)" -eq 'new') { return '[pscredential]::new()' }
+            }
+            'ConvertExpressionAst' {
+                if ($Expression.Type.TypeName.FullName -match $credentialType) { return 'a [pscredential] cast' }
+            }
+        }
+    }
+
+    # How a variable comes to hold a credential, when every place the script gives it a value
+    # builds one: its assignments, and a parameter typed [pscredential]. Nothing when the script
+    # never gives it a value, or any one of them could be something else
+    function Get-VariableCredentialSource {
+        param($Variable)
+        $scopePrefix = '^(script|local|private|global):'
+        $variableName = $Variable.VariablePath.UserPath -replace $scopePrefix, ''
+        $sources = [System.Collections.Generic.List[string]]::new()
+        $assignments = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
+            param($node)
+            $target = $node.Left
+            $wrapped = $target.GetType().Name -in 'ConvertExpressionAst', 'AttributedExpressionAst'
+            if ($wrapped) { $target = $target.Child }
+            $target.GetType().Name -eq 'VariableExpressionAst' -and
+            ($target.VariablePath.UserPath -replace $scopePrefix, '') -eq $variableName
+        }
+        foreach ($assignment in $assignments) {
+            $typed = $assignment.Left.GetType().Name -eq 'ConvertExpressionAst' -and
+                $assignment.Left.Type.TypeName.FullName -match $credentialType
+            $source = if ($typed) { 'a [pscredential] variable' }
+            else { Get-CredentialSource -Expression $assignment.Right }
+            if (-not $source) { return }
+            $sources.Add($source)
+        }
+        $parameters = Find-IslAstNode -Ast $ast -TypeName ParameterAst -Where {
+            param($node)
+            $node.Name.VariablePath.UserPath -eq $variableName
+        }
+        foreach ($parameter in $parameters) {
+            $typed = @($parameter.Attributes | Where-Object {
+                    $_.GetType().Name -eq 'TypeConstraintAst' -and $_.TypeName.FullName -match $credentialType
+                }).Count -gt 0
+            if (-not $typed) { return }
+            $sources.Add('a [pscredential] parameter')
+        }
+        if ($sources.Count) { @($sources | Select-Object -Unique) -join ', ' }
+    }
+
     $alwaysPrompt = 'Read-Host', 'Pause', 'Out-GridView', 'Show-Command', 'Get-Credential'
     foreach ($command in (Find-IslCommand -Ast $ast -Name $alwaysPrompt)) {
         $name = $command.GetCommandName()
         # Get-Credential -Credential returns a credential that is already built and prompts for the
-        # password of a user name. A literal is a name; anything else cannot be told apart here
+        # password of a user name. A literal is a name; an expression or variable that can only
+        # hold a credential never prompts; anything else cannot be told apart here
         $handed = if ($name -eq 'Get-Credential') { Get-CredentialArgument -Command $command }
         $literalTypes = 'StringConstantExpressionAst', 'ExpandableStringExpressionAst'
+        $source = if ($handed -and $handed.GetType().Name -eq 'VariableExpressionAst') {
+            Get-VariableCredentialSource -Variable $handed
+        }
+        elseif ($handed) { Get-CredentialSource -Expression $handed }
+        if ($source) {
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Information'
+                Context  = $Context
+                Extent   = $command.Extent
+                Message  = ("Get-Credential -Credential returns $($handed.Extent.Text) as it is: it comes from " +
+                    "$source, so it is a credential that is already built and nothing prompts; the call " +
+                    'can go')
+                Evidence = $builtEvidence
+            }
+            New-IslFinding @findingSplat
+            continue
+        }
         if ($handed -and $handed.GetType().Name -notin $literalTypes) {
             $findingSplat = @{
                 RuleName = $rule

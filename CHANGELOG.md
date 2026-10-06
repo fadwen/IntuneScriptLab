@@ -47,6 +47,11 @@ release notes.
   processes: absent from Windows PowerShell 5.1, present in PowerShell 7, a value refused by the
   5.1 `ValidateSet` and taken by 7. The three entries above are what it found on its first run.
 
+- `IslInteractiveCall` tells a `Get-Credential -Credential` call that cannot prompt from one that may:
+  when every value the argument can hold is a credential, built by `[pscredential]::new()`, `New-Object`,
+  `Import-Clixml`, a cast or a `[pscredential]` parameter, the finding is a note that says the call can go.
+  A variable with any other source, a member or a call stays a warning.
+
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
