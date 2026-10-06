@@ -52,6 +52,11 @@ release notes.
   `Import-Clixml`, a cast or a `[pscredential]` parameter, the finding is a note that says the call can go.
   A variable with any other source, a member or a call stays a warning.
 
+- The release rehearsal (`Build/Publish-Module.ps1 -WhatIf`) measures the manifest's `Description` and the
+  package's tags against the Gallery's 4,000-character limits, next to the `ReleaseNotes` check from 0.27.0.
+  The tags counted are the ones the Gallery lists, the manifest's plus `PSModule`, the editions and two per
+  exported command, so a new command costs about twice its name. The module contract test holds the same
+  three limits, so a pull request fails before a release does.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation

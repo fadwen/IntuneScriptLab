@@ -26,6 +26,33 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         @((Test-ModuleManifest -Path $script:ManifestPath).RequiredModules).Count | Should-Be 0
     }
 
+    It 'keeps the Gallery metadata within the limits the Gallery enforces: <Field>' -ForEach @(
+        @{ Field = 'ReleaseNotes'; Limit = 10600 }
+        @{ Field = 'Description'; Limit = 4000 }
+        @{ Field = 'Tags'; Limit = 4000 }
+    ) {
+        # The Gallery refused 0.27.0's first upload: "A package's ReleaseNotes property extracted from
+        # the PowerShell manifest may not be more than 10600 characters long". Description and Tags
+        # carry NuGet's 4,000. The tags it measures include the ones the publish adds, PSModule, a
+        # PSEdition_ tag per edition, PSFunction_ and PSCommand_ per exported function and
+        # PSIncludes_Function: the list the Gallery shows for 0.27.0. Build/Publish-Module.ps1 checks
+        # the same three; this fails the pull request instead of the tag-driven release.
+        $manifest = Test-ModuleManifest -Path $script:ManifestPath
+        $text = switch ($Field) {
+            'ReleaseNotes' { "$($manifest.ReleaseNotes)" }
+            'Description' { "$($manifest.Description)" }
+            'Tags' {
+                $tags = @($manifest.Tags) + 'PSModule'
+                $tags += @($manifest.CompatiblePSEditions | ForEach-Object { "PSEdition_$_" })
+                foreach ($name in @($manifest.ExportedFunctions.Keys | Sort-Object)) {
+                    $tags += "PSFunction_$name", "PSCommand_$name"
+                }
+                ($tags + 'PSIncludes_Function') -join ' '
+            }
+        }
+        $text.Length | Should-BeLessThanOrEqual $Limit
+    }
+
     It 'exports exactly the public functions' {
         $exported = @((Get-Command -Module IntuneScriptLab -CommandType Function).Name | Sort-Object)
         $exported | Should-BeCollection @(
