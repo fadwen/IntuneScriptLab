@@ -57,15 +57,21 @@ function Find-IslPowerShell7Syntax {
 
     $requires = $ast.ScriptRequirements
     if ($requires -and $requires.RequiredPSVersion -and $requires.RequiredPSVersion.Major -ge 6) {
+        # The requirement is a comment token, not a node; the finding sits on that line, and the
+        # fix takes the line out. What the script then does under 5.1 the other findings say
+        $requiresToken = @($Context.Tokens | Where-Object {
+                $_.Kind -eq 'Comment' -and $_.Text -match '(?i)^#requires\s+-version\b'
+            }) | Select-Object -First 1
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
             Context  = $Context
-            Extent   = $ast.Extent
+            Extent   = if ($requiresToken) { $requiresToken.Extent } else { $ast.Extent }
             Message  = ("'#Requires -Version $($requires.RequiredPSVersion)' cannot be satisfied: Intune runs " +
                 'Windows PowerShell 5.1, so the script exits 1 before its first line')
             Evidence = $requiresEvidence
         }
+        if ($requiresToken) { $findingSplat.Fix = @{ Replacement = '' } }
         New-IslFinding @findingSplat
     }
 

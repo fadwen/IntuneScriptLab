@@ -168,6 +168,8 @@ function Find-IslInteractiveCall {
                     "$source, so it is a credential that is already built and nothing prompts; the call " +
                     'can go')
                 Evidence = $builtEvidence
+                # The call returns what it was handed, so the argument stands in for it
+                Fix      = @{ Replacement = $handed.Extent.Text }
             }
             New-IslFinding @findingSplat
             continue
@@ -240,6 +242,13 @@ function Find-IslInteractiveCall {
                     Message  = ("$commandName can prompt for confirmation (or to trust a repository); add " +
                         "-Force / -Confirm:`$false or it hangs until the $timeout timeout")
                     Evidence = $evidence
+                }
+                # The switch the message asks for, added to the call. Set-ExecutionPolicy gets none: the
+                # agent launches with -ExecutionPolicy Bypass, and IslExecutionPolicyCall removes the call
+                if ($commandName -ne 'Set-ExecutionPolicy') {
+                    $switch = if ($confirming[$commandName]) { " -$($confirming[$commandName])" }
+                    else { ' -Confirm:$false' }
+                    $findingSplat.Fix = @{ Replacement = $command.Extent.Text + $switch }
                 }
                 New-IslFinding @findingSplat
             }

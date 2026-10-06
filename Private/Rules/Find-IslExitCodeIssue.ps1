@@ -107,6 +107,8 @@ function Find-IslExitCodeIssue {
                             "again. Use exit 1 for 'issue found'")
                         Evidence = ('exit 2 and exit -1 both triggered the remediation and ended as Recurred ' +
                             '(REM-EXIT-2, REM-EXIT-NEG1); docs say only exit 1 does')
+                        # Intune reads every non-zero exit as 1 already; writing it makes the report match
+                        Fix      = @{ Replacement = 'exit 1' }
                     }
                     New-IslFinding @findingSplat
                 }

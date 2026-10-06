@@ -11,6 +11,19 @@ release notes.
 
 ## [Unreleased]
 
+### Added
+
+- `Repair-IntuneScript` applies eight more edits, each the one the finding's message asks for: `-Force` on
+  `Install-Module`, `Install-PackageProvider`, `Install-Package`, `Update-Module` and `Uninstall-Module`,
+  `-Confirm:$false` on `Register-PSRepository`, `-ErrorAction SilentlyContinue` on a probing cmdlet in a Win32
+  detection or requirement script, `exit 1` for an exit code other than 0 or 1, `$env:ProgramW6432` for
+  `$env:ProgramFiles`, `'ARM64|AMD64'` for `'AMD64'` as a `-match` pattern, `$PSScriptRoot` for `$PWD`, a
+  `Get-Credential -Credential` call handed a credential that can only be one already built replaced by that
+  credential, and a `Set-ExecutionPolicy` statement or a `#Requires -Version 7` line removed. An edit that
+  would leave a broken statement is withheld and the finding stays: `Set-ExecutionPolicy` in a pipeline,
+  `'AMD64'` compared with `-eq`, `$PWD.Path`. The `#Requires` finding now sits on its line rather than on
+  the whole script.
+
 ### Fixed
 
 - **`Test-IntuneDeployedScript` decided whether a group holds devices from its first 20 members.** A mixed group

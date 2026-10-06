@@ -170,6 +170,7 @@
                     'SilentlyContinue (or Test-Path first) on the not-installed path')
                 Evidence = ('A non-terminating cmdlet error appeared in the captured error output ' +
                     '(REM-EXIT-ERRNOEXIT); any stderr fails Win32 detection (W32-DET-STDERR)')
+                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
             }
             New-IslFinding @findingSplat
         }
@@ -283,6 +284,7 @@
                     'target is missing, which fails the rule. Use -ErrorAction SilentlyContinue or ' +
                     'Test-Path first')
                 Evidence = 'Any stderr fails the rule (W32-REQ-STDERR)'
+                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
             }
             New-IslFinding @findingSplat
         }

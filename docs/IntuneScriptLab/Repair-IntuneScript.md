@@ -43,9 +43,30 @@ behaviour-preserving edit:
                        or an ANSI file (read in the system ANSI code page, so its characters
                        survive) is rewritten as UTF-8 with a BOM, the encoding Intune expects
     IslOutputIssue     a requirement script's output literal with leading or trailing
-                       whitespace is trimmed, so it can match the portal value
+                       whitespace is trimmed, so it can match the portal value; a probing
+                       cmdlet without -ErrorAction gets -ErrorAction SilentlyContinue, so a
+                       missing target no longer writes to stderr
+    IslInteractiveCall Install-Module, Install-PackageProvider, Install-Package, Update-Module
+                       and Uninstall-Module get -Force, Register-PSRepository gets
+                       -Confirm:$false; a Get-Credential -Credential handed a credential that
+                       can only be one already built is replaced by that credential
+    IslExecutionPolicyCall
+                       a Set-ExecutionPolicy call that is a statement of its own is removed;
+                       the agent launches the script with -ExecutionPolicy Bypass
+    IslExitCodeIssue   'exit N' with N other than 0 or 1 becomes 'exit 1', the value Intune
+                       reads it as
+    IslArchitectureIssue
+                       $env:ProgramFiles becomes $env:ProgramW6432, the 64-bit folder in
+                       either host
+    IslArm64Assumption 'AMD64' as the pattern of a -match becomes 'ARM64|AMD64'
+    IslRelativePath    $PWD becomes $PSScriptRoot where no member follows it
+    IslPowerShell7Syntax
+                       a '#Requires -Version 7' line is removed; what the script then does
+                       under Windows PowerShell 5.1, the other findings say
 
-Everything else stays as it is and is counted in Remaining.
+Everything else stays as it is and is counted in Remaining. Where an edit would leave a broken
+statement, Set-ExecutionPolicy inside a pipeline, 'AMD64' compared with -eq, $PWD.Path, the
+finding has no fix and stays.
 Text edits are applied from the
 end of the file backwards so line numbers stay valid, line endings are kept, and an edit
 whose text no longer matches the file is skipped with a warning.
