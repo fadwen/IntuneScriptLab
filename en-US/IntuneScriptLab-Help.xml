@@ -4198,6 +4198,22 @@ The command supports
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Context</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>Architecture</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
           <maml:name>IncludeRule</maml:name>
           <maml:description />
           <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
@@ -4211,6 +4227,13 @@ The command supports
           <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
             <maml:name>System.String[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>EnforceSignatureCheck</maml:name>
+          <maml:description />
+          <dev:type>
+            <maml:name>System.Management.Automation.SwitchParameter</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
@@ -4238,10 +4261,48 @@ The command supports
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Architecture</maml:name>
+        <maml:description>
+          <maml:para>The host the script runs in, passed to the analysis: x86 (portal default for scripts and
+remediations), x64 (Win32 detection default) or arm64. Auto (default) infers per script as
+Test-IntuneScript does. The findings an architecture decides, System32 against Sysnative among
+them, and the fixes and Remaining count that follow from them, are then the ones
+Test-IntuneScript gives for the same value.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="cf">
         <maml:name>Confirm</maml:name>
         <maml:description>
           <maml:para>Prompts you for confirmation before running the cmdlet.</maml:para>
+        </maml:description>
+        <dev:type>
+          <maml:name>System.Management.Automation.SwitchParameter</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>Context</maml:name>
+        <maml:description>
+          <maml:para>System or User, passed to the analysis. Auto (default) uses the directive or the type's portal
+default, as Test-IntuneScript does. HKCU: and the profile variables are errors under System and
+not under User, so Remaining follows the context the script is deployed in.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
+        <maml:name>EnforceSignatureCheck</maml:name>
+        <maml:description>
+          <maml:para>Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
+check" were on: an unsigned script gets an IslSignatureIssue error, which has no fix and is
+counted in Remaining. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true"
+does the same for one script, and the settings key EnforceSignatureCheck = $true for a folder.</maml:para>
         </maml:description>
         <dev:type>
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
@@ -4361,6 +4422,17 @@ script already did, or changes the file's encoding, never what the script decide
           <maml:para>Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -IncludeRule IslOutputIssue</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Trims padded requirement values only, in every requirement script under Win32.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 4 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
+on either, and the Remaining count, match Test-IntuneScript run with the same options.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />

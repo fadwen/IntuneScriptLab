@@ -128,6 +128,37 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             $fixed.Applied | Should-Be 1
         }
 
+        It 'hands -Context and -EnforceSignatureCheck to the analysis, on both runs' {
+            # Without them the repair analyzed every script under the inferred context whatever the
+            # caller deployed to, so Remaining could disagree with Test-IntuneScript run with the
+            # same options. HKCU: and USERPROFILE are two errors under System (REM-PROBE-SYS64) and
+            # under User the rule gives one note; an unsigned Win32 detection is an error only with
+            # the signature check enforced
+            $body = "Get-ItemProperty HKCU:\Software\Contoso`nTest-Path `$env:USERPROFILE\x`nexit 1"
+            $path = New-TestScript 'Remediations\F\Detect.ps1' $body -Bom
+            $asUser = Repair-IntuneScript -Path $path -Context User -IncludeRule IslContextIssue
+            $asSystem = Repair-IntuneScript -Path $path -Context System -IncludeRule IslContextIssue
+            $asUser.Remaining | Should-Be 1
+            $asSystem.Remaining | Should-Be 2
+
+            $unsigned = New-TestScript 'Win32\F\Detect-App.ps1' "if (Test-Path C:\x) { exit 0 }`nexit 1" -Bom
+            $enforced = Repair-IntuneScript -Path $unsigned -ScriptType Win32Detection -EnforceSignatureCheck
+            $plain = Repair-IntuneScript -Path $unsigned -ScriptType Win32Detection
+            $enforced.Remaining | Should-Be ($plain.Remaining + 1)
+        }
+
+        It 'counts the architecture the caller names, not the inferred one, in Remaining' {
+            # x86 is the portal default for a remediation, so the 32-bit System32 finding is there
+            # under Auto and gone under -Architecture x64 (REM-PROBE-SYS32)
+            $body = "Start-Process C:\Windows\System32\msiexec.exe -Wait`nexit 0"
+            $folder = New-TestScript 'Remediations\G\Detect.ps1' $body -Bom
+            $inferred = Repair-IntuneScript -Path $folder
+            $native = Repair-IntuneScript -Path $folder -Architecture x64
+            $inferred.Remaining | Should-Be (@(Test-IntuneScript -Path $folder).Count)
+            $native.Remaining | Should-Be (@(Test-IntuneScript -Path $folder -Architecture x64).Count)
+            $native.Remaining | Should-BeLessThan $inferred.Remaining
+        }
+
         It 'expands a folder and reports one object per script' {
             $folder = Join-Path $TestDrive 'Tree'
             New-TestScript 'Tree\Remediations\One\Detect.ps1' "if (`$a) { return 'a' }`nexit 1" -Bom | Out-Null

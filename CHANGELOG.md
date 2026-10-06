@@ -13,6 +13,10 @@ release notes.
 
 ### Fixed
 
+- **`Repair-IntuneScript` analyzed every script under the inferred context and architecture**, whatever the
+  caller deployed to, because it had no `-Context`, `-Architecture` or `-EnforceSignatureCheck` to pass on.
+  It takes the three now and hands them to both analyses, so its findings, fixes and `Remaining` count are
+  the ones `Test-IntuneScript` gives for the same options.
 - **`-Credential` found no session on Windows Home editions, and matched by name.** The session
   list came from parsing `query user`, which Home editions do not ship (every run there fell back
   to the stored-password task) and which prints localized text. Sessions now come from the owners

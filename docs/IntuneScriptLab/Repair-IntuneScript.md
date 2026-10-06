@@ -1,10 +1,10 @@
-﻿---
+---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Repair-IntuneScript.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/05/2026
+ms.date: 10/06/2026
 PlatyPS schema version: 2024-05-01
 title: Repair-IntuneScript
 ---
@@ -20,8 +20,9 @@ Applies the mechanical fixes for findings that have one, and reports what is lef
 ### __AllParameterSets
 
 ```
-Repair-IntuneScript [-Path] <string[]> [-ScriptType <string>] [-IncludeRule <string[]>]
- [-ExcludeRule <string[]>] [-Settings <Object>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Repair-IntuneScript [-Path] <string[]> [-ScriptType <string>] [-Context <string>]
+ [-Architecture <string>] [-IncludeRule <string[]>] [-ExcludeRule <string[]>]
+ [-EnforceSignatureCheck] [-Settings <Object>] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -71,7 +72,39 @@ Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -I
 
 Trims padded requirement values only, in every requirement script under Win32.
 
+### EXAMPLE 4
+
+Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System
+
+Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
+on either, and the Remaining count, match Test-IntuneScript run with the same options.
+
 ## PARAMETERS
+
+### -Architecture
+
+The host the script runs in, passed to the analysis: x86 (portal default for scripts and
+remediations), x64 (Win32 detection default) or arm64. Auto (default) infers per script as
+Test-IntuneScript does. The findings an architecture decides, System32 against Sysnative among
+them, and the fixes and Remaining count that follow from them, are then the ones
+Test-IntuneScript gives for the same value.
+
+```yaml
+Type: System.String
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
 
 ### -Confirm
 
@@ -83,6 +116,53 @@ DefaultValue: ''
 SupportsWildcards: false
 Aliases:
 - cf
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Context
+
+System or User, passed to the analysis. Auto (default) uses the directive or the type's portal
+default, as Test-IntuneScript does. HKCU: and the profile variables are errors under System and
+not under User, so Remaining follows the context the script is deployed in.
+
+```yaml
+Type: System.String
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -EnforceSignatureCheck
+
+Analyze Win32 detection and requirement scripts as if the rule's "Enforce script signature
+check" were on: an unsigned script gets an IslSignatureIssue error, which has no fix and is
+counted in Remaining. The directive comment "# IntuneScriptLab: EnforceSignatureCheck=true"
+does the same for one script, and the settings key EnforceSignatureCheck = $true for a folder.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases: []
 ParameterSets:
 - Name: (All)
   Position: Named
