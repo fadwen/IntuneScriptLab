@@ -11,7 +11,15 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Validation kit: `Collect` moves its payload through the guest agent's file-read call in one
+  reply, gzipped on the device before base64, instead of 179 guest exec calls of 100,000
+  characters; scripts go in through the agent's file-write call, 30,000 characters per call
+  instead of 1,200 (`Send-GuestFile`, `Receive-GuestFile` in `GuestAgent.ps1`). `Collect -Since`
+  keeps only the probe records written from that time on. The round-7 experiment
+  `REM-INSTALL-MODULE`, which hangs for its 60-minute timeout every hour and holds the lab's
+  remediation runner, is no longer assigned.
 
 ## [0.27.0] - 2026-10-05
 

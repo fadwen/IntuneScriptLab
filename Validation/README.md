@@ -12,7 +12,7 @@ with the documented behaviour next to the observed one.
 | `Probe.ps1` | Header prepended to every experiment. Records user, bitness, PowerShell version, command line, encoding and paths to `C:\ProgramData\IntuneScriptLab\<experiment>.jsonl` on the device. Windows PowerShell 5.1 only. |
 | `Experiments.psd1` | The experiments: `Remediations`, `PlatformScripts` and `Win32Apps`. Each has a `Question`, a script body and optional `RunAs32Bit`, `RunAsAccount`, `Bom`, `Requirement`. Win32 entries can also carry `DetectionRules` / `RequirementRules` (file, registry, product code and script rule specs), `Intent` (`required` or `uninstall`), `EnforceSignatureCheck`, `Requirements` (base requirement properties by Graph name), `Filter` (an assignment filter rule and mode), `InstallContext`, `DependsOn`, `Supersedes`, `Assign = $false` and `Package` (a real MSI); remediations a `Schedule` (`RunOnce`, `Daily` or hourly with an `Interval`) and `DetectOnly`. |
 | `GraphRules.ps1` | Builds the Graph rule objects (`win32LobAppFileSystemRule`, `win32LobAppRegistryRule`, `win32LobAppProductCodeRule`, `win32LobAppPowerShellScriptRule`) and remediation run schedules from experiment entries. No Graph calls, so `Tests\Unit` covers it directly. |
-| `GuestAgent.ps1` | Runs PowerShell inside a lab VM through the QEMU guest agent (`Invoke-GuestPowerShell`) and fetches a large text file from it in checked chunks (`Read-GuestPayload`). Dot-sourced by the driver and by `Invoke-LabGuestScript.ps1`; see the guest agent notes under "Timing notes" for why it works the way it does. |
+| `GuestAgent.ps1` | Runs PowerShell inside a lab VM through the QEMU guest agent (`Invoke-GuestPowerShell`), writes a file into it through the agent's file-write call (`Send-GuestFile`) and reads one back in a single file-read call (`Receive-GuestFile`), both checked by SHA-256. Dot-sourced by the driver and by `Invoke-LabGuestScript.ps1`; see the guest agent notes under "Timing notes" for why it works the way it does. |
 | `Fixtures.ps1` | Device-side fixtures the file, registry and MSI rule experiments look at: files with a known version, size and modified date, a `Program Files (x86)`-only file, `HKLM\SOFTWARE\IntuneScriptLab` in both registry views, and an MSI product survey. Run by `Prepare`. |
 | `Invoke-ValidationRound.ps1` | Driver: `Prepare`, `Deploy`, `Trigger`, `Collect`, `Remove`. `Deploy -Name` and `Collect -AppName` take wildcards to keep a round to its own experiments (each app's install status is one report export job of 20-30 seconds, and the service runs them one at a time). |
 | `Win32Content.ps1` | Packages `Win32Install.ps1` with IntuneWinAppUtil.exe and uploads the content to each app. |
@@ -120,8 +120,19 @@ Every action supports `-WhatIf`.
   - A second copy of the detached runner finds the output file held by the first, skips the script
     and writes the done marker at once, so the launch sits behind a started marker.
 - `Collect` runs the device script detached and polls a done marker, so no single guest agent call
-  has to stay open for minutes, and uploads are numbered part files so a chunk written twice
-  replaces itself.
+  has to stay open for minutes.
+- Moving files, measured on VM 125 on 2026-10-06. A guest exec call takes about 6 seconds and its
+  command line fails silently above a few KB, so the kit used to deliver scripts 1,200 base64
+  characters per call and read the payload 100,000 characters per call (179 calls, 25 minutes
+  for one `Collect`). The agent's `file-write` call takes 30,000 characters of text on the
+  host's command line per call, and its `file-read` call returns a file of up to 16 MB in one
+  reply: 507,000 characters in 2 seconds. The device gzips the collect JSON before base64, 13.4 MB
+  of JSON from a month of hourly probe records packed to 380 KB. `-Since` keeps the probe records
+  from a date on and leaves the rest out.
+- The round-7 experiment `REM-INSTALL-MODULE` hangs for its full 60-minute timeout every hourly
+  cycle and holds the remediation runner for everything queued behind it (round 10's seven
+  detections waited 70 minutes for it). Its assignment was removed on 2026-10-06; the policy
+  stays, unassigned, so `Deploy` still skips it and its evidence stands.
 
 ## Adding an experiment
 

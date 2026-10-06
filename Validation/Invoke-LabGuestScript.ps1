@@ -81,26 +81,14 @@ $ErrorActionPreference = 'Stop'
 
 $remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
 $content = Get-Content -Path (Resolve-Path -Path $ScriptPath) -Raw
-$b64 = [Convert]::ToBase64String([Text.UTF8Encoding]::new($true).GetPreamble() +
-    [Text.Encoding]::UTF8.GetBytes($content))
-$null = Invoke-GuestPowerShell -Script ("New-Item -ItemType Directory -Path 'C:\ProgramData\IntuneScriptLab' " +
-    "-Force | Out-Null; Remove-Item -Path '$remote.b64.*' -ErrorAction SilentlyContinue")
-$index = 0
-for ($offset = 0; $offset -lt $b64.Length; $offset += 1200) {
-    $part = $b64.Substring($offset, [Math]::Min(1200, $b64.Length - $offset))
-    $partPath = '{0}.b64.{1:D4}' -f $remote, $index++
-    $null = Invoke-GuestPowerShell -Script "Set-Content -Path '$partPath' -Value '$part' -NoNewline"
-}
-$deliveredMessage = "Delivered $ScriptPath to VM $VmId as $remote ($index parts)"
-Write-Information -InformationAction Continue -MessageData $deliveredMessage
+$bytes = [Text.UTF8Encoding]::new($true).GetPreamble() + [Text.Encoding]::UTF8.GetBytes($content)
+Send-GuestFile -RemotePath $remote -Bytes $bytes
+Write-Information -InformationAction Continue -MessageData "Delivered $ScriptPath to VM $VmId as $remote"
 
-$decode = "`$parts = Get-ChildItem -Path '$remote.b64.*' | Sort-Object Name | " +
-    "ForEach-Object { Get-Content -Path `$_.FullName -Raw }; " +
-    "[IO.File]::WriteAllBytes('$remote', [Convert]::FromBase64String((-join `$parts)))"
 # A parameter name (-AutoLogon) must reach the script bare, or it binds as a positional string;
 # only values with spaces or quotes are quoted
 $arguments = ($ArgumentList | ForEach-Object {
         if ($_ -match '^-[A-Za-z]' -or $_ -notmatch "[\s']") { $_ } else { "'$($_ -replace "'", "''")'" }
     }) -join ' '
 Invoke-GuestPowerShell -TimeoutSeconds $TimeoutSeconds -Script (
-    "$decode; Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & '$remote' $arguments")
+    "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; & '$remote' $arguments")
