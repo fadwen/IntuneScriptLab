@@ -136,10 +136,8 @@ function Find-IslPowerShell7Syntax {
         }
     }
 
-    $coreOnlyCommands = 'Get-Error', 'Join-String', 'Test-Json', 'ConvertFrom-Markdown', 'Get-Uptime',
-    'Remove-Alias', 'Get-ExperimentalFeature', 'Get-MarkdownOption', 'Show-Markdown', 'Switch-Process',
-    'ConvertTo-CliXml', 'ConvertFrom-CliXml'
-    foreach ($command in (Find-IslCommand -Ast $ast -Name $coreOnlyCommands)) {
+    $coreOnly = Get-IslCoreOnlyFeature
+    foreach ($command in (Find-IslCommand -Ast $ast -Name $coreOnly.Commands)) {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
@@ -152,28 +150,9 @@ function Find-IslPowerShell7Syntax {
         New-IslFinding @findingSplat
     }
 
-    $coreOnlyParameters = @{
-        'ConvertFrom-Json'   = 'AsHashtable', 'Depth', 'NoEnumerate', 'DateKind'
-        'ConvertTo-Json'     = 'AsArray', 'EnumsAsStrings', 'EscapeHandling'
-        'Split-Path'         = 'LeafBase', 'Extension'
-        'Get-ChildItem'      = 'FollowSymlink'
-        'Invoke-WebRequest'  = 'SkipCertificateCheck', 'SkipHttpErrorCheck', 'Form', 'Resume',
-            'StatusCodeVariable', 'Authentication', 'Token', 'AllowInsecureRedirect', 'RetryIntervalSec'
-        'Invoke-RestMethod'  = 'SkipCertificateCheck', 'SkipHttpErrorCheck', 'Form', 'Resume',
-            'StatusCodeVariable', 'Authentication', 'Token', 'AllowInsecureRedirect', 'ResponseHeadersVariable'
-        'Select-String'      = 'Raw', 'Culture', 'NoEmphasis'
-        'Test-Connection'    = 'TargetName', 'TcpPort', 'Ping', 'Traceroute', 'IPv4', 'IPv6', 'Repeat'
-        'Get-Content'        = 'AsByteStream'
-        'Set-Content'        = 'AsByteStream'
-        'Add-Content'        = 'AsByteStream'
-        'Start-Process'      = 'Environment'
-
-        'Compress-Archive'   = 'PassThru'
-        'Import-Module'      = 'UseWindowsPowerShell', 'SkipEditionCheck'
-    }
-    foreach ($commandName in $coreOnlyParameters.Keys) {
+    foreach ($commandName in $coreOnly.Parameters.Keys) {
         foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
-            foreach ($parameter in $coreOnlyParameters[$commandName]) {
+            foreach ($parameter in $coreOnly.Parameters[$commandName]) {
                 if (Test-IslCommandParameter -Command $command -ParameterName $parameter) {
                     $findingSplat = @{
                         RuleName = $rule
@@ -190,13 +169,9 @@ function Find-IslPowerShell7Syntax {
         }
     }
 
-    # A parameter both hosts have, with a value only PowerShell 7 accepts
-    $coreOnlyValues = @{
-        'Out-File' = @{ Encoding = 'utf8NoBOM' }
-    }
-    foreach ($commandName in $coreOnlyValues.Keys) {
+    foreach ($commandName in $coreOnly.Values.Keys) {
         foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
-            foreach ($parameter in $coreOnlyValues[$commandName].Keys) {
+            foreach ($parameter in $coreOnly.Values[$commandName].Keys) {
                 $elements = @($command.CommandElements)
                 $argument = $null
                 for ($index = 1; $index -lt $elements.Count -and -not $argument; $index++) {
@@ -207,7 +182,7 @@ function Find-IslPowerShell7Syntax {
                     elseif ($index + 1 -lt $elements.Count) { $elements[$index + 1] }
                 }
                 $isLiteral = $argument -and $argument.GetType().Name -eq 'StringConstantExpressionAst'
-                if ($isLiteral -and $argument.Value -in $coreOnlyValues[$commandName][$parameter]) {
+                if ($isLiteral -and $argument.Value -in $coreOnly.Values[$commandName][$parameter]) {
                     $findingSplat = @{
                         RuleName = $rule
                         Severity = 'Error'

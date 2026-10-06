@@ -26,6 +26,12 @@ release notes.
   a task then never starts for an Entra account, with or without the "Log on as a batch job"
   right, so the refusal names that instead of the right.
 
+- **`IslPowerShell7Syntax` listed three things that are not PowerShell 7-only.** `Switch-Process`
+  exists on Linux and macOS only, so a script calling it fails on both Windows hosts;
+  `Invoke-WebRequest -StatusCodeVariable` exists on neither host (only `Invoke-RestMethod` has
+  it); `Get-ChildItem -FollowSymlink` has been in Windows PowerShell since 5.0. All three are
+  gone from the rule.
+
 ### Changed
 
 - Validation kit: `Collect` moves its payload through the guest agent's file-read call in one
@@ -35,6 +41,11 @@ release notes.
   keeps only the probe records written from that time on. The round-7 experiment
   `REM-INSTALL-MODULE`, which hangs for its 60-minute timeout every hour and holds the lab's
   remediation runner, is no longer assigned.
+
+- The cmdlets, parameters and values `IslPowerShell7Syntax` reports are one table
+  (`Get-IslCoreOnlyFeature`), and a unit test holds every entry against both hosts as child
+  processes: absent from Windows PowerShell 5.1, present in PowerShell 7, a value refused by the
+  5.1 `ValidateSet` and taken by 7. The three entries above are what it found on its first run.
 
 ## [0.27.0] - 2026-10-05
 
