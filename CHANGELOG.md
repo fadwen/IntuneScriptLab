@@ -13,6 +13,10 @@ release notes.
 
 ### Fixed
 
+- **`Test-IntuneDeployedScript` decided whether a group holds devices from its first 20 members.** A mixed group
+  whose first page was all devices passed as a device group, and a user-context app assigned to it was flagged
+  as never installing. The check now counts the group's members and the devices among them with two `$count`
+  queries, so the whole group decides.
 - **`Repair-IntuneScript` analyzed every script under the inferred context and architecture**, whatever the
   caller deployed to, because it had no `-Context`, `-Architecture` or `-EnforceSignatureCheck` to pass on.
   It takes the three now and hands them to both analyses, so its findings, fixes and `Remaining` count are
@@ -71,6 +75,10 @@ release notes.
   The filters now run on the raw record before an entry is built, which was most of an entry's cost; the
   44 event patterns are one expression matched once per message instead of 44 statements; a rolled-over
   file last written before `-After` is not read at all. Results are unchanged.
+- Every Graph request the tenant commands make is sent again when Graph throttles it (429) or is briefly
+  unavailable (503, 504): after the `Retry-After` seconds when the header is there, after 2, 4 and 8 seconds
+  when it is not, three times at most before the failure is thrown as it came. A pre-flight over a few hundred
+  policies makes two requests per policy and meets the throttle.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation
