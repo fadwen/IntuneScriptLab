@@ -31,7 +31,9 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
         It 'takes script paths from the pipeline, as Get-ChildItem gives them' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 # The result's ScriptPath comes from the launch, which is mocked here
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path }
+                [pscustomobject]@{
+                    ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path
+                }
             }
             $one = New-TestScript 'Pipe\Detect-One.ps1' 'exit 0'
             $two = New-TestScript 'Pipe\Detect-Two.ps1' 'exit 0'
