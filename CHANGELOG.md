@@ -28,7 +28,8 @@ release notes.
 
 - The in-box module table `IslModuleDependency` reports from is held against the Windows client the tests run
   on: every listed module must be under the host's system module paths, except the engine module and the seven
-  a Home edition lacks, and nothing may be there that the table or the test does not account for. The table
+  a Home edition lacks, and nothing may be under the Windows module folder that the table or the test does not
+  account for, Hyper-V and the container family being features a host may have turned on. The table
   was re-captured as SYSTEM on the lab device on 2026-10-06 and is unchanged.
 
 ### Fixed
