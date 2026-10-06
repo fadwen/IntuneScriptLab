@@ -254,8 +254,9 @@ simply never starts the task (`0x00041303`, "has not run yet", which is what the
 today). Needs an elevated session. A Microsoft Entra account can be named by its sign-in name
 (`user@domain`) or by the name Windows gives it: Windows calls such an account
 `AzureAD\<display name without spaces, cut at 20 characters>`, which is neither the sign-in name nor
-a part of it, so the launcher asks Windows which account the credential means and looks for its
-session under that name. On
+a part of it, so the launcher asks Windows which account the credential means and matches its
+session by SID. A stored-password task did not start for such an account on the lab device, with
+or without the batch logon right, so an Entra account has to hold a session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
 harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the

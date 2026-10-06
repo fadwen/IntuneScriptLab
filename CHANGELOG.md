@@ -20,6 +20,12 @@ release notes.
   its SID when Windows resolves the credential's name, by the owner's name otherwise. Verified on
   this Home machine and on the joined lab device with the Entra user signed in.
 
+- **The stored-password task was registered with the credential's name as given**, which the
+  scheduler refuses for an Entra account's sign-in name ("No mapping between account names and
+  security IDs"). It is registered for the name Windows gives the account. On the lab device such
+  a task then never starts for an Entra account, with or without the "Log on as a batch job"
+  right, so the refusal names that instead of the right.
+
 ### Changed
 
 - Validation kit: `Collect` moves its payload through the guest agent's file-read call in one

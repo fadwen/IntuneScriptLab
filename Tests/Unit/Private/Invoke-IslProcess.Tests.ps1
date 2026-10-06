@@ -269,6 +269,45 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             }
         }
 
+        It 'registers the stored-password task for an Entra account by its Windows name (VM 125)' {
+            # The scheduler refuses the sign-in name with "No mapping between account names and
+            # security IDs"; AzureAD\<Windows name> registers
+            Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
+                [pscustomobject]@{
+                    Name = 'AzureAD\IslVerylongdisplayna'
+                    Sid  = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
+                }
+            }
+            Mock Get-IslLogonSession -ModuleName IntuneScriptLab { @() }
+            $launchSplat = $script:LaunchSplat.Clone()
+            $signInName = 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
+            $launchSplat.Credential = [pscredential]::new($signInName, $script:Credential.Password)
+            $result = Invoke-Process $launchSplat
+            $result.LogonType | Should-Be 'Password'
+            $result.UserName | Should-Be $signInName
+            Should-Invoke Register-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
+                $User -eq 'AzureAD\IslVerylongdisplayna' -and $Password -eq 'pw' -and $null -eq $Principal
+            }
+        }
+
+        It 'says that a stored-password task does not start for an Entra account, right or no right (VM 125)' {
+            # With the account granted "Log on as a batch job" for the test, the task still sat
+            # Ready with 0x00041303, so the usual hint about the right would send someone the wrong way
+            Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ Name = 'AzureAD\IslVerylongdisplayna'; Sid = 'S-1-12-1-1-2-3-4' }
+            }
+            Mock Get-IslLogonSession -ModuleName IntuneScriptLab { @() }
+            Mock Start-ScheduledTask -ModuleName IntuneScriptLab { }
+            Mock Get-ScheduledTaskInfo -ModuleName IntuneScriptLab { [pscustomobject]@{ LastTaskResult = 267011 } }
+            $launchSplat = $script:LaunchSplat.Clone()
+            $launchSplat.Credential = [pscredential]::new('someone@contoso.com', $script:Credential.Password)
+            $failure = { Invoke-Process $launchSplat } | Should-Throw
+            $failure.Exception.Message | Should-BeLikeString ('*someone@contoso.com did not start: 0x00041303 ' +
+                '(the scheduler never launched it: a stored-password task did not start for a Microsoft Entra ' +
+                'account*sign the account in and run while it holds a session)')
+            $failure.Exception.Message | Should-NotBeLikeString '*grant it in the local security policy*'
+        }
+
         It 'does not take another account''s session for a sign-in name that only looks like it' {
             # The part before the @ of one account can be the Windows name of another
             Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
