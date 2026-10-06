@@ -192,7 +192,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
         It 'registers an interactive task for the account when it holds a session (REM-PROBE-USER64)' {
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ UserName = 'isl-user'; SessionName = 'console'; Id = 2; State = 'Active' }
+                [pscustomobject]@{ UserName = 'isl-user'; Domain = 'LAB'; Sid = 'S-1-5-21-1-2-3-1001'; Id = 2 }
             }
             $result = Invoke-Process $script:LaunchSplat
             $result.ExitCode | Should-Be 0
@@ -219,7 +219,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
         It 'lets -LogonType force the stored-password task even when the account has a session' {
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ UserName = 'isl-user'; SessionName = 'console'; Id = 2; State = 'Active' }
+                [pscustomobject]@{ UserName = 'isl-user'; Domain = 'LAB'; Sid = 'S-1-5-21-1-2-3-1001'; Id = 2 }
             }
             $result = Invoke-Process ($script:LaunchSplat + @{ LogonType = 'Password' })
             $result.LogonType | Should-Be 'Password'
@@ -230,7 +230,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
         It 'matches the session by account name whatever the credential prefix' {
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ UserName = 'isl-user'; SessionName = 'console'; Id = 2; State = 'Active' }
+                [pscustomobject]@{ UserName = 'isl-user'; Domain = 'LAB'; Sid = 'S-1-5-21-1-2-3-1001'; Id = 2 }
             }
             $launchSplat = $script:LaunchSplat.Clone()
             $launchSplat.Credential = [pscredential]::new('isl-user@lab.local', $script:Credential.Password)
@@ -240,8 +240,8 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
         }
 
         It 'finds an Entra account''s session by the name Windows gives it, not by its sign-in name (VM 125)' {
-            # Signed in as isl-verylongusername-test01@..., listed by "query user" as
-            # islverylongdisplayna; the scheduler takes the Windows name and refuses the sign-in name
+            # Signed in as isl-verylongusername-test01@..., the session owned by the SID that name
+            # resolves to; the scheduler takes the Windows name and refuses the sign-in name
             Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
                 [pscustomobject]@{
                     Name = 'AzureAD\IslVerylongdisplayna'
@@ -250,7 +250,8 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             }
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
                 [pscustomobject]@{
-                    UserName = 'islverylongdisplayna'; SessionName = 'console'; Id = 2; State = 'Active'
+                    UserName = 'IslVerylongdisplayna'; Domain = 'AzureAD'
+                    Sid = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'; Id = 2
                 }
             }
             $launchSplat = $script:LaunchSplat.Clone()
@@ -274,7 +275,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
                 [pscustomobject]@{ Name = 'AzureAD\SomeoneElse'; Sid = 'S-1-12-1-1-2-3-4' }
             }
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ UserName = 'isl-user'; SessionName = 'console'; Id = 2; State = 'Active' }
+                [pscustomobject]@{ UserName = 'isl-user'; Domain = 'LAB'; Sid = 'S-1-5-21-1-2-3-1001'; Id = 2 }
             }
             $launchSplat = $script:LaunchSplat.Clone()
             $launchSplat.Credential = [pscredential]::new('isl-user@lab.local', $script:Credential.Password)

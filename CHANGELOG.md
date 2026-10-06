@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`-Credential` found no session on Windows Home editions, and matched by name.** The session
+  list came from parsing `query user`, which Home editions do not ship (every run there fell back
+  to the stored-password task) and which prints localized text. Sessions now come from the owners
+  of each desktop's `explorer.exe` and `sihost.exe` through CIM, and the account is matched by
+  its SID when Windows resolves the credential's name, by the owner's name otherwise. Verified on
+  this Home machine and on the joined lab device with the Entra user signed in.
+
 ### Changed
 
 - Validation kit: `Collect` moves its payload through the guest agent's file-read call in one
