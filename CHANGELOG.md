@@ -20,6 +20,18 @@ release notes.
   its SID when Windows resolves the credential's name, by the owner's name otherwise. Verified on
   this Home machine and on the joined lab device with the Entra user signed in.
 
+- **The stored-password task was registered with the credential's name as given**, which the
+  scheduler refuses for an Entra account's sign-in name ("No mapping between account names and
+  security IDs"). It is registered for the name Windows gives the account. On the lab device such
+  a task then never starts for an Entra account, with or without the "Log on as a batch job"
+  right, so the refusal names that instead of the right.
+
+- **`IslPowerShell7Syntax` listed three things that are not PowerShell 7-only.** `Switch-Process`
+  exists on Linux and macOS only, so a script calling it fails on both Windows hosts;
+  `Invoke-WebRequest -StatusCodeVariable` exists on neither host (only `Invoke-RestMethod` has
+  it); `Get-ChildItem -FollowSymlink` has been in Windows PowerShell since 5.0. All three are
+  gone from the rule.
+
 ### Changed
 
 - Validation kit: `Collect` moves its payload through the guest agent's file-read call in one
@@ -30,6 +42,21 @@ release notes.
   `REM-INSTALL-MODULE`, which hangs for its 60-minute timeout every hour and holds the lab's
   remediation runner, is no longer assigned.
 
+- The cmdlets, parameters and values `IslPowerShell7Syntax` reports are one table
+  (`Get-IslCoreOnlyFeature`), and a unit test holds every entry against both hosts as child
+  processes: absent from Windows PowerShell 5.1, present in PowerShell 7, a value refused by the
+  5.1 `ValidateSet` and taken by 7. The three entries above are what it found on its first run.
+
+- `IslInteractiveCall` tells a `Get-Credential -Credential` call that cannot prompt from one that may:
+  when every value the argument can hold is a credential, built by `[pscredential]::new()`, `New-Object`,
+  `Import-Clixml`, a cast or a `[pscredential]` parameter, the finding is a note that says the call can go.
+  A variable with any other source, a member or a call stays a warning.
+
+- The release rehearsal (`Build/Publish-Module.ps1 -WhatIf`) measures the manifest's `Description` and the
+  package's tags against the Gallery's 4,000-character limits, next to the `ReleaseNotes` check from 0.27.0.
+  The tags counted are the ones the Gallery lists, the manifest's plus `PSModule`, the editions and two per
+  exported command, so a new command costs about twice its name. The module contract test holds the same
+  three limits, so a pull request fails before a release does.
 ## [0.27.0] - 2026-10-05
 
 Fixes to the runtime harness and to four rules, each rule change backed by a tenth validation

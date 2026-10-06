@@ -161,7 +161,8 @@
                 $registerTaskSplat.Principal = New-ScheduledTaskPrincipal @principalSplat
             }
             else {
-                $registerTaskSplat.User = $userName
+                # The scheduler takes an Entra account by its Windows name only, here too
+                $registerTaskSplat.User = if ($resolved) { $resolved.Name } else { $userName }
                 $registerTaskSplat.Password = $Credential.GetNetworkCredential().Password
                 $registerTaskSplat.RunLevel = 'Limited'
             }
@@ -206,7 +207,15 @@
             if ($launchFailure) {
                 $code = '0x{0:X8}' -f $launchFailure
                 $never = if ($code -eq '0x00041303') { 'the scheduler never launched it: ' } else { '' }
-                $hint = if ($code -eq '0x80070569' -or ($code -eq '0x00041303' -and $logon -eq 'Password')) {
+                $hint = if ($resolved -and $resolved.Name -like 'AzureAD\*' -and $logon -eq 'Password') {
+                    # On the lab device the right made no difference for an Entra account: the task
+                    # sat Ready, "has not run yet", with the right granted (Findings, "The harness
+                    # as another account")
+                    " ($($never)a stored-password task did not start for a Microsoft Entra account " +
+                    'on the lab device, with or without the "Log on as a batch job" right; sign the ' +
+                    'account in and run while it holds a session)'
+                }
+                elseif ($code -eq '0x80070569' -or ($code -eq '0x00041303' -and $logon -eq 'Password')) {
                     " ($($never)the account is not granted the ""Log on as a batch job"" right a " +
                     'stored-password task needs; grant it in the local security policy, or run while the ' +
                     'account holds a session)'

@@ -185,6 +185,22 @@ if (-not $WhatIfPreference -and -not $ApiKey) {
     }
 }
 
+# The tags the Gallery lists for a published module: the manifest's, then the ones the publish
+# adds for the package kind, the editions and every exported function.
+function Get-PublishedTag {
+    param([Parameter(Mandatory)]$Manifest)
+    $tags = [System.Collections.Generic.List[string]]::new()
+    foreach ($tag in @($Manifest.Tags)) { $tags.Add($tag) }
+    $tags.Add('PSModule')
+    foreach ($edition in @($Manifest.CompatiblePSEditions)) { $tags.Add("PSEdition_$edition") }
+    foreach ($name in @($Manifest.ExportedFunctions.Keys | Sort-Object)) {
+        $tags.Add("PSFunction_$name")
+        $tags.Add("PSCommand_$name")
+    }
+    if ($Manifest.ExportedFunctions.Count) { $tags.Add('PSIncludes_Function') }
+    $tags
+}
+
 # --- 1. Help gates ----------------------------------------------------------------
 # Before staging, because a stale-MAML failure should stop the release rather than leave a
 # staged tree that nobody notices is wrong.
@@ -235,6 +251,32 @@ if ($releaseNotesLength -gt $releaseNotesLimit) {
     throw ("The manifest's ReleaseNotes is $releaseNotesLength characters; the Gallery accepts at most " +
         "$releaseNotesLimit. Move the older versions out, CHANGELOG.md has them.")
 }
+
+# NuGet's limit on a package description, which the Gallery applies.
+$descriptionLimit = 4000
+$descriptionLength = "$($manifest.Description)".Length
+if ($descriptionLength -gt $descriptionLimit) {
+    throw ("The manifest's Description is $descriptionLength characters; the Gallery accepts at most " +
+        "$descriptionLimit.")
+}
+
+# The Gallery refuses a package whose tags pass 4,000 characters ("A nuget package's Tags property
+# may not be more than 4000 characters long"), and the tags it measures are not the manifest's
+# alone: the publish adds PSModule, one PSEdition_ tag per compatible edition, PSFunction_ and
+# PSCommand_ for every exported function, and PSIncludes_Function. That is the list the Gallery
+# shows for 0.27.0 (61 tags, 1,935 characters for 27 commands), so every new command costs about
+# twice its name. Measured here the way the Gallery sees it.
+$tagsLimit = 4000
+$publishedTags = Get-PublishedTag -Manifest $manifest
+$tagsLength = ($publishedTags -join ' ').Length
+if ($tagsLength -gt $tagsLimit) {
+    throw ("The package's tags come to $tagsLength characters once the publish adds its own for " +
+        "$($manifest.ExportedFunctions.Count) commands; the Gallery accepts at most $tagsLimit. Drop " +
+        'manifest tags, or fewer commands.')
+}
+$metadataSummary = ("Gallery metadata: Description $descriptionLength/$descriptionLimit, Tags " +
+    "$tagsLength/$tagsLimit, ReleaseNotes $releaseNotesLength/$releaseNotesLimit characters.")
+Write-Information $metadataSummary -InformationAction Continue
 
 # --- 3. Already published? --------------------------------------------------------
 # A version number is consumed forever on first publish. Learning that from a rejected

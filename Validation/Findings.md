@@ -403,6 +403,16 @@ SYSTEM the device listed one session, `AzureAD\IslVerylongdisplayna`,
 script inside session 2 (`interactive=True`) and left no task or run folder behind. On a Windows
 11 Home machine without `query.exe` the same list named its one console session.
 
+The stored-password path for the same Entra account, signed out, `Register-ScheduledTask -User
+<name> -Password <password>` with the account's real password: the sign-in name is refused at
+registration ("No mapping between account names and security IDs was done"); `AzureAD\<sign-in
+name>` and `AzureAD\IslVerylongdisplayna` register, and the task then sits Ready with
+`0x00041303` ("has not run yet"), `LastRunTime` unset, as the local standard user's did. With the
+account granted `SeBatchLogonRight` for the length of the test (`secedit`, the right taken away
+again afterwards) the result was the same for both names. An Entra account on this device
+therefore runs through the harness only while it holds a session; the launcher registers the task
+for the Windows name and, for an Entra account, says so instead of pointing at the right.
+
 ### Reporting latency, re-measured (2026-09-29)
 
 | Kind | Device (log line, converted to UTC) | Graph | Lag |
@@ -532,7 +542,10 @@ remediation run, against the script's own exit 0 and "without issues"). The cmdl
 `#Requires` cites its own; `Out-File -Encoding utf8NoBOM`, listed in the rule but never matched,
 is a finding. `IslInteractiveCall` keeps `Get-Credential` an error where it is sure to
 prompt and makes `-Credential` with anything but a literal a warning, since a variable there may
-hold a credential that is already built. `IslContextIssue` no longer calls every drive letter from
+hold a credential that is already built, and a note when the script gives the argument no value
+that is not one: built by `[pscredential]::new()`, `New-Object`, `Import-Clixml` (which hands back
+what `Export-Clixml` wrote, a credential in this idiom), a cast or a typed parameter; the call cannot
+prompt and can go. `IslContextIssue` no longer calls every drive letter from
 `D:` to `Z:` an unmapped drive: the letter cannot say whether it is a local volume, so the finding
 is a note that says which case fails.
 
