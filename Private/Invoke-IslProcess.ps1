@@ -140,14 +140,16 @@
         }
         else {
             $userName = $Credential.UserName
-            # "query user" lists the name Windows gives the account, which for an Entra account is
-            # neither the sign-in name nor a part of it; ask Windows before taking the name apart
+            # The session is found by the account's SID when Windows resolves the name; an Entra
+            # account's Windows name is neither the sign-in name nor a part of it. A name Windows
+            # cannot resolve is matched as text against the session owner's name
             $resolved = Resolve-IslAccount -Name $userName
-            $account = if ($resolved) { ($resolved.Name -split '\\')[-1] }
-            elseif ($userName -match '\\') { ($userName -split '\\')[-1] }
+            $account = if ($userName -match '\\') { ($userName -split '\\')[-1] }
             elseif ($userName -match '@') { ($userName -split '@')[0] }
             else { $userName }
-            $sessions = @(Get-IslLogonSession | Where-Object { $_.UserName -eq $account })
+            $sessions = @(Get-IslLogonSession | Where-Object {
+                    if ($resolved) { $_.Sid -eq $resolved.Sid } else { $_.UserName -eq $account }
+                })
             $logon = if ($LogonType -ne 'Auto') { $LogonType }
             elseif ($sessions.Count -gt 0) { 'Interactive' }
             else { 'Password' }

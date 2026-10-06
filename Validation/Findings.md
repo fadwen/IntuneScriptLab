@@ -391,8 +391,17 @@ anywhere, and the launcher waited out its timeout. 0.26.0 treats five seconds of
 apart as text, which can only work when the Windows name happens to equal that text. That holds
 for a local account and fails for an Entra account whatever its length: the Windows name comes
 from the display name. `Resolve-IslAccount` now asks Windows for the account's SID (trying
-`AzureAD\` in front of a sign-in name) and for the name behind that SID; the session is matched on
-that name, the interactive task is registered for it, and the run folder is granted by SID.
+`AzureAD\` in front of a sign-in name) and for the name behind that SID; the interactive task is
+registered for that name and the run folder is granted by SID.
+
+2026-10-06, the same device and user: the session list no longer comes from `query user`, which
+Windows Home editions do not ship and which prints localized text, but from the owners of each
+desktop's `explorer.exe` and `sihost.exe` through CIM, and the credential is matched by SID. As
+SYSTEM the device listed one session, `AzureAD\IslVerylongdisplayna`,
+`S-1-12-1-1497552185-1263987200-3276725654-805488699`, id 2, the SID the sign-in name resolves to;
+`-Credential` with the sign-in name, `AzureAD\<sign-in name>` and the Windows name each ran the
+script inside session 2 (`interactive=True`) and left no task or run folder behind. On a Windows
+11 Home machine without `query.exe` the same list named its one console session.
 
 ### Reporting latency, re-measured (2026-09-29)
 
