@@ -1,6 +1,7 @@
 # Pester / coverage output
 coverage.xml
 testResults.xml
+testResults-*.xml
 *.trx
 
 # Raw validation results: every Collect writes Graph run states, device registry dumps, probe

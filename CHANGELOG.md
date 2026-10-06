@@ -31,6 +31,9 @@ release notes.
 
 ### Changed
 
+- CI: the Windows PowerShell 5.1 job runs the integration suite as well as the unit suites, so a 5.1 trap in the
+  harness fails a pull request rather than a device run. Every test job writes its results as NUnit XML and the
+  pwsh job its coverage as JaCoCo XML, uploaded as artifacts whether the job passes or fails.
 - The in-box module table `IslModuleDependency` reports from is held against the Windows client the tests run
   on: every listed module must be under the host's system module paths, except the engine module and the seven
   a Home edition lacks, and nothing may be under the Windows module folder that the table or the test does not

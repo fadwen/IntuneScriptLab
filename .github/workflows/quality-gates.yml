@@ -14,7 +14,13 @@
 #             device, and so does the module: the manifest declares CompatiblePSEditions Desktop
 #             and the root module carries #Requires -Version 5.1. A ternary, a null-coalescing
 #             operator or a ForEach-Object -Parallel parses cleanly under 7 and breaks every
-#             command under 5.1, and nothing but a 5.1 host notices. The unit suites run here too.
+#             command under 5.1, and nothing but a 5.1 host notices. The unit and integration
+#             suites run here too: the harness launches 5.1 hosts, and a 5.1 trap in it (a stderr
+#             line turned into a terminating error, a Group-Object order) shows only here.
+#
+#   Every test job writes its results as NUnit XML and the tests job its coverage as JaCoCo XML,
+#   uploaded as artifacts whether the job passes or fails, so a failure can be read without
+#   scrolling the log and the coverage can be compared between runs.
 #
 #   arm64     Windows on ARM. The runtime harness picks a PowerShell host per architecture, and
 #             on an ARM64 device the answers differ from x64: the System32 host is native ARM64,
@@ -119,6 +125,10 @@ jobs:
           $cfg.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1', './Private/Rules/*.ps1'
           # CoveragePercentTarget only reports; the gate below is what enforces it.
           $cfg.CodeCoverage.CoveragePercentTarget = 80
+          # Written before the gates below run, so a failed run still leaves both files to upload
+          $cfg.CodeCoverage.OutputPath = 'coverage.xml'
+          $cfg.TestResult.Enabled = $true
+          $cfg.TestResult.OutputPath = 'testResults.xml'
 
           $result = Invoke-Pester -Configuration $cfg
 
@@ -136,6 +146,16 @@ jobs:
           if ($coverage -lt 80) {
               throw "Code coverage $coverage% is below the 80% gate."
           }
+
+      - name: Upload test results and coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tests-and-analysis
+          path: |
+            testResults.xml
+            coverage.xml
+          if-no-files-found: warn
 
   desktop:
     name: 'Windows PowerShell 5.1'
@@ -185,15 +205,29 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Import-Module Pester -MinimumVersion 6.2.0
           $cfg = New-PesterConfiguration
-          $cfg.Run.Path = './Tests/Unit', './Validation/Tests/Unit'
+          # The integration suite as well: it launches the 5.1 hosts the harness uses on a device,
+          # and the runner is elevated, so the SYSTEM-context tests run here as they do under pwsh
+          $cfg.Run.Path = './Tests/Unit', './Tests/Integration', './Validation/Tests/Unit'
           $cfg.Run.PassThru = $true
           $cfg.Output.Verbosity = 'Normal'
           $cfg.Should.DisableV5 = $true
+          $cfg.TestResult.Enabled = $true
+          $cfg.TestResult.OutputPath = 'testResults-desktop.xml'
           $result = Invoke-Pester -Configuration $cfg
+          "## Pester under Windows PowerShell 5.1`n`nPassed $($result.PassedCount), failed $($result.FailedCount), " +
+              "skipped $($result.SkippedCount)." | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
           if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
               throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed under Windows PowerShell 5.1."
           }
           Write-Host "Passed $($result.PassedCount), skipped $($result.SkippedCount) under Windows PowerShell 5.1."
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-powershell-5-1
+          path: testResults-desktop.xml
+          if-no-files-found: warn
 
   arm64:
     name: 'Windows on ARM'
@@ -221,12 +255,22 @@ jobs:
           $cfg.Run.PassThru = $true
           $cfg.Output.Verbosity = 'Normal'
           $cfg.Should.DisableV5 = $true
+          $cfg.TestResult.Enabled = $true
+          $cfg.TestResult.OutputPath = 'testResults-arm64.xml'
           $result = Invoke-Pester -Configuration $cfg
           "## Pester on Windows on ARM`n`nPassed $($result.PassedCount), failed $($result.FailedCount), " +
               "skipped $($result.SkippedCount)." | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
           if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
               throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed on ARM64."
           }
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-on-arm
+          path: testResults-arm64.xml
+          if-no-files-found: warn
 
   help:
     name: 'Command help'
