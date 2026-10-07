@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.28.0'
+    ModuleVersion = '0.29.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,13 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.29.0 - A remediation that writes to stderr is a script error on the device whatever its exit code:
+        RemediationStatus 3, Graph scriptError, the error text attached, no post-detection.
+        Invoke-IntuneRemediationTest reported Recurred for that run since round 1; it reports Failed,
+        skips the post-detection and warns that the exit code was 0. A detection's stderr still changes
+        nothing. IslOutputIssue warns about Write-Error and an unguarded cmdlet in a remediation script,
+        with -ErrorAction Stop as the fix. Measured in user context on the lab device with five one-off
+        remediations, recorded as round 11 (REM-STDERR-*). See CHANGELOG.md.
 0.28.0 - Test-IntuneScript analyzes a script about two and a half times faster, with the syntax tree
         walked once and indexed instead of once per rule; Get-IntuneAgentLog reads a large log
         filtered in a fifth of the time. Repair-IntuneScript takes -Context, -Architecture and
@@ -90,19 +97,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         Repair-IntuneScript no longer turns 'return 1; exit 1' into '1; exit 0; exit 1' with no
         finding left. Help: what Invoke-ScriptAnalyzer -Severity does with the custom rules. See
         CHANGELOG.md.
-0.26.0 - Every claim in the README, help, about topic, rule reference and examples was checked
-        against the code and by running it, and what did not hold was fixed: -Settings never
-        reached the pre-flight or the drift compare; -Id alone selected every policy;
-        Repair-IntuneScript -WhatIf on a folder returned nothing; the encoding fix corrupted
-        ANSI files; a directive earned the assumed-context note; a settings file's ExcludeRule
-        beat an explicit -IncludeRule; Should-PassIntuneAnalysis failed on a pipeline of files;
-        SARIF rule levels, outside-root URIs and relative output paths; a missing script path
-        returned a result; timeline -Id and relationship reports; case-insensitive drift
-        compare; All devices for a user-context app; -SkipAnalysis hiding 'assigned to nobody';
-        -ne/-notIn filter values; a bare -Confirm; Stop as a guard; using module and two
-        parameters in the PowerShell 7 rule; Win32 scripts in the size rule. Help corrected
-        throughout. See CHANGELOG.md.
-Earlier versions, 0.1.0 to 0.25.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.26.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }
