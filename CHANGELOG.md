@@ -11,13 +11,13 @@ release notes.
 
 ## [Unreleased]
 
-### Fixed
+Nothing yet.
 
-- **`Invoke-IntuneRemediationTest` reported Recurred for a remediation that writes to stderr and exits 0.** On
-  the device that run is a script error: `RemediationStatus` 3, Graph `remediationState` `scriptError`, the
-  error text attached, no post-detection. The harness now reports Failed, skips the post-detection and warns
-  that the exit code was 0. A detection that writes to stderr and exits 0 is still Without issues, as before.
-  Measured in user context on the lab device with five one-off remediations (round 11, `REM-STDERR-*`).
+## [0.29.0] - 2026-10-07
+
+One finding from a real device, found by running a blog post's example through Intune: a remediation that
+writes to stderr is a script error whatever its exit code, and the harness had said Recurred since round 1.
+The harness, a rule, the evidence and the help follow the device now.
 
 ### Added
 
@@ -25,6 +25,13 @@ release notes.
   for Win32 detection scripts, since either makes the agent report a script error instead of running the
   post-detection; the unguarded cmdlet carries `-ErrorAction Stop` as its fix.
 
+### Fixed
+
+- **`Invoke-IntuneRemediationTest` reported Recurred for a remediation that writes to stderr and exits 0.** On
+  the device that run is a script error: `RemediationStatus` 3, Graph `remediationState` `scriptError`, the
+  error text attached, no post-detection. The harness now reports Failed, skips the post-detection and warns
+  that the exit code was 0. A detection that writes to stderr and exits 0 is still Without issues, as before.
+  Measured in user context on the lab device with five one-off remediations (round 11, `REM-STDERR-*`).
 ## [0.28.0] - 2026-10-06
 
 Two commands run several times faster, the fixer applies eight more edits, the Graph calls are retried
@@ -556,7 +563,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...HEAD
+[0.29.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.25.0...v0.26.0
