@@ -63,8 +63,17 @@ function Invoke-IntuneRemediationTest {
         }
         else {
             $remediation = Invoke-IslScriptRun -Path $RemediationPath -Phase 'remediate' @scriptRunSplat
+            # Anything on the remediation's stderr is a script error to the agent, whatever the exit
+            # code: RemediationStatus 3, Graph scriptError, no post-detection (REM-STDERR-EXIT0)
+            $remediationStdErr = -not [string]::IsNullOrWhiteSpace($remediation.StdErr)
             if ($remediation.TimedOut) { $status = 'TimedOut' }
             elseif ($remediation.ExitCode -ne 0) { $status = 'Failed' }
+            elseif ($remediationStdErr) {
+                $status = 'Failed'
+                $warnings.Add('Remediation exited 0 but wrote to stderr: Intune reports the run as a script ' +
+                    'error (Failed, Graph scriptError) with the error text attached, and skips the ' +
+                    'post-detection. Silence the error or exit non-zero on purpose')
+            }
             else {
                 $post = Invoke-IslScriptRun -Path $DetectionPath -Phase 'detect' @scriptRunSplat
                 $status = if ($post.TimedOut) { 'TimedOut' }

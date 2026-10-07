@@ -11,7 +11,19 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **`Invoke-IntuneRemediationTest` reported Recurred for a remediation that writes to stderr and exits 0.** On
+  the device that run is a script error: `RemediationStatus` 3, Graph `remediationState` `scriptError`, the
+  error text attached, no post-detection. The harness now reports Failed, skips the post-detection and warns
+  that the exit code was 0. A detection that writes to stderr and exits 0 is still Without issues, as before.
+  Measured in user context on the lab device with five one-off remediations (round 11, `REM-STDERR-*`).
+
+### Added
+
+- `IslOutputIssue` warns about `Write-Error` and an unguarded cmdlet in a remediation script, the way it did
+  for Win32 detection scripts, since either makes the agent report a script error instead of running the
+  post-detection; the unguarded cmdlet carries `-ErrorAction Stop` as its fix.
 
 ## [0.28.0] - 2026-10-06
 

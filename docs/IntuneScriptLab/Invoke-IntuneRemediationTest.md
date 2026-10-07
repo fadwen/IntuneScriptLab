@@ -1,4 +1,4 @@
-﻿---
+---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRemediationTest.md
@@ -39,9 +39,16 @@ The status follows what the device recorded:
                     detection non-zero with no -RemediationPath, as a detect-only
                     remediation records it
     Fixed           detection non-zero, remediation 0, post-detection 0
-    Recurred        detection non-zero, remediation 0, post-detection still non-zero
-    Failed          remediation exited non-zero (post-detection skipped)
+    Recurred        detection non-zero, remediation 0 with nothing on stderr, post-detection
+                    still non-zero
+    Failed          remediation exited non-zero, or exited 0 having written anything to
+                    stderr; the post-detection is skipped either way, as the agent skips it
     TimedOut        a script hit the timeout
+
+A remediation's stderr decides the verdict and a detection's does not: on the device, a
+remediation that wrote a cmdlet error and exited 0 was reported as a script error with the error
+text attached and no post-detection, while a detection that wrote one and exited 0 was reported
+Without issues. The result carries a warning for the first case.
 
 Each script is launched as the agent launches it: Windows PowerShell 5.1 in the chosen
 host, -NoProfile -ExecutionPolicy Bypass -File, no -NonInteractive, working directory

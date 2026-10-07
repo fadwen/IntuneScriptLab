@@ -93,6 +93,53 @@
         }
     }
 
+    if ($type -eq 'Remediation') {
+        # The remediation script of a pair. Anything on its stderr makes the agent report a script
+        # error and skip the post-detection, with exit 0 or not; the detection script's stderr
+        # changes nothing (REM-DETECT-STDERR-EXIT0)
+        $remediationEvidence = ('A remediation that wrote a cmdlet error to stderr and exited 0 was reported ' +
+            'as RemediationStatus 3, Graph remediationState scriptError, no post-detection run; the same ' +
+            'script with the error silenced ran the post-detection and was reported Recurred ' +
+            '(REM-STDERR-EXIT0, REM-STDERR-SILENT)')
+        foreach ($command in (Find-IslCommand -Ast $ast -Name 'Write-Error')) {
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Warning'
+                Context  = $Context
+                Extent   = $command.Extent
+                Message  = ('Write-Error puts text on stderr: Intune reports the remediation as a script error ' +
+                    'and skips the post-detection even when the script exits 0. Exit non-zero to fail on ' +
+                    'purpose, or report the problem with Write-Output')
+                Evidence = $remediationEvidence
+            }
+            New-IslFinding @findingSplat
+        }
+        $probing = 'Get-Item', 'Get-ItemProperty', 'Get-ItemPropertyValue', 'Get-ChildItem', 'Get-Package',
+            'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage',
+            'Set-ItemProperty', 'New-ItemProperty', 'Remove-Item', 'Remove-ItemProperty', 'Copy-Item', 'Move-Item'
+        $unguarded = @(Find-IslCommand -Ast $ast -Name $probing |
+            Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
+        $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
+            param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
+                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore|Stop'
+        }
+        if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
+            $findingSplat = @{
+                RuleName = $rule
+                Severity = 'Warning'
+                Context  = $Context
+                Extent   = $unguarded[0].Extent
+                Message  = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its target " +
+                    'is missing, and the script carries on to exit 0: Intune then reports a script error, not ' +
+                    'the Recurred the post-detection would have given. Use -ErrorAction Stop and let the ' +
+                    'failure be one, or check the target first')
+                Evidence = $remediationEvidence
+                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction Stop' }
+            }
+            New-IslFinding @findingSplat
+        }
+    }
+
     if ($type -eq 'Win32Detection') {
         $stderrCommands = @(Find-IslCommand -Ast $ast -Name 'Write-Error')
         foreach ($command in $stderrCommands) {
