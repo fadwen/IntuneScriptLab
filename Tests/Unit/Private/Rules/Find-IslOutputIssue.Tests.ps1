@@ -39,6 +39,38 @@ Describe 'Find-IslOutputIssue' -Tag 'Unit', 'Private', 'Rule' {
         }
     }
 
+    Context 'Remediation script' {
+        It 'warns on Write-Error, which makes the run a script error even with exit 0' {
+            $path = New-TestScript 'Remediate-E.ps1' "Write-Error 'could not'`nWrite-Output 'done'`nexit 0"
+            $findings = @(Get-RuleFinding $path IslOutputIssue | Where-Object Message -like '*Write-Error*')
+            $findings.Count | Should-Be 1
+            $findings[0].Severity | Should-Be 'Warning'
+            $findings[0].Message | Should-BeLikeString '*script error*skips the post-detection*'
+            $findings[0].Evidence | Should-BeLikeString '*REM-STDERR-EXIT0*'
+        }
+
+        It 'warns on an unguarded cmdlet and offers -ErrorAction Stop, as the error is a script error anyway' {
+            $body = "Set-ItemProperty -Path HKCU:\Software\X -Name V -Value 0`nWrite-Output 'done'`nexit 0"
+            $path = New-TestScript 'Remediate-U.ps1' $body
+            $findings = @(Get-RuleFinding $path IslOutputIssue | Where-Object Message -like '*Set-ItemProperty*')
+            $findings.Count | Should-Be 1
+            $findings[0].Severity | Should-Be 'Warning'
+            $findings[0].Fix.Replacement |
+                Should-Be 'Set-ItemProperty -Path HKCU:\Software\X -Name V -Value 0 -ErrorAction Stop'
+        }
+
+        It 'is silent for a guarded cmdlet, a Stop or SilentlyContinue preference, and in a detection' {
+            $guarded = New-TestScript 'Remediate-G.ps1' "Set-ItemProperty HKCU:\X V 0 -ErrorAction Stop`nexit 0"
+            @(Get-RuleFinding $guarded IslOutputIssue | Where-Object Severity -eq 'Warning').Count | Should-Be 0
+            $body = "`$ErrorActionPreference = 'Stop'`nSet-ItemProperty HKCU:\X V 0`nexit 0"
+            $preference = New-TestScript 'Remediate-P.ps1' $body
+            @(Get-RuleFinding $preference IslOutputIssue | Where-Object Severity -eq 'Warning').Count | Should-Be 0
+            # A detection's stderr changes nothing on the device (REM-DETECT-STDERR-EXIT0)
+            $detect = New-TestScript 'Detect-U.ps1' "Get-Item C:\x`nWrite-Output 'ok'`nexit 0"
+            @(Get-RuleFinding $detect IslOutputIssue | Where-Object Severity -eq 'Warning').Count | Should-Be 0
+        }
+    }
+
     Context 'Win32 detection' {
         It 'errors on exit 0 with no stdout' {
             $path = New-TestScript 'app.ps1' ("# IntuneScriptLab: ScriptType=Win32Detection`n" +

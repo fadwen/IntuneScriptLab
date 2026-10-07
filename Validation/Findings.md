@@ -89,8 +89,8 @@ IME log evidence (registered device): `IsDeviceWPJ()` throws from `NetGetAadJoin
 | Script decoding | UTF-8; no BOM when signature check is on (REM) | With BOM: literal `Grüße — ✓` correct. **Without BOM: decoded as ANSI** → `GrÃ¼ÃŸe â€" âœ“` | ❌ trap |
 | Non-ASCII in captured output | Not documented | Output goes through the OEM console code page (437): even with a BOM, `Grüße — ✓` is reported as `Grüße - √` (best-fit, lossy) | ⚠️ |
 | Execution order | Not documented | Sequential, ~15 s per detection/remediation pair; 17 policies took ~6 minutes | ⚠️ |
-| Status mapping (device registry `RemediationStatus`) | Portal: Without issues / Fixed / Recurred / Failed | `4` = without issues (detect exit 0) · `1` = fixed (remediate, then detect exit 0) · `2` = recurred (post-detect still non-zero, including when remediation exited 0) · `3` = remediation failed (remediation exit non-zero; post-detect skipped) | ⚠️ |
-| Status mapping (Graph `deviceRunStates`) | `detectionState` / `remediationState` enums (GRAPH-HS) | detect exit 0 → `detectionState=success`, `remediationState=skipped` · fixed → `fail` / `success` · post-detect still failing (exit 2, -1, throw, parse error, or remediation exited 0 but didn't fix) → `fail` / **`remediationFailed`** · remediation script exit non-zero → `fail` / **`scriptError`**. So `remediationFailed` means "recurred", not "the remediation script failed" | ⚠️ |
+| Status mapping (device registry `RemediationStatus`) | Portal: Without issues / Fixed / Recurred / Failed | `4` = without issues (detect exit 0) · `1` = fixed (remediate, then detect exit 0) · `2` = recurred (post-detect still non-zero, including when remediation exited 0) · `3` = remediation failed (remediation exit non-zero, **or exit 0 with anything on stderr**; post-detect skipped either way, round 11) | ⚠️ |
+| Status mapping (Graph `deviceRunStates`) | `detectionState` / `remediationState` enums (GRAPH-HS) | detect exit 0 → `detectionState=success`, `remediationState=skipped` · fixed → `fail` / `success` · post-detect still failing (exit 2, -1, throw, parse error, or remediation exited 0 but didn't fix) → `fail` / **`remediationFailed`** · remediation script exit non-zero, or exit 0 with anything on stderr (round 11) → `fail` / **`scriptError`**. So `remediationFailed` means "recurred", not "the remediation script failed" | ⚠️ |
 | Reporting latency to Graph | Recurring scripts report on change only (REM) | `lastStateUpdateDateTime` = 14:19:17, i.e. ~40 s after the last of the 17 policies finished (reported as one batch). The run states were still empty when queried at 14:23 and populated by 15:23 | ⚠️ |
 | Result cache | Not documented | `HKLM\SOFTWARE\Microsoft\IntuneManagementExtension\SideCarPolicies\Scripts\Reports\<userId>\<policyId>_<version>\Result` (JSON with pre/post output, error and exit codes). Platform scripts: `...\IntuneManagementExtension\Policies\<userId>\<policyId>` (`Result`, `ErrorCode`, `DownloadCount`) | ⚠️ |
 | First run after new assignment | Not documented; policy retrieval on IME start / sign-in / 8h (REM) | Policies received ~8 min after assignment (13:50). After each fetch the HS scheduler queues a run **5 minutes later** (`Job is queued and will be scheduled to run at ...`). Restarting IME before then discards the queued run | ⚠️ |
@@ -548,6 +548,39 @@ what `Export-Clixml` wrote, a credential in this idiom), a cast or a typed param
 prompt and can go. `IslContextIssue` no longer calls every drive letter from
 `D:` to `Z:` an unmapped drive: the letter cannot say whether it is a local volume, so the finding
 is a note that says which case fails.
+
+## A remediation that writes to stderr
+
+Round 11, 2026-10-07, VM 126 (Windows 11 Enterprise LTSC 24H2, Entra joined through Autopilot,
+agent 1.105.152.0), user context, the licensed ESP user signed in at the console. Five one-off
+remediations for a per-user registry setting that is absent until written
+(`HKCU:\Software\Microsoft\Siuf\Rules`, `NumberOfSIUFInPeriod`), deployed outside the kit with the
+same scripts the `REM-STDERR-*` experiments carry; the device registry result, the agent logs and
+the Graph run states were read for each.
+
+| Remediation script | Exit codes (detect / remediate / post) | Device `RemediationStatus` | Graph `detectionState` / `remediationState` | Notes |
+|---|---|---|---|---|
+| `Set-ItemProperty` on the missing key, no `-ErrorAction`, `exit 0` | 1 / 0 / none | **3** | `fail` / **`scriptError`** | AgentExecutor logged `Powershell exit code is 0`; the cmdlet error is in `RemediationScriptErrorDetails`; `RemediationScriptOutputDetails` still says "turned off". No post-detection (REM-STDERR-EXIT0) |
+| Same with `-ErrorAction Stop` (`exit 1`) | 1 / 1 / none | 3 | `fail` / `scriptError` | The same report, with exit 1 |
+| Same with `-ErrorAction SilentlyContinue` (`exit 0`, nothing on stderr) | 1 / 0 / 1 | **2** | `fail` / `remediationFailed` | The post-detection ran and found the key still missing: Recurred (REM-STDERR-SILENT) |
+| Detection writes `Get-Item` of a missing path to stderr, `exit 0` | 0 / none / none | 4 | `success` / `skipped` | Without issues; the error text in `PreRemediationDetectScriptError` (REM-DETECT-STDERR-EXIT0) |
+| Key created first (`New-Item`), then set | 1 / 0 / 0 | 1 | `fail` / `success` | Fixed |
+
+**For the tool:** `Invoke-IntuneRemediationTest` reported the first row as Recurred up to 0.28.0,
+on the round-1 rule that a remediation exit of 0 runs the post-detection. It reports Failed, skips
+the post-detection and warns. `IslOutputIssue` warns about `Write-Error` and an unguarded cmdlet
+in a remediation script, as it did for Win32 detection, with `-ErrorAction Stop` as the fix.
+
+Two things about getting user-context policies to run at all, learnt on the way:
+
+- A local account at the console is not a user to the agent: with `isl-user` signed in on VM 125
+  the runner logged `needs user context, but no user logged on now, skip it`. With the Entra test
+  user signed in instead, the runner processed the session and got `0 script policies` for it; that
+  user has no Intune licence. Only the licensed ESP user on VM 126 received the policies.
+- `Restart-Service IntuneManagementExtension` reports the service running and restarts nothing:
+  the stop fails, the process keeps its start time, and the next runner cycle is an hour away.
+  `sc stop`, `Stop-Process` on the service's process and `Start-Service` fetched the new
+  assignments within ten minutes.
 
 ## Win32 custom detection scripts
 

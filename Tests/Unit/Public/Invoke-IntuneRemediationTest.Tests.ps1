@@ -106,6 +106,31 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
             $result.PostDetection.ExitCode | Should-Be 1
         }
 
+        It 'reports Failed, skips the post-detection and warns when the remediation exits 0 but wrote to stderr' {
+            # On the device a cmdlet error on the remediation's stderr is a script error whatever the
+            # exit code: RemediationStatus 3, Graph scriptError, no post-detection (REM-STDERR-EXIT0)
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
+                $null = New-Item -ItemType File -Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker') -Force
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'turned off'
+                    StdErr = "Set-ItemProperty : Cannot find path 'HKCU:\x' because it does not exist." }
+            }
+            $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
+            $result.Status | Should-Be 'Failed'
+            $result.PostDetection | Should-BeNull
+            $result.Remediation.ExitCode | Should-Be 0
+            $result.RemediationOutput | Should-Be 'turned off'
+            $result.Warnings -join ' ' | Should-BeLikeString '*exited 0 but wrote to stderr*script error*'
+        }
+
+        It 'does not take whitespace on the remediation stderr for an error' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'did nothing'; StdErr = "`r`n" }
+            }
+            $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
+            $result.Status | Should-Be 'Recurred'
+            $result.Warnings | Should-BeCollection @()
+        }
+
         It 'reports Failed and skips the post-detection when the remediation exits non-zero' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
                 [pscustomobject]@{ ExitCode = 1; TimedOut = $false; StdOut = ''; StdErr = 'nope' }
