@@ -68,7 +68,9 @@ Get-Item -Path 'C:\does\not\exist'
 Write-Output 'Feedback requests are off'
 exit 0
 '@
-            Remediation  = 'Write-ProbeRecord REM-DETECT-STDERR-EXIT0 remediation; Write-Output nothing-to-do; exit 0'
+            Remediation  = @'
+Write-ProbeRecord REM-DETECT-STDERR-EXIT0 remediation; Write-Output 'nothing to do'; exit 0
+'@
         }
         # --- Round 8: the Enrollment Status Page. Deployed to ISL-ESP-Devices (ESP-DEV-*) and
         # ISL-ESP-Users (ESP-USR-*) with -GroupName; every script records the ESP's state at run time
