@@ -15,13 +15,14 @@
         # date in the past so the agent runs them at its next policy fetch
         @{
             Name         = 'REM-STDERR-EXIT0'
-            Question     = 'Remediation writes a cmdlet error to stderr and exits 0: Recurred, or a script error'
+            Question     = 'Remediation writes a cmdlet error to stderr and exits 0: Recurred, or script error'
             RunAs32Bit   = $true
             RunAsAccount = 'user'
             Schedule     = @{ Type = 'RunOnce'; DelayMinutes = -10080 }
             Detection    = @'
 Write-ProbeRecord REM-STDERR-EXIT0 detection
-$value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Siuf\Rules' -ErrorAction SilentlyContinue).NumberOfSIUFInPeriod
+$key = 'HKCU:\Software\Microsoft\Siuf\Rules'
+$value = (Get-ItemProperty -Path $key -ErrorAction SilentlyContinue).NumberOfSIUFInPeriod
 if ($value -eq 0) { Write-Output 'Feedback requests are off'; exit 0 }
 Write-Output "Feedback requests are on (value: $value)"
 exit 1
@@ -35,27 +36,29 @@ exit 0
         }
         @{
             Name         = 'REM-STDERR-SILENT'
-            Question     = 'The same remediation with the error silenced: exit 0, nothing on stderr, key still missing'
+            Question     = 'The same remediation with the error silenced: exit 0, no stderr, key still missing'
             RunAs32Bit   = $true
             RunAsAccount = 'user'
             Schedule     = @{ Type = 'RunOnce'; DelayMinutes = -10080 }
             Detection    = @'
 Write-ProbeRecord REM-STDERR-SILENT detection
-$value = (Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Siuf\Rules' -ErrorAction SilentlyContinue).NumberOfSIUFInPeriod
+$key = 'HKCU:\Software\Microsoft\Siuf\Rules'
+$value = (Get-ItemProperty -Path $key -ErrorAction SilentlyContinue).NumberOfSIUFInPeriod
 if ($value -eq 0) { Write-Output 'Feedback requests are off'; exit 0 }
 Write-Output "Feedback requests are on (value: $value)"
 exit 1
 '@
             Remediation  = @'
 Write-ProbeRecord REM-STDERR-SILENT remediation
-Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Siuf\Rules' -Name NumberOfSIUFInPeriod -Value 0 -ErrorAction SilentlyContinue
+$key = 'HKCU:\Software\Microsoft\Siuf\Rules'
+Set-ItemProperty -Path $key -Name NumberOfSIUFInPeriod -Value 0 -ErrorAction SilentlyContinue
 Write-Output 'Feedback requests turned off'
 exit 0
 '@
         }
         @{
             Name         = 'REM-DETECT-STDERR-EXIT0'
-            Question     = 'Detection writes a cmdlet error to stderr and exits 0: without issues, or a detect error'
+            Question     = 'Detection writes a cmdlet error to stderr and exits 0: without issues, or detect error'
             RunAs32Bit   = $true
             RunAsAccount = 'user'
             Schedule     = @{ Type = 'RunOnce'; DelayMinutes = -10080 }
@@ -65,7 +68,7 @@ Get-Item -Path 'C:\does\not\exist'
 Write-Output 'Feedback requests are off'
 exit 0
 '@
-            Remediation  = 'Write-ProbeRecord REM-DETECT-STDERR-EXIT0 remediation; Write-Output "nothing to do"; exit 0'
+            Remediation  = 'Write-ProbeRecord REM-DETECT-STDERR-EXIT0 remediation; Write-Output nothing-to-do; exit 0'
         }
         # --- Round 8: the Enrollment Status Page. Deployed to ISL-ESP-Devices (ESP-DEV-*) and
         # ISL-ESP-Users (ESP-USR-*) with -GroupName; every script records the ESP's state at run time
