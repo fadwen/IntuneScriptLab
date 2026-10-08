@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.29.0'
+    ModuleVersion = '0.30.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,14 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.30.0 - Invoke-IntuneDetectionTest, Invoke-IntuneRequirementTest and Invoke-IntuneWin32AppTest no
+        longer default -Architecture to x64, which Windows on ARM refuses; left out, it is the
+        device's 64-bit host (x64, or arm64 on ARM), the one the agent uses. Two Win32 fixes: the
+        launcher starts its child without NoDefaultCurrentDirectoryInExePath, a per-user cmd.exe
+        setting that made a bare install.cmd fail with "not recognized" although the agent's
+        cmd.exe finds it; and the 32-bit host warning also reads the batch file an install or
+        uninstall command names, where a powershell.exe call runs 32-bit just the same. See
+        CHANGELOG.md.
 0.29.0 - A remediation that writes to stderr is a script error on the device whatever its exit code:
         RemediationStatus 3, Graph scriptError, the error text attached, no post-detection.
         Invoke-IntuneRemediationTest reported Recurred for that run since round 1; it reports Failed,
@@ -84,20 +92,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         Invoke-IntuneRequirementTest take script paths from the pipeline; every result type has a
         format view. The in-box module table is held against the host's Windows PowerShell by a
         test, as the PowerShell 7-only tables are. See CHANGELOG.md.
-0.27.0 - Harness: a user-context run started from PowerShell 7 gave the 5.1 host PowerShell 7's
-        module path (no Cert: drive, Security cmdlets failing to load); -Credential did not find
-        a Microsoft Entra account's session, because Windows names such an account after its
-        display name and not its sign-in name; a refused folder grant lost its message under
-        -ErrorAction Stop on 5.1. Rules, from a tenth validation round: IslPowerShell7Syntax says
-        that a 7-only cmdlet, parameter or -Parallel fails where it stands and the script carries
-        on, and flags Out-File -Encoding utf8NoBOM, which was listed and never matched;
-        IslInteractiveCall warns instead of erring when Get-Credential -Credential is handed
-        something that may be a built credential; IslContextIssue's drive-letter finding is
-        Information, since the letter cannot say whether it is a mapped drive.
-        Repair-IntuneScript no longer turns 'return 1; exit 1' into '1; exit 0; exit 1' with no
-        finding left. Help: what Invoke-ScriptAnalyzer -Severity does with the custom rules. See
-        CHANGELOG.md.
-Earlier versions, 0.1.0 to 0.26.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.27.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }

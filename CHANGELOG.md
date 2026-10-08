@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.30.0] - 2026-10-08
+
+Three Win32 harness changes, found by running a blog post's demo on a developer machine and on the lab
+device: the launcher no longer passes a per-user `cmd.exe` setting on to the install command, the 32-bit
+host warning reads the batch file an install command names, and `-Architecture` follows the device's own
+64-bit host, so the Win32 commands run unchanged on Windows on ARM.
+
 ### Changed
 
 - `Invoke-IntuneDetectionTest`, `Invoke-IntuneRequirementTest` and `Invoke-IntuneWin32AppTest` no
@@ -51,6 +60,7 @@ The harness, a rule, the evidence and the help follow the device now.
   error text attached, no post-detection. The harness now reports Failed, skips the post-detection and warns
   that the exit code was 0. A detection that writes to stderr and exits 0 is still Without issues, as before.
   Measured in user context on the lab device with five one-off remediations (round 11, `REM-STDERR-*`).
+
 ## [0.28.0] - 2026-10-06
 
 Two commands run several times faster, the fixer applies eight more edits, the Graph calls are retried
@@ -582,7 +592,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...HEAD
+[0.30.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.26.0...v0.27.0
