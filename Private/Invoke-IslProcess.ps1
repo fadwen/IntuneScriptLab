@@ -85,6 +85,10 @@
             if ($desktopModulePath) { $startInfo.Environment['PSModulePath'] = $desktopModulePath }
             else { $null = $startInfo.Environment.Remove('PSModulePath') }
         }
+        # With NoDefaultCurrentDirectoryInExePath set in the caller's own environment, cmd.exe does
+        # not look in its working folder, and a bare 'install.cmd' fails with "not recognized". The
+        # agent's cmd.exe runs without the caller's profile, so the child runs without the setting
+        $null = $startInfo.Environment.Remove('NoDefaultCurrentDirectoryInExePath')
 
         $process = [System.Diagnostics.Process]::new()
         $process.StartInfo = $startInfo

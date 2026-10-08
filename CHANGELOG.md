@@ -11,7 +11,13 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- A Win32 install or uninstall command named as a bare batch file (`install.cmd`) failed with
+  "'install.cmd' is not recognized" from `Invoke-IntuneWin32AppTest` on a machine where
+  `NoDefaultCurrentDirectoryInExePath` is set in the caller's environment, a per-user shell
+  setting that stops `cmd.exe` looking in its working folder. The agent's `cmd.exe` runs without
+  the caller's profile, so the harness now starts its child processes without the variable.
 
 ## [0.29.0] - 2026-10-07
 

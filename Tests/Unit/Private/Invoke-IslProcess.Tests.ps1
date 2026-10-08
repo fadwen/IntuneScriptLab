@@ -47,6 +47,26 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             $result.StdOut.Trim() | Should-Be $TestDrive
         }
 
+        It 'lets cmd.exe find a batch file in the working folder whatever the caller''s own shell setting' {
+            # NoDefaultCurrentDirectoryInExePath in the caller's environment stops cmd.exe looking in
+            # the working folder; the agent's cmd.exe has no such setting, so the child must not either
+            Set-Content -Path (Join-Path $TestDrive 'install.cmd') -Value '@echo ran' -Encoding ascii
+            $saved = $env:NoDefaultCurrentDirectoryInExePath
+            $env:NoDefaultCurrentDirectoryInExePath = '1'
+            try {
+                $result = Invoke-Process @{
+                    FilePath = $script:Cmd; Arguments = '/C "install.cmd"'
+                    WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
+                }
+            }
+            finally {
+                $env:NoDefaultCurrentDirectoryInExePath = $saved
+            }
+            $result.ExitCode | Should-Be 0
+            $result.StdOut.Trim() | Should-Be 'ran'
+            $result.StdErr.Trim() | Should-Be ''
+        }
+
         It 'closes stdin so a read returns instead of waiting' {
             $result = Invoke-Process @{
                 FilePath = $script:Cmd; Arguments = '/C set /p answer=name? & echo [%answer%]'
