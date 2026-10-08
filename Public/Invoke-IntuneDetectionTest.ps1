@@ -11,8 +11,9 @@ function Invoke-IntuneDetectionTest {
         [Alias('FullName', 'PSPath')]
         [string]$Path,
 
+        # Left out: the device's 64-bit host (x64, or arm64 on Windows on ARM), the agent's default
         [ValidateSet('x86', 'x64', 'arm64')]
-        [string]$Architecture = 'x64',
+        [string]$Architecture,
 
         [ValidateSet('User', 'System')]
         [string]$Context = 'User',
@@ -35,6 +36,9 @@ function Invoke-IntuneDetectionTest {
             throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
         }
         Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+        # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
+        # host exists, and x64 elsewhere
+        if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
 
         $reasons = [System.Collections.Generic.List[string]]::new()
         $signatureStatus = ''

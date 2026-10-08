@@ -73,7 +73,8 @@ Launch shape, from the observations: the detection script runs in the 64-bit hos
 default (Win32 default) via the same launch as Invoke-IntuneDetectionTest; the install
 command runs through a 32-bit cmd.exe, so a bare `powershell.exe` resolves to the x86
 host exactly as it does under the agent's own 32-bit process, with the content copy as
-working directory.
+working directory. A `powershell` call on the command line, or inside the batch file the
+command line names, adds a warning about the 32-bit host.
 Soft/hard reboot codes count as success but are reported.
 
 ## EXAMPLES
@@ -143,11 +144,11 @@ package is uninstalled if it is present, then the app installs.
 
 ### -Architecture
 
-Host for the detection script: x64 (Intune default), x86, or arm64. A Windows on ARM device has no x64 host, so a -DetectionPath with the x64 default is refused there: pass arm64.
+Host for the detection script: x64, x86, or arm64. Left out, the device's 64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses for Win32 detection. x64 and arm64 each name a host only its own CPU has, so one is refused on the other.
 
 ```yaml
 Type: System.String
-DefaultValue: x64
+DefaultValue: ''
 SupportsWildcards: false
 Aliases: []
 ParameterSets:

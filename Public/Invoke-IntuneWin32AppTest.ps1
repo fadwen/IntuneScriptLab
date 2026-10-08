@@ -33,8 +33,9 @@ function Invoke-IntuneWin32AppTest {
         # uninstalled before this app installs, an update target stays (W32-SUP-OLD-A, W32-SUP-OLD-B)
         [hashtable[]]$Supersedes,
 
+        # Left out: the device's 64-bit host (x64, or arm64 on Windows on ARM), the agent's default
         [ValidateSet('x86', 'x64', 'arm64')]
-        [string]$Architecture = 'x64',
+        [string]$Architecture,
 
         [ValidateSet('User', 'System')]
         [string]$Context = 'User',
@@ -64,6 +65,9 @@ function Invoke-IntuneWin32AppTest {
         [switch]$EnforceSignatureCheck
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+    # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
+    # host exists, and x64 elsewhere
+    if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
 
     if (-not $DetectionPath -and -not $DetectionRule) {
         throw 'Give a detection script (-DetectionPath), detection rules (-DetectionRule), or both'
@@ -132,11 +136,29 @@ function Invoke-IntuneWin32AppTest {
     # cmd.exe, as the agent's own 32-bit process does
     function Invoke-ContentCommand {
         param([string]$Phase, [string]$Content, [string]$CommandLine)
-        if ($CommandLine -match '(?i)(^|[\s"])powershell(\.exe)?([\s"]|$)') {
+        $source = (Resolve-Path -LiteralPath $Content).ProviderPath
+        $hostPattern = '(?i)(^|[\s"])powershell(\.exe)?([\s"]|$)'
+        if ($CommandLine -match $hostPattern) {
             $warnings.Add("powershell.exe in the $Phase command runs the 32-bit host (the agent is a 32-bit " +
                 'process); HKLM:\SOFTWARE and Program Files are redirected there')
         }
-        $source = (Resolve-Path -LiteralPath $Content).ProviderPath
+        else {
+            # The same host hides inside a batch file the command line names: install.cmd calling
+            # powershell.exe runs it 32-bit too, from the agent's 32-bit cmd.exe, without the
+            # command line showing it
+            $first = if ($CommandLine -match '^\s*"([^"]+)"') { $Matches[1] }
+            else { ($CommandLine.Trim() -split '\s+', 2)[0] }
+            $batch = if ($first -match '(?i)\.(cmd|bat)$') { Join-Path -Path $source -ChildPath $first }
+            else { $null }
+            if ($batch -and (Test-Path -LiteralPath $batch -PathType Leaf)) {
+                $hit = Select-String -LiteralPath $batch -Pattern $hostPattern | Select-Object -First 1
+                if ($hit) {
+                    $warnings.Add("powershell.exe in $first (line $($hit.LineNumber)), which the $Phase " +
+                        'command runs through the 32-bit cmd.exe, is the 32-bit host (the agent is a 32-bit ' +
+                        'process); HKLM:\SOFTWARE and Program Files are redirected there')
+                }
+            }
+        }
         $runId = [guid]::NewGuid().ToString('N')
         # Another account cannot reach the caller's temp folder; its copy lives under ProgramData
         $cache = if ($Credential) {

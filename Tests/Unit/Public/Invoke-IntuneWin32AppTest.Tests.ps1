@@ -11,6 +11,8 @@ BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
+    $osArchitecture = "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+    $script:Native = if ($osArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
     $script:FileRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'present.txt'
         OperationType = 'exists' }
     $script:MissingRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'missing.txt'
@@ -76,16 +78,16 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 Should-Throw -ExceptionMessage '*-UninstallCommand*'
         }
 
-        It 'defaults to the 64-bit host, as the portal does for Win32 detection' {
+        It 'defaults to the 64-bit host this device has, as the portal does for Win32 detection' {
             $intuneWin32AppTestSplat = @{
                 DetectionPath  = $script:Fixture.Detection
                 ContentPath    = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
-            $result.Architecture | Should-Be 'x64'
+            $result.Architecture | Should-Be $script:Native
             Should-Invoke Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab -ParameterFilter {
-                $Architecture -eq 'x64'
+                $Architecture -in 'x64', 'arm64'
             }
         }
 
@@ -215,6 +217,35 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
             $result.Warnings -join ' ' | Should-BeLikeString '*powershell.exe*32-bit host*'
+        }
+
+        It 'warns about powershell.exe inside the batch file the install command names' {
+            Set-Content -Path (Join-Path $script:Fixture.Content 'install.cmd') -Encoding ascii -Value @(
+                '@echo off'
+                'powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1'
+            )
+            $intuneWin32AppTestSplat = @{
+                DetectionPath  = $script:Fixture.Detection
+                ContentPath    = $script:Fixture.Content
+                InstallCommand = 'install.cmd'
+            }
+            $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
+            $result.Warnings -join ' ' |
+                Should-BeLikeString '*powershell.exe in install.cmd (line 2)*32-bit host*'
+        }
+
+        It 'does not warn when the batch file the install command names has no powershell call' {
+            Set-Content -Path (Join-Path $script:Fixture.Content 'install.cmd') -Encoding ascii -Value @(
+                '@echo off'
+                'setup.exe /S'
+            )
+            $intuneWin32AppTestSplat = @{
+                DetectionPath  = $script:Fixture.Detection
+                ContentPath    = $script:Fixture.Content
+                InstallCommand = '"install.cmd" /quiet'
+            }
+            $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
+            $result.Warnings -join ' ' | Should-NotBeLikeString '*32-bit host*'
         }
 
         It 'passes -EnforceSignatureCheck to every detection run' {

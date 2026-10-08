@@ -11,7 +11,26 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- `Invoke-IntuneDetectionTest`, `Invoke-IntuneRequirementTest` and `Invoke-IntuneWin32AppTest` no
+  longer default `-Architecture` to `x64`, which Windows on ARM refuses because there is no x64
+  host there. Left out, the architecture is the device's 64-bit host: `x64` on an x64 device,
+  `arm64` on Windows on ARM, the host the agent uses for Win32 detection and requirement scripts
+  with "run as 32-bit" off. `-Architecture x64` and `arm64` still name one host each and are
+  still refused on the other CPU; the result's `Architecture` says which host ran.
+
+### Fixed
+
+- A Win32 install or uninstall command named as a bare batch file (`install.cmd`) failed with
+  "'install.cmd' is not recognized" from `Invoke-IntuneWin32AppTest` on a machine where
+  `NoDefaultCurrentDirectoryInExePath` is set in the caller's environment, a per-user shell
+  setting that stops `cmd.exe` looking in its working folder. The agent's `cmd.exe` runs without
+  the caller's profile, so the harness now starts its child processes without the variable.
+- `Invoke-IntuneWin32AppTest` warned about the 32-bit host only when `powershell` appeared on the
+  install or uninstall command line. A `powershell.exe` call inside the batch file the command
+  line names (`install.cmd`) runs 32-bit just the same, from the agent's 32-bit `cmd.exe`, and now
+  gets the same warning, naming the file and line.
 
 ## [0.29.0] - 2026-10-07
 

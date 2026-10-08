@@ -11,6 +11,8 @@ BeforeAll {
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Script = 'C:\lab\requirement.ps1'
+    $osArchitecture = "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+    $script:Native = if ($osArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
 }
 
 AfterAll {
@@ -40,16 +42,16 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
             $results.Applicable | Should-All { $_ }
         }
 
-        It 'defaults to the 64-bit host, as the portal does for requirement rules' {
+        It 'defaults to the 64-bit host this device has, as the portal does for requirement rules' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "ok`r`n"; StdErr = '' }
             }
             $result = Invoke-IntuneRequirementTest -Path $script:Script -OutputType String -Value 'ok'
-            $result.Architecture | Should-Be 'x64'
+            $result.Architecture | Should-Be $script:Native
             $result.Context | Should-Be 'User'
             $result.Operator | Should-Be 'Equal'
             Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
-                $Architecture -eq 'x64' -and $Phase -eq 'requirement'
+                $Architecture -in 'x64', 'arm64' -and $Phase -eq 'requirement'
             }
         }
     }

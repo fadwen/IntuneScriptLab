@@ -67,13 +67,14 @@ Inside a Pester test.
 
 ### -Architecture
 
-Host to run in: x64 (Intune's default for Win32 detection), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
-x64 default is refused there: pass arm64, the host the agent uses on ARM64.
+Host to run in: x64, x86 (the "run as 32-bit" option), or arm64. Left out, the device's
+64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses
+for Win32 detection. x64 and arm64 each name a host only its own CPU has, so one is refused
+on the other.
 
 ```yaml
 Type: System.String
-DefaultValue: x64
+DefaultValue: ''
 SupportsWildcards: false
 Aliases: []
 ParameterSets:
