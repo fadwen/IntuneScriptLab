@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+### Changed
+
+- `Invoke-IntuneDetectionTest`, `Invoke-IntuneRequirementTest` and `Invoke-IntuneWin32AppTest` no
+  longer default `-Architecture` to `x64`, which Windows on ARM refuses because there is no x64
+  host there. Left out, the architecture is the device's 64-bit host: `x64` on an x64 device,
+  `arm64` on Windows on ARM, the host the agent uses for Win32 detection and requirement scripts
+  with "run as 32-bit" off. `-Architecture x64` and `arm64` still name one host each and are
+  still refused on the other CPU; the result's `Architecture` says which host ran.
+
 ### Fixed
 
 - A Win32 install or uninstall command named as a bare batch file (`install.cmd`) failed with

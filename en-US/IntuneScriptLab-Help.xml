@@ -2751,9 +2751,10 @@ Test-IntuneScript's IslContextIssue flags statically.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Architecture</maml:name>
         <maml:description>
-          <maml:para>Host to run in: x64 (Intune's default for Win32 detection), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
-x64 default is refused there: pass arm64, the host the agent uses on ARM64.</maml:para>
+          <maml:para>Host to run in: x64, x86 (the "run as 32-bit" option), or arm64. Left out, the device's
+64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses
+for Win32 detection. x64 and arm64 each name a host only its own CPU has, so one is refused
+on the other.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -3469,9 +3470,10 @@ Under Intune the requirement runs before the install and after the detection has
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Architecture</maml:name>
         <maml:description>
-          <maml:para>Host to run in: x64 (the default for requirement rules), x86 (the "run as 32-bit"
-option), or arm64 on a Windows on ARM device. A Windows on ARM device has no x64 host, so the
-x64 default is refused there: pass arm64, the host the agent uses on ARM64.</maml:para>
+          <maml:para>Host to run in: x64, x86 (the "run as 32-bit" option), or arm64. Left out, the device's
+64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses
+for requirement rules. x64 and arm64 each name a host only its own CPU has, so one is refused
+on the other.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -3834,7 +3836,7 @@ Soft/hard reboot codes count as success but are reported.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="8" aliases="none">
         <maml:name>Architecture</maml:name>
         <maml:description>
-          <maml:para>Host for the detection script: x64 (Intune default), x86, or arm64. A Windows on ARM device has no x64 host, so a -DetectionPath with the x64 default is refused there: pass arm64.</maml:para>
+          <maml:para>Host for the detection script: x64, x86, or arm64. Left out, the device's 64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses for Win32 detection. x64 and arm64 each name a host only its own CPU has, so one is refused on the other.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>

@@ -11,6 +11,8 @@ BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
+    $osArchitecture = "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+    $script:Native = if ($osArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
     $script:FileRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'present.txt'
         OperationType = 'exists' }
     $script:MissingRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'missing.txt'
@@ -76,16 +78,16 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 Should-Throw -ExceptionMessage '*-UninstallCommand*'
         }
 
-        It 'defaults to the 64-bit host, as the portal does for Win32 detection' {
+        It 'defaults to the 64-bit host this device has, as the portal does for Win32 detection' {
             $intuneWin32AppTestSplat = @{
                 DetectionPath  = $script:Fixture.Detection
                 ContentPath    = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
-            $result.Architecture | Should-Be 'x64'
+            $result.Architecture | Should-Be $script:Native
             Should-Invoke Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab -ParameterFilter {
-                $Architecture -eq 'x64'
+                $Architecture -in 'x64', 'arm64'
             }
         }
 

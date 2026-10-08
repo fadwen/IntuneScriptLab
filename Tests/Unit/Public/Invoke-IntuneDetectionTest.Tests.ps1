@@ -11,6 +11,8 @@ BeforeAll {
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Detect = 'C:\lab\detect.ps1'
+    $osArchitecture = "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+    $script:Native = if ($osArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
 }
 
 AfterAll {
@@ -97,6 +99,17 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
             }
             $result.Architecture | Should-Be 'x86'
             $result.Context | Should-Be 'User'
+        }
+
+        It 'defaults to the 64-bit host this device has, the one the agent uses for Win32 detection' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'x'; StdErr = '' }
+            }
+            $result = Invoke-IntuneDetectionTest -Path $script:Detect
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
+                $Architecture -in 'x64', 'arm64'
+            }
+            $result.Architecture | Should-Be $script:Native
         }
     }
 

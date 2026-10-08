@@ -33,8 +33,9 @@ function Invoke-IntuneWin32AppTest {
         # uninstalled before this app installs, an update target stays (W32-SUP-OLD-A, W32-SUP-OLD-B)
         [hashtable[]]$Supersedes,
 
+        # Left out: the device's 64-bit host (x64, or arm64 on Windows on ARM), the agent's default
         [ValidateSet('x86', 'x64', 'arm64')]
-        [string]$Architecture = 'x64',
+        [string]$Architecture,
 
         [ValidateSet('User', 'System')]
         [string]$Context = 'User',
@@ -64,6 +65,9 @@ function Invoke-IntuneWin32AppTest {
         [switch]$EnforceSignatureCheck
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+    # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
+    # host exists, and x64 elsewhere
+    if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
 
     if (-not $DetectionPath -and -not $DetectionRule) {
         throw 'Give a detection script (-DetectionPath), detection rules (-DetectionRule), or both'

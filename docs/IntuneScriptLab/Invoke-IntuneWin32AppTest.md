@@ -144,11 +144,11 @@ package is uninstalled if it is present, then the app installs.
 
 ### -Architecture
 
-Host for the detection script: x64 (Intune default), x86, or arm64. A Windows on ARM device has no x64 host, so a -DetectionPath with the x64 default is refused there: pass arm64.
+Host for the detection script: x64, x86, or arm64. Left out, the device's 64-bit host: x64 on an x64 device, arm64 on Windows on ARM, which is the host the agent uses for Win32 detection. x64 and arm64 each name a host only its own CPU has, so one is refused on the other.
 
 ```yaml
 Type: System.String
-DefaultValue: x64
+DefaultValue: ''
 SupportsWildcards: false
 Aliases: []
 ParameterSets:
