@@ -73,7 +73,8 @@ Launch shape, from the observations: the detection script runs in the 64-bit hos
 default (Win32 default) via the same launch as Invoke-IntuneDetectionTest; the install
 command runs through a 32-bit cmd.exe, so a bare `powershell.exe` resolves to the x86
 host exactly as it does under the agent's own 32-bit process, with the content copy as
-working directory.
+working directory. A `powershell` call on the command line, or inside the batch file the
+command line names, adds a warning about the 32-bit host.
 Soft/hard reboot codes count as success but are reported.
 
 ## EXAMPLES

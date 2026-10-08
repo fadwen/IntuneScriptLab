@@ -18,6 +18,10 @@ release notes.
   `NoDefaultCurrentDirectoryInExePath` is set in the caller's environment, a per-user shell
   setting that stops `cmd.exe` looking in its working folder. The agent's `cmd.exe` runs without
   the caller's profile, so the harness now starts its child processes without the variable.
+- `Invoke-IntuneWin32AppTest` warned about the 32-bit host only when `powershell` appeared on the
+  install or uninstall command line. A `powershell.exe` call inside the batch file the command
+  line names (`install.cmd`) runs 32-bit just the same, from the agent's 32-bit `cmd.exe`, and now
+  gets the same warning, naming the file and line.
 
 ## [0.29.0] - 2026-10-07
 
