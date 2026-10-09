@@ -252,6 +252,27 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             } -Times 1 -Exactly
         }
 
+        It 'says that a never-matching clause on an exclude filter reaches every device in the group' {
+            # Widget 1.0 carries the lab-devices filter in exclude mode; point it at the x64 one
+            $target = $script:Tenant.apps[1].assignments[0].target
+            $target.deviceAndAppManagementAssignmentFilterId = 'flt-x64'
+            try {
+                $findings = @(Test-IntuneDeployedScript -IncludeRule IslFilterIssue)
+            }
+            finally {
+                $target.deviceAndAppManagementAssignmentFilterId = 'flt-lab'
+            }
+            $excluded = @($findings | Where-Object PolicyName -eq 'Widget 1.0')
+            $excluded.Count | Should-Be 1
+            $excluded[0].Severity | Should-Be 'Warning'
+            $excluded[0].Message | Should-BeLikeString ("Filter 'x64 only' (exclude): 'x64'*never matches; " +
+                'as an exclude filter it excludes nobody, so the assignment reaches every device in the group. ' +
+                'Rule: *')
+            # The include assignments keep the parser's text
+            @($findings | Where-Object PolicyName -eq 'Fix-Widget')[0].Message |
+                Should-NotBeLikeString '*as an exclude filter*'
+        }
+
         It 'skips the filter check after the tenant refuses to show a filter' {
             $filterRoute = { $Uri -like '*/assignmentFilters/*' }
             Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter $filterRoute {

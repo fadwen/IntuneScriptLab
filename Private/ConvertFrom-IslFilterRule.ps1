@@ -24,8 +24,9 @@ function ConvertFrom-IslFilterRule {
         -ErrorVariable, and the public command wants to write exactly one. The result carries the
         clauses in order, the tree the evaluator walks, and warnings for rules the service
         accepts but that never match a Windows device: an enumerated value outside the documented
-        set (cpuArchitecture "x64", deviceTrustType "Microsoft Entra joined"), the deprecated
-        osVersion property and the undocumented isTpmAttested.
+        set (cpuArchitecture "x64", deviceTrustType "Microsoft Entra joined"), a -contains value
+        that is only whitespace (the evaluator trims it to nothing, and every name contains that),
+        the deprecated osVersion property and the undocumented isTpmAttested.
 
     .PARAMETER Rule
         The rule text as the portal's rule syntax editor or the Graph assignmentFilter.rule holds it.
@@ -93,6 +94,23 @@ function ConvertFrom-IslFilterRule {
             })
     }
 
+    # A double quote inside a value has no escape (FLT-V44, FLT-V45): "say \"hi\"" tokenizes as a
+    # string ending in a backslash with a word glued to it, "say ""hi""" as two strings glued
+    # together. Either shape where a connector was expected is that mistake, not a missing 'and'
+    function Test-EscapedQuote {
+        param($Previous, $Next)
+        if (-not $Previous -or -not $Next -or $Previous.Type -ne 'string') { return $false }
+        $glued = $Next.Position -eq $Previous.End + 1
+        [bool]($glued -and ($Next.Type -eq 'string' -or $Previous.Text.EndsWith('\')))
+    }
+
+    function Write-EscapeFailure {
+        param($Previous)
+        Write-Failure ("a double quote inside a value cannot be escaped: the service refuses both \`" and `"`" " +
+            "(the value at position $($Previous.Position)); match the parts around the quote with " +
+            '-contains or -startsWith instead')
+    }
+
     # The value after an operator: a string, a list, $null or a bare version, checked against
     # what the property and the operator accept
     function Read-Value {
@@ -130,7 +148,11 @@ function ConvertFrom-IslFilterRule {
                     $next = Get-CurrentToken
                     if ($next -and $next.Type -eq 'comma') { $state.Pos++ }
                     elseif ($next -and $next.Type -ne 'rbracket') {
-                        Write-Failure "expected ',' or ']' at position $($next.Position), found '$($next.Text)'"
+                        if (Test-EscapedQuote -Previous $item -Next $next) { Write-EscapeFailure -Previous $item }
+                        else {
+                            Write-Failure ("expected ',' or ']' at position $($next.Position), " +
+                                "found '$($next.Text)'")
+                        }
                         return
                     }
                 }
@@ -189,6 +211,13 @@ function ConvertFrom-IslFilterRule {
                         "$($token.Position) $effect")
                 }
             }
+        }
+        if ($Operator -eq 'contains' -and $kind -eq 'String' -and "$value".Trim().Length -eq 0) {
+            # The evaluator trims the value to nothing, and every name contains an empty string:
+            # -contains " " matched every device (FLT-W27, FLT-Y03)
+            Add-Warning -Kind 'AlwaysMatches' -Message ("'$value' is only whitespace, which the evaluator trims " +
+                "to nothing, and every value contains that; the clause at character $($token.Position) " +
+                'matches every device')
         }
         if ($isList -and $kind -eq 'String') { $value = @($value) }
         $value
@@ -292,7 +321,12 @@ function ConvertFrom-IslFilterRule {
             $close = Get-CurrentToken
             if (-not $close) { Write-Failure "the '(' at position $($token.Position) is not closed"; return }
             if ($close.Type -ne 'rparen') {
-                Write-Failure "expected 'and', 'or' or ')' at position $($close.Position), found '$($close.Text)'"
+                $previous = $tokens[$state.Pos - 1]
+                if (Test-EscapedQuote -Previous $previous -Next $close) { Write-EscapeFailure -Previous $previous }
+                else {
+                    Write-Failure ("expected 'and', 'or' or ')' at position $($close.Position), " +
+                        "found '$($close.Text)'")
+                }
                 return
             }
             $state.Pos++
@@ -354,7 +388,9 @@ function ConvertFrom-IslFilterRule {
         $tree = Read-Expression
         $rest = Get-CurrentToken
         if (-not $state.Error -and $rest) {
+            $previous = $tokens[$state.Pos - 1]
             if ($rest.Type -eq 'rparen') { Write-Failure "unexpected ')' at position $($rest.Position)" }
+            elseif (Test-EscapedQuote -Previous $previous -Next $rest) { Write-EscapeFailure -Previous $previous }
             else { Write-Failure "expected 'and' or 'or' before '$($rest.Text)' at position $($rest.Position)" }
         }
     }

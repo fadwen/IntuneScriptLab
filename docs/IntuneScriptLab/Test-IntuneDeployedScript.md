@@ -56,10 +56,12 @@ justified (Validation\Findings.md):
                                     deviceTrustType): the service accepts the rule and the
                                     filter evaluator matches nothing on that clause, so a rule
                                     made of it reaches nobody as an include and excludes nobody
-                                    as an exclude (FLT-V25, FLT-E07, FLT-V27, FLT-F01). The same
-                                    value under -ne or -notIn matches every device; that, the
-                                    deprecated osVersion, the undocumented isTpmAttested and a
-                                    rule this evaluator cannot read are Information.
+                                    as an exclude (FLT-V25, FLT-E07, FLT-V27, FLT-F01); the
+                                    message says which for the assignment's own mode. The same
+                                    value under -ne or -notIn, and a -contains value that is only
+                                    whitespace, match every device; those, the deprecated
+                                    osVersion, the undocumented isTpmAttested and a rule this
+                                    evaluator cannot read are Information.
     IslAssignmentIssue     Warning  a policy with no assignment, or only exclusions: no device
                                     resolves it, so it never runs (ASSIGN-NONE, ASSIGN-EXCLONLY)
     IslAssignmentIssue     Info     a user-context remediation or platform script assigned to

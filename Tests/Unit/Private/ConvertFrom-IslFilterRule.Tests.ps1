@@ -131,8 +131,11 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -eq "X") // comment'; Message = "*expected 'and' or 'or' before '//'*" }
             @{ Rule = '(device.deviceName -eq "X") xor (device.model -eq "Y")'
                 Message = "*expected 'and' or 'or' before 'xor'*" }
-            @{ Rule = '(device.deviceName -eq "say \"hi\"")'
-                Message = "*expected 'and', 'or' or ')'*found 'hi\'*" }
+            # No escape exists (FLT-V44, FLT-V45): a backslash-quote or a doubled quote is named as such
+            @{ Rule = '(device.deviceName -eq "say \"hi\"")'; Message = '*cannot be escaped*position 24*' }
+            @{ Rule = '(device.deviceName -eq "say ""hi""")'; Message = '*cannot be escaped*position 24*' }
+            @{ Rule = 'device.deviceName -eq "say \"hi\""'; Message = '*cannot be escaped*position 23*' }
+            @{ Rule = '(device.deviceName -in ["say \"hi\""])'; Message = '*cannot be escaped*position 25*' }
             @{ Rule = '(device.deviceName -eq "X") or'; Message = '*expected a clause or "(" at the end*' }
             @{ Rule = '(device.deviceName -eq "X") and'; Message = '*expected a clause or "(" at the end*' }
             @{ Rule = '(device.deviceName -eq "X") or ()'; Message = "*unexpected ')'*" }
@@ -256,6 +259,11 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
                 Text = "*'company'*Personal, Corporate, Unknown*" }
             @{ Rule = '(device.operatingSystemSKU -eq "Windows Enterprise")'; Kind = 'NeverMatches'
                 Text = "*'Windows Enterprise'*" }
+            # " " is accepted and trimmed to nothing, which every value contains (FLT-W27, FLT-Y03)
+            @{ Rule = '(device.deviceName -contains " ")'; Kind = 'AlwaysMatches'
+                Text = "*' ' is only whitespace*matches every device*" }
+            @{ Rule = '(device.model -contains "   ")'; Kind = 'AlwaysMatches'
+                Text = "*only whitespace*character 25 matches every device*" }
         ) {
             $parsed = ConvertFrom-Rule -Rule $Rule
             @($parsed.Warnings).Count | Should-Be 1
@@ -269,6 +277,8 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.operatingSystemSKU -startsWith "Ent")' }
             @{ Rule = '(device.operatingSystemSKU -eq "EnterpriseSEval")' }
             @{ Rule = '(device.deviceTrustType -eq $null)' }
+            @{ Rule = '(device.deviceName -contains " x ")' }
+            @{ Rule = '(device.deviceName -eq " ")' }
         ) {
             @((ConvertFrom-Rule -Rule $Rule).Warnings).Count | Should-Be 0
         }
