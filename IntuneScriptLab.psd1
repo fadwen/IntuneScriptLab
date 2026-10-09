@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.30.0'
+    ModuleVersion = '0.31.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,14 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.31.0 - Assignment filter messages. The parser warns about a -contains value that is only
+        whitespace, which the service trims to nothing so the clause matches every device; a double
+        quote inside a value is refused with a message saying no escape exists and that -contains
+        or -startsWith on the parts around it is the way through. In exclude mode,
+        Test-IntuneAssignmentFilter and Test-IntuneDeployedScript say what a warning means for the
+        assignment: a clause that never matches excludes nobody, so the assignment reaches every
+        device in the group. The tenant-wide help example keeps to Windows filters. See
+        CHANGELOG.md.
 0.30.0 - Invoke-IntuneDetectionTest, Invoke-IntuneRequirementTest and Invoke-IntuneWin32AppTest no
         longer default -Architecture to x64, which Windows on ARM refuses; left out, it is the
         device's 64-bit host (x64, or arm64 on ARM), the one the agent uses. Two Win32 fixes: the
@@ -79,20 +87,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         nothing. IslOutputIssue warns about Write-Error and an unguarded cmdlet in a remediation script,
         with -ErrorAction Stop as the fix. Measured in user context on the lab device with five one-off
         remediations, recorded as round 11 (REM-STDERR-*). See CHANGELOG.md.
-0.28.0 - Test-IntuneScript analyzes a script about two and a half times faster, with the syntax tree
-        walked once and indexed instead of once per rule; Get-IntuneAgentLog reads a large log
-        filtered in a fifth of the time. Repair-IntuneScript takes -Context, -Architecture and
-        -EnforceSignatureCheck like Test-IntuneScript, and applies eight more edits: -Force on
-        Install-Module and its kin, -ErrorAction SilentlyContinue on a probing cmdlet, exit 1 for an
-        exit code Intune reads as 1, $env:ProgramW6432, 'ARM64|AMD64', $PSScriptRoot, a
-        Get-Credential -Credential call that returns what it was handed, a Set-ExecutionPolicy or
-        #Requires -Version 7 line removed. Test-IntuneDeployedScript judges a device group by its
-        member counts rather than its first 20 members; every Graph request is retried on 429, 503
-        and 504. Invoke-IntuneDetectionTest, Invoke-IntunePlatformScriptTest and
-        Invoke-IntuneRequirementTest take script paths from the pipeline; every result type has a
-        format view. The in-box module table is held against the host's Windows PowerShell by a
-        test, as the PowerShell 7-only tables are. See CHANGELOG.md.
-Earlier versions, 0.1.0 to 0.27.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.28.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }

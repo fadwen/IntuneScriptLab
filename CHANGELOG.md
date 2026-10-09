@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.31.0] - 2026-10-09
+
+Four assignment filter messages, found while writing up `Test-IntuneAssignmentFilter` against the probe
+results: a whitespace-only `-contains` value is warned about, a double quote inside a value is named as
+the unescapable thing it is, exclude-mode warnings say what they mean for the assignment, and the
+tenant-wide help example keeps to Windows filters. No verdict changes.
+
 ### Added
 
 - The filter parser warns about a `-contains` value that is only whitespace: the service accepts
@@ -608,7 +617,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...HEAD
+[0.31.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.27.0...v0.28.0
