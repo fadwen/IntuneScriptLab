@@ -190,11 +190,13 @@ function Test-IntuneDeployedScript {
                 ConvertTo-PolicyFinding @unreadSplat
                 continue
             }
+            $mode = if ($filterType -eq 'exclude') { 'Exclude' } else { 'Include' }
             foreach ($warning in $parsed.Warnings) {
                 $severity = if ($warning.Kind -eq 'NeverMatches') { 'Warning' } else { 'Information' }
+                $message = Get-IslFilterWarningMessage -Warning $warning -Mode $mode
                 $issueSplat = @{
                     PolicyKind = $PolicyKind; Policy = $Policy; Rule = 'IslFilterIssue'; Severity = $severity
-                    Message    = "${label}: $($warning.Message). Rule: $($filter.rule)"
+                    Message    = "${label}: $message. Rule: $($filter.rule)"
                     Evidence   = $filterEvidence
                 }
                 ConvertTo-PolicyFinding @issueSplat

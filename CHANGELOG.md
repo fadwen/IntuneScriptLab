@@ -11,7 +11,23 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- The filter parser warns about a `-contains` value that is only whitespace: the service accepts
+  `" "`, trims it to nothing, and every value contains that, so the clause matches every device
+  (`FLT-W27`, `FLT-Y03`). `Test-IntuneDeployedScript` reports it as `IslFilterIssue` Information.
+- In exclude mode, `Test-IntuneAssignmentFilter` and `Test-IntuneDeployedScript` say what a
+  warning means for the assignment: a clause that never matches excludes nobody, so the assignment
+  reaches every device in the group; one that matches every device excludes everybody. Include
+  mode keeps the parser's text.
+
+### Changed
+
+- A double quote inside a filter value (`"say \"hi\""` or `"say ""hi"""`) is now refused with a
+  message saying that no escape exists and that `-contains` or `-startsWith` on the parts around
+  the quote is the way through (`FLT-V44`, `FLT-V45`), instead of "expected 'and', 'or' or ')'".
+- The `Test-IntuneAssignmentFilter` help example that checks every filter in a tenant keeps to the
+  Windows platform first, since the parser's property set and value tables are the Windows ones.
 
 ## [0.30.0] - 2026-10-08
 

@@ -118,7 +118,12 @@ function Test-IntuneAssignmentFilter {
             Write-Error @errorSplat
             return
         }
-        foreach ($warning in $parsed.Warnings) { Write-Warning $warning.Message }
+        # The parser does not know the mode; in exclude mode a clause that never matches excludes nobody
+        $messages = [System.Collections.Generic.List[string]]::new()
+        foreach ($warning in $parsed.Warnings) {
+            $messages.Add((Get-IslFilterWarningMessage -Warning $warning -Mode $Mode))
+        }
+        foreach ($message in $messages) { Write-Warning $message }
 
         $matched = $null
         $applicable = $null
@@ -152,7 +157,7 @@ function Test-IntuneAssignmentFilter {
             Applicable = $applicable
             Reason     = $reason
             Clauses    = $parsed.Clauses
-            Warnings   = @($parsed.Warnings | ForEach-Object { $_.Message })
+            Warnings   = $messages.ToArray()
             Device     = $deviceView
         }
     }

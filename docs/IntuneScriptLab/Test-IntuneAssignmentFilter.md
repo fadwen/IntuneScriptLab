@@ -97,11 +97,16 @@ match excludes the device.
 
 ### EXAMPLE 3
 
-Get-MgBetaDeviceManagementAssignmentFilter | Test-IntuneAssignmentFilter -SyntaxOnly |
+Get-MgBetaDeviceManagementAssignmentFilter -All |
+    Where-Object { "$($_.Platform)" -eq 'windows10AndLater' } |
+    Test-IntuneAssignmentFilter -SyntaxOnly |
     Where-Object Warnings | Select-Object Rule, Warnings
 
-Every filter in the tenant whose rule can never match a Windows device (a "x64" architecture,
-a "Microsoft Entra joined" trust type), without evaluating anything.
+Every Windows filter in the tenant whose rule can never match a Windows device (a "x64"
+architecture, a "Microsoft Entra joined" trust type), without evaluating anything. The platform
+filter matters: the parser knows the Windows property set and value tables, so a macOS filter
+with the correct "x64" would be reported as never matching, and an iOS-only property such as
+isRooted is refused.
 
 ### EXAMPLE 4
 
@@ -144,7 +149,10 @@ HelpMessage: ''
 
 Include (the default) or Exclude: how the filter is attached to the assignment.
 The verdict
-is Applicable, which is Matched for an include filter and not Matched for an exclude one.
+is Applicable, which is Matched for an include filter and not Matched for an exclude one. In
+Exclude mode a warning about a clause that never matches adds that the filter excludes nobody,
+so the assignment reaches every device in the group; one that matches every device adds that
+the assignment reaches nobody.
 
 ```yaml
 Type: System.String

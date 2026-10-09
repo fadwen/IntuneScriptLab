@@ -212,6 +212,24 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             $result.Matched | Should-BeFalse
         }
 
+        It 'says what a clause that <Effect> means for an exclude filter' -ForEach @(
+            @{ Rule = '(device.cpuArchitecture -eq "x64")'; Effect = 'never matches'
+                Note = ('*never matches; as an exclude filter it excludes nobody, so the assignment reaches ' +
+                    'every device in the group') }
+            @{ Rule = '(device.deviceTrustType -ne "Hybrid Entra joined")'; Effect = 'matches every device'
+                Note = ('*matches every device; as an exclude filter it excludes every device, so the ' +
+                    'assignment reaches nobody') }
+        ) {
+            $warnings = @()
+            $excludeSplat = @{ Rule = $Rule; Device = $script:Joined; Mode = 'Exclude' }
+            $result = Test-IntuneAssignmentFilter @excludeSplat -WarningVariable warnings 3>$null
+            "$($warnings[0])" | Should-BeLikeString $Note
+            $result.Warnings[0] | Should-BeLikeString $Note
+            # Include mode keeps the parser's text, which already says what happens to the assignment
+            $included = Test-IntuneAssignmentFilter -Rule $Rule -Device $script:Joined 3>$null
+            $included.Warnings[0] | Should-NotBeLikeString '*as an exclude filter*'
+        }
+
         It 'reads the local device when none is given' {
             Mock Get-IslFilterDeviceFact -ModuleName IntuneScriptLab {
                 @{ deviceName = 'LOCAL-1'; cpuArchitecture = 'arm64' }
