@@ -438,19 +438,20 @@ shared access, so the live agent is no obstacle, and a copied log folder works w
 
 ```powershell
 Get-IntuneAgentLog -EventName ScriptEspPhase, EspPhase, EspAppsSelected, EspAppRegistered,
-    EspAppState, EspPhaseComplete, EspComplete, EspNontrackedCheckin
+    EspAppState, EspPhaseComplete, EspComplete, EspNontrackedCheckin |
+    Format-Table Time, Log, Event, Detail
 
-Time               Log                        Event                 Detail
-----               ---                        -----                 ------
-09-28 07:06:00.847 IntuneManagementExtension  ScriptEspPhase        DeviceSetup
-09-28 07:06:12.299 AppWorkload                EspPhase              DeviceSetup
-09-28 07:06:25.611 AppWorkload                EspAppsSelected       2
-09-28 07:06:31.011 AppWorkload                EspAppRegistered      DeviceSetup ISL-ESP-DEV-W32-BLOCK1
-09-28 07:07:31.199 AppWorkload                EspAppState           InProgress Completed
-09-28 07:08:20.385 AppWorkload                EspPhaseComplete      device
-09-28 07:08:37.882 AppWorkload                EspPhase              AccountSetup
-09-28 07:11:22.504 AppWorkload                EspComplete
-09-28 07:12:22.658 IntuneManagementExtension  EspNontrackedCheckin  True
+Time               Log         Event                Detail
+----               ---         -----                ------
+09-28 07:06:00.847 Agent       ScriptEspPhase       DeviceSetup
+09-28 07:06:12.299 AppWorkload EspPhase             DeviceSetup
+09-28 07:06:25.611 AppWorkload EspAppsSelected      2
+09-28 07:06:31.011 AppWorkload EspAppRegistered     DeviceSetup ISL-ESP-DEV-W32-BLOCK1
+09-28 07:07:31.199 AppWorkload EspAppState          InProgress Completed
+09-28 07:08:20.385 AppWorkload EspPhaseComplete     device
+09-28 07:08:37.882 AppWorkload EspPhase             AccountSetup
+09-28 07:11:22.504 AppWorkload EspComplete
+09-28 07:12:22.658 Agent       EspNontrackedCheckin True
 ```
 
 One Autopilot run (Validation\Findings.md, "The Enrollment Status Page") fixed where scripts sit
@@ -474,9 +475,12 @@ Started         Kind        Name                    Duration Runs Outcome       
 
 Export-IntuneAgentDiagnostic -Path C:\Temp\intune-diag.zip
 
-Path                     Files Logs Registry Timeline SizeBytes
-----                     ----- ---- -------- -------- ---------
-C:\Temp\intune-diag.zip     14    6     True     True   2318402
+Path     : C:\Temp\intune-diag.zip
+Size     : 2.9 MB
+Files    : 29
+Logs     : 20
+Registry : True
+Timeline : True
 ```
 
 `Get-IntuneAgentTimeline` groups the named log lines by the policy or app they belong to, so one

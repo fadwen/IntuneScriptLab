@@ -11,7 +11,16 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- `Get-IntuneAgentTimeline` reported `Kind` as `Unknown` for a policy or app whose lines all sat in
+  a rolled log file: the rolled name (`HealthScripts-20260925-101500`) lost only its time part, so it
+  never matched the log table. Both parts come off now, and such a timeline reads as Remediation or
+  Win32App like one from the current file.
+- The README's Enrollment Status Page block showed the `Log` column before it abbreviated
+  `IntuneManagementExtension` to `Agent`, and its diagnostic block showed the result as a table
+  where it has printed as a list with the size in MB since 0.28.0. Both now show what the commands
+  print.
 
 ## [0.31.0] - 2026-10-09
 

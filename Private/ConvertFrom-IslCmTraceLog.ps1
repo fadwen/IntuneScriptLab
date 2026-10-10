@@ -16,8 +16,8 @@ function ConvertFrom-IslCmTraceLog {
         and Id are left empty for Get-IntuneAgentLog to fill.
 
         The filters are the ones Get-IntuneAgentLog offers, applied to the raw record before an
-        object is built for it. Building the object is most of what an entry costs, so a filtered
-        read of a 22 MB log takes seconds where building every entry takes a minute.
+        object is built for it. Building the object is most of what an entry costs: on a 15 MB log
+        of 80,000 entries, one policy by -Id reads in 5 seconds where every entry takes 30.
 
     .PARAMETER Path
         The log file to parse.
@@ -91,7 +91,7 @@ function ConvertFrom-IslCmTraceLog {
     $ordinalIgnoreCase = [System.StringComparison]::OrdinalIgnoreCase
     $ordinal = [System.StringComparison]::Ordinal
 
-    # An agent log of 22 MB is 80,000 entries, and every statement here runs once per entry. The
+    # An agent log of 15 MB is 80,000 entries, and every statement here runs once per entry. The
     # attributes come out of one compiled regex in the order the agent writes them, the timestamp
     # is read the way ConvertTo-IslCmTraceTime reads it without the call, and the filters run on
     # the raw strings before anything is built. Lines are counted only up to an entry that is kept
