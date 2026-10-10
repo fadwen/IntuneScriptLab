@@ -116,6 +116,24 @@ Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
             $platform.Outcome | Should-Be 'ScriptPolicyResult Failed'
             $platform.Duration.TotalSeconds | Should-Be 20
         }
+
+        It 'reads the kind from a rolled log file as it does from the current one' {
+            # The agent rolls HealthScripts.log over to HealthScripts-<date>-<time>.log; a policy
+            # whose lines all sit in the rolled file is still a remediation
+            $rolled = Join-Path $TestDrive 'Rolled'
+            $hs = @{ Component = 'HealthScripts' }
+            Write-TestLog $rolled 'HealthScripts-20260925-101500.log' @(
+                New-CmTraceLine @hs -Time '08:45:14.0000000' -Message ("[HS] Runner: script $($script:Policy) " +
+                    'will try to execute now.')
+                New-CmTraceLine @hs -Time '08:46:56.0000000' -Message ('[HS] new result = {"PolicyId":"' +
+                    $script:Policy + '","Result":3}')
+            )
+            $timeline = @(Get-IntuneAgentTimeline -Path $rolled)
+            $timeline.Count | Should-Be 1
+            $timeline[0].Kind | Should-Be 'Remediation'
+            $timeline[0].Steps[0].Log | Should-Be 'HealthScripts-20260925-101500'
+            $timeline[0].Outcome | Should-Be 'RemediationReport 3'
+        }
     }
 
     Context 'Filters' {

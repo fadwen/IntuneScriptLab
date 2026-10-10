@@ -56,7 +56,9 @@ function Get-IntuneAgentTimeline {
                     Message    = $_.Message
                 }
             })
-        $logsSeen = @($steps | ForEach-Object { $_.Log -replace '-\d+$', '' } | Sort-Object -Unique)
+        # A rolled file is HealthScripts-20260925-101500: both date and time come off, or the name
+        # never matches the table and a policy whose lines all sit in a rolled file reads as Unknown
+        $logsSeen = @($steps | ForEach-Object { $_.Log -replace '-\d{8}-\d{6}$', '' } | Sort-Object -Unique)
         $kind = 'Unknown'
         foreach ($seen in $logsSeen) {
             if ($kindByLog.ContainsKey($seen)) { $kind = $kindByLog[$seen]; break }
