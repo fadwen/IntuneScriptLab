@@ -119,7 +119,7 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Policy</Label>
-            <Width>26</Width>
+            <Width>40</Width>
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Role</Label>
@@ -181,7 +181,7 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Policy</Label>
-            <Width>26</Width>
+            <Width>40</Width>
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Err</Label>
