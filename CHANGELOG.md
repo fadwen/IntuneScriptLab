@@ -21,6 +21,9 @@ release notes.
   `IntuneManagementExtension` to `Agent`, and its diagnostic block showed the result as a table
   where it has printed as a list with the size in MB since 0.28.0. Both now show what the commands
   print.
+- The `Policy` column of the health report and drift tables was 26 characters wide, so a policy name
+  such as `ISL-POST-FEEDBACK-RECURRED-SILENT` wrapped onto a second line and pushed the row apart.
+  Both columns are 40 wide now.
 
 ## [0.31.0] - 2026-10-09
 
