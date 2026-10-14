@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.31.0'
+    ModuleVersion = '0.32.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,12 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.32.0 - Get-IntuneAgentTimeline read Kind as Unknown for a policy whose lines all sat in a rolled
+        log file (HealthScripts-20260925-101500 lost only its time part); it reads Remediation or
+        Win32App like one from the current file. The Policy column of the health report and drift
+        tables is 40 characters wide, so a long policy name stays on one line. The README's log
+        blocks show the Agent abbreviation and the list form of the diagnostic result. See
+        CHANGELOG.md.
 0.31.0 - Assignment filter messages. The parser warns about a -contains value that is only
         whitespace, which the service trims to nothing so the clause matches every device; a double
         quote inside a value is refused with a message saying no escape exists and that -contains
@@ -80,14 +86,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         cmd.exe finds it; and the 32-bit host warning also reads the batch file an install or
         uninstall command names, where a powershell.exe call runs 32-bit just the same. See
         CHANGELOG.md.
-0.29.0 - A remediation that writes to stderr is a script error on the device whatever its exit code:
-        RemediationStatus 3, Graph scriptError, the error text attached, no post-detection.
-        Invoke-IntuneRemediationTest reported Recurred for that run since round 1; it reports Failed,
-        skips the post-detection and warns that the exit code was 0. A detection's stderr still changes
-        nothing. IslOutputIssue warns about Write-Error and an unguarded cmdlet in a remediation script,
-        with -ErrorAction Stop as the fix. Measured in user context on the lab device with five one-off
-        remediations, recorded as round 11 (REM-STDERR-*). See CHANGELOG.md.
-Earlier versions, 0.1.0 to 0.28.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.29.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }
