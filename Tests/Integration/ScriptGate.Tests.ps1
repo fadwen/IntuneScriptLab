@@ -106,7 +106,7 @@ Describe 'Invoke-IntuneScriptGate' -Tag 'Integration', 'Gate' {
         ($run.Output -join "`n") | Should-NotBeLikeString '*IntuneScripts.Tests.ps1*'
         ($run.Output -join "`n") | Should-NotBeLikeString '*IslModuleDependency*'
         $direct = Invoke-GateFile -Arguments @('-Path', (Join-Path $script:Scripts 'IntuneScripts.Tests.ps1'),
-            '-FailOn', 'None', '-Annotate:$false')
+            '-FailOn', 'None')
         ($direct.Output -join "`n") | Should-BeLikeString '*IslModuleDependency*'
     }
 
