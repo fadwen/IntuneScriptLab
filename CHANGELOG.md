@@ -11,6 +11,14 @@ release notes.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.32.0] - 2026-10-13
+
+Three small fixes found while running the agent-log and tenant posts against the lab: a timeline read
+from a rolled log file now knows its kind, the README's log blocks show what the commands print, and the
+health and drift tables fit a long policy name on one line. No verdict changes.
+
 ### Fixed
 
 - `Get-IntuneAgentTimeline` reported `Kind` as `Unknown` for a policy or app whose lines all sat in
@@ -629,7 +637,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...HEAD
+[0.32.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.28.0...v0.29.0
