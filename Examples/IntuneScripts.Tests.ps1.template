@@ -60,8 +60,9 @@ Describe 'Remediation packages' -Tag 'Runtime' {
         It 'reports the same in the 64-bit host (no WOW64 dependence)' {
             # The 64-bit host is the device's own: x64 on x64, arm64 on Windows on ARM, where an
             # explicit x64 is refused (the agent runs the native 64-bit host there too)
-            $x86 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x86
-            $x64 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture $script:Host64
+            $detect = "$($_.FullName)\Detect.ps1"
+            $x86 = Invoke-IntuneRemediationTest -DetectionPath $detect -Architecture x86
+            $x64 = Invoke-IntuneRemediationTest -DetectionPath $detect -Architecture $script:Host64
             $x64.PreDetection.ExitCode | Should-Be $x86.PreDetection.ExitCode
         }
 
