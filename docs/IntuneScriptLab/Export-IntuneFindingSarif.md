@@ -34,6 +34,8 @@ that of the most severe finding it produced in this log), and a result per findi
 file, line, column and text of the offending
 code, the message, the observed Intune behaviour as a property and, for a finding a
 Suppress directive silenced, an in-source suppression.
+A policy check from Test-IntuneDeployedScript has no script behind it: it is written as a result
+without a location, with the policy kind and name in front of the message.
 File paths are written relative to
 -Root under the %SRCROOT% base, which is what GitHub code scanning and Azure DevOps expect.
 

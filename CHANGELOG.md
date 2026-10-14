@@ -11,7 +11,29 @@ release notes.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- `Examples/Invoke-IntuneScriptGate.ps1` analyzed a Pester suite placed next to the scripts, where
+  `Examples/IntuneScripts.Tests.ps1.template` puts it, and reported its `Import-Module
+  IntuneScriptLab` as an `IslModuleDependency` warning, which failed a build at `-FailOn Warning`.
+  Folders are searched by the gate now and `*.Tests.ps1` files are left out; a suite named directly
+  on `-Path` is still analyzed.
+- The gate's GitHub annotations percent-encode the `file=` and `title=` values as well as the
+  message, so a script outside `-Root`, whose path stays absolute, no longer ends the property list
+  at its drive letter.
+- `Export-IntuneFindingSarif` described every `IslAssignmentIssue` as a Win32 app assignment at
+  warning level, where the rule also reports a policy with no assignment and, as Information, a
+  user-context script assigned to devices; `IslFilterIssue` and `IslScheduleIssue` had no entry and
+  fell back to their bare names. All three carry a description, and a rule that reports at several
+  severities takes the level of its most severe finding in the log. A policy check, which has no
+  script behind it, made the export throw ("Invalid URI: The URI is empty"); it is written as a
+  result without a location, with the policy's kind and name in front of the message.
+- `Examples/intune-script-gate.yml` uses `actions/checkout@v7` and
+  `github/codeql-action/upload-sarif@v4`; CodeQL Action v3 is deprecated from December 2026.
+- `Examples/IntuneScripts.Tests.ps1.template` named its static tests after the file alone, so every
+  remediation's detection was a test called `Detect.ps1`; the folder is part of the name now
+  (`Report-Uptime/Detect.ps1`). Its 64-bit host test asked for `x64` outright, which Windows on ARM
+  refuses; it runs the device's own 64-bit host, as the commands do by default since 0.30.0.
 
 ## [0.32.0] - 2026-10-13
 

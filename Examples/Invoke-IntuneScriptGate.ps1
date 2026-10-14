@@ -22,8 +22,9 @@
         then by name).
 
     .PARAMETER Path
-        Folders or scripts to analyze; folders are searched for .ps1 files recursively. Default:
-        the current directory.
+        Folders or scripts to analyze; folders are searched for .ps1 files recursively, leaving out
+        Pester suites (*.Tests.ps1), which the suite template places next to the scripts. A suite
+        named directly is analyzed. Default: the current directory.
 
     .PARAMETER FailOn
         The lowest severity that fails the build: Error (default), Warning, Information, or None
@@ -147,11 +148,30 @@ function ConvertTo-AnnotationText {
     $Text.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
 }
 
-$testSplat = @{ Path = $Path; ScriptType = $ScriptType }
+function ConvertTo-AnnotationProperty {
+    # A property value (file=, title=) also encodes the ':' and ',' that delimit the command, or a
+    # path outside -Root, which stays absolute, ends the property list at its drive letter
+    param([string]$Text)
+    (ConvertTo-AnnotationText -Text $Text).Replace(':', '%3A').Replace(',', '%2C')
+}
+
+# Folders are searched here rather than by Test-IntuneScript, so that a Pester suite next to the
+# scripts (IntuneScripts.Tests.ps1, where the suite template puts it) is not analyzed as an Intune
+# script; a suite named directly on -Path still is
+$scriptFiles = @(foreach ($item in $Path) {
+        foreach ($resolved in (Resolve-Path -Path $item)) {
+            if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
+                Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
+                    Where-Object { $_.Name -notlike '*.Tests.ps1' } | ForEach-Object { $_.FullName }
+            }
+            else { $resolved.ProviderPath }
+        }
+    })
+$testSplat = @{ Path = $scriptFiles; ScriptType = $ScriptType }
 if ($PSBoundParameters.ContainsKey('Settings')) { $testSplat.Settings = $Settings }
 if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }
 if ($ExcludeRule) { $testSplat.ExcludeRule = $ExcludeRule }
-$findings = @(Test-IntuneScript @testSplat)
+$findings = if ($scriptFiles.Count) { @(Test-IntuneScript @testSplat) } else { @() }
 $scripts = @($findings | ForEach-Object { $_.ScriptPath } | Sort-Object -Unique)
 $counts = @{ Error = 0; Warning = 0; Information = 0 }
 foreach ($finding in $findings) { $counts[$finding.Severity]++ }
@@ -162,10 +182,11 @@ Write-Host ("IntuneScriptLab: $($findings.Count) finding(s) in $($scripts.Count)
 
 if ($Annotate) {
     foreach ($finding in $findings) {
-        $location = "file=$(Get-RelativePath -FullPath $finding.ScriptPath)"
+        $location = "file=$(ConvertTo-AnnotationProperty -Text (Get-RelativePath -FullPath $finding.ScriptPath))"
         if ($finding.Line -gt 0) { $location += ",line=$($finding.Line),col=$([Math]::Max(1, $finding.Column))" }
         $message = ConvertTo-AnnotationText -Text $finding.Message
-        Write-Host "::$($annotationLevel[$finding.Severity]) $location,title=$($finding.RuleName)::$message"
+        $title = ConvertTo-AnnotationProperty -Text $finding.RuleName
+        Write-Host "::$($annotationLevel[$finding.Severity]) $location,title=${title}::$message"
     }
 }
 
