@@ -22,7 +22,9 @@ function Export-IntuneFindingSarif {
         $levels = @{ Error = 'error'; Warning = 'warning'; Information = 'note' }
         $module = $MyInvocation.MyCommand.Module
         $rootPath = (Resolve-Path -LiteralPath $Root -ErrorAction Stop).ProviderPath.TrimEnd('\', '/')
-        # The context note and the pre-flight's policy checks have no rule function to read help from
+        # The context note and the pre-flight's policy checks have no rule function to read help
+        # from. A rule that reports at one severity carries its level here; one that reports at
+        # several (IslAssignmentIssue, IslFilterIssue) takes the most severe level in the log
         $fixedRules = @{
             IslAssumedContext     = @{
                 Level   = 'note'
@@ -33,8 +35,18 @@ function Export-IntuneFindingSarif {
                 Summary = 'A Win32 detection rule the agent does not evaluate.'
             }
             IslAssignmentIssue    = @{
-                Level   = 'warning'
-                Summary = 'A Win32 app assignment that can never install.'
+                Summary = ('An assignment that reaches no device: a Win32 app with install behavior User ' +
+                    'assigned to devices, a policy with no assignment or only exclusions, or a ' +
+                    'user-context script assigned to devices.')
+            }
+            IslFilterIssue        = @{
+                Summary = ('An assignment filter with a clause no Windows device matches, or one every ' +
+                    'device matches, or syntax the evaluator cannot read.')
+            }
+            IslScheduleIssue      = @{
+                Level   = 'note'
+                Summary = ('A run-once schedule whose time has passed; a device that has not fetched the ' +
+                    'policy yet still runs it once.')
             }
             IslDetectOnly         = @{
                 Level   = 'note'
@@ -74,7 +86,7 @@ function Export-IntuneFindingSarif {
             }
             if ($fixedRules.ContainsKey($name)) {
                 $summary = $fixedRules[$name].Summary
-                $level = $fixedRules[$name].Level
+                if ($fixedRules[$name].Level) { $level = $fixedRules[$name].Level }
             }
             elseif (Get-Command -Name "Find-$name" -ErrorAction SilentlyContinue) {
                 $help = Get-Help -Name "Find-$name" -ErrorAction SilentlyContinue
@@ -102,18 +114,26 @@ function Export-IntuneFindingSarif {
                 ruleIndex = $ruleIndex[$item.RuleName]
                 level     = $levels["$($item.Severity)"]
                 message   = [ordered]@{ text = "$($item.Message)" }
-                locations = @(
+            }
+            # A policy check from Test-IntuneDeployedScript has no script behind it; SARIF allows a
+            # result without a location, and the policy's name goes into the message instead
+            $scriptPath = "$($item.PSObject.Properties['ScriptPath'].Value)"
+            if ($scriptPath) {
+                $result.locations = @(
                     [ordered]@{
                         physicalLocation = [ordered]@{
-                            artifactLocation = Get-ArtifactLocation -FilePath "$($item.ScriptPath)"
+                            artifactLocation = Get-ArtifactLocation -FilePath $scriptPath
                             region           = $region
                         }
                     }
                 )
-                properties = [ordered]@{
-                    scriptType = "$($item.ScriptType)"
-                    evidence   = "$($item.Evidence)"
-                }
+            }
+            elseif ($item.PSObject.Properties['PolicyName'] -and $item.PolicyName) {
+                $result.message.text = "$($item.Kind) '$($item.PolicyName)': $($item.Message)"
+            }
+            $result.properties = [ordered]@{
+                scriptType = "$($item.ScriptType)"
+                evidence   = "$($item.Evidence)"
             }
             if ($item.PSObject.Properties['Suppressed'] -and $item.Suppressed) {
                 $result.suppressions = @([ordered]@{ kind = 'inSource' })

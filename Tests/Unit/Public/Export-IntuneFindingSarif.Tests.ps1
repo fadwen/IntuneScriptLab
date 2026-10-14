@@ -82,6 +82,38 @@ Describe 'Export-IntuneFindingSarif' -Tag 'Unit', 'Public' {
         $exit.PSObject.Properties.Name | Should-NotContainCollection 'suppressions'
     }
 
+    It 'describes the policy checks and gives a mixed-severity rule the level of its worst finding' {
+        $policy = foreach ($row in @(
+                @{ Rule = 'IslAssignmentIssue'; Severity = 'Information'; Message = 'user script' }
+                @{ Rule = 'IslAssignmentIssue'; Severity = 'Warning'; Message = 'no assignment' }
+                @{ Rule = 'IslFilterIssue'; Severity = 'Information'; Message = 'matches every device' }
+                @{ Rule = 'IslScheduleIssue'; Severity = 'Information'; Message = 'run-once in the past' }
+            )) {
+            # The shape Test-IntuneDeployedScript gives a policy check: no ScriptPath at all
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.DeploymentFinding'; Kind = 'Remediation'; PolicyName = 'Fix-Widget'
+                PolicyId = 'rem-a'; Role = 'policy'; RuleName = $row.Rule; Severity = $row.Severity
+                Message = $row.Message; ScriptType = ''; Line = 0; Column = 0; Text = ''; Evidence = 'ASSIGN-NONE'
+            }
+        }
+        $out = Join-Path $TestDrive 'policy.sarif'
+        $null = Export-IntuneFindingSarif -Finding $policy -Path $out -Root $script:Repo
+        $run = (Read-Sarif $out).runs[0]
+        @($run.results).Count | Should-Be 4
+        $run.results[1].PSObject.Properties['locations'] | Should-BeNull
+        $run.results[1].message.text | Should-Be "Remediation 'Fix-Widget': no assignment"
+        $rules = $run.tool.driver.rules
+        $assignment = $rules | Where-Object id -eq 'IslAssignmentIssue'
+        $assignment.shortDescription.text | Should-BeLikeString '*no assignment or only exclusions*'
+        $assignment.defaultConfiguration.level | Should-Be 'warning'
+        $filter = $rules | Where-Object id -eq 'IslFilterIssue'
+        $filter.shortDescription.text | Should-BeLikeString '*no Windows device matches*'
+        $filter.defaultConfiguration.level | Should-Be 'note'
+        $schedule = $rules | Where-Object id -eq 'IslScheduleIssue'
+        $schedule.shortDescription.text | Should-BeLikeString '*run-once schedule*'
+        $schedule.defaultConfiguration.level | Should-Be 'note'
+    }
+
     It 'takes findings from the pipeline and writes a valid empty log for none' {
         $out = Join-Path $TestDrive 'piped.sarif'
         $null = $script:Findings | Export-IntuneFindingSarif -Path $out -Root $script:Repo

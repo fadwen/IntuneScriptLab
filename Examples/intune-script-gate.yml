@@ -27,6 +27,7 @@ env:
   # Folders holding the scripts: remediations, platform scripts, Win32 detection and requirement
   # scripts. Folder and file names tell the analysis what each script is (Remediations\<name>\
   # Detect.ps1, Win32\<app>\Detect.ps1, PlatformScripts\*.ps1); a directive comment overrides.
+  # Pester suites under them (*.Tests.ps1) are left out of the analysis.
   SCRIPT_PATHS: ./Intune
   # Error fails the build; Warning is stricter; None reports only
   FAIL_ON: Error
@@ -42,7 +43,7 @@ jobs:
     name: Analyze Intune scripts
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install IntuneScriptLab from the Gallery
         if: env.ISL_MODULE_PATH == ''
@@ -64,7 +65,7 @@ jobs:
 
       - name: Upload SARIF to code scanning
         if: always() && env.UPLOAD_SARIF == 'true'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ runner.temp }}/intune-script-lab.sarif
           category: IntuneScriptLab
@@ -78,7 +79,7 @@ jobs:
     needs: analyze
     if: false   # switch on once IntuneScripts.Tests.ps1 exists next to the scripts
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Pester, and IntuneScriptLab unless a checked-in copy is used
         shell: pwsh

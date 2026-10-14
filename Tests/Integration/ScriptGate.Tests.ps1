@@ -21,6 +21,9 @@ BeforeAll {
         "Remove-Item C:\x -ErrorAction SilentlyContinue`r`nexit 0`r`n", $utf8Bom)
     [System.IO.File]::WriteAllText((Join-Path $script:Scripts 'Clean\Detect-Thing.ps1'),
         "Write-Output 'checked'`r`nexit 0`r`n", $utf8Bom)
+    # A Pester suite next to the scripts, as the suite template places it: not an Intune script
+    [System.IO.File]::WriteAllText((Join-Path $script:Scripts 'IntuneScripts.Tests.ps1'),
+        "BeforeAll { Import-Module IntuneScriptLab }`r`nDescribe 'x' { It 'y' { 1 | Should-Be 1 } }`r`n", $utf8Bom)
 
     # -File carries the script's exit code out as the process exit code on both hosts; a switch
     # cannot be negated that way, so the quiet run uses -Command (and expects exit 0 anyway)
@@ -94,6 +97,28 @@ Describe 'Invoke-IntuneScriptGate' -Tag 'Integration', 'Gate' {
         $text | Should-BeLikeString '*| Severity | Rule | Script | Line | Message |*'
         $text | Should-BeLikeString '*| Error | IslExitCodeIssue | Remediations/Widget/Detect.ps1 | *'
         $text | Should-BeLikeString '*gate: fail on Error.*'
+    }
+
+    It 'leaves a Pester suite under the folder out of the analysis, and analyzes one named directly' {
+        $run = Invoke-GateFile -Arguments @('-Path', $script:Scripts, '-Annotate', '-Root', $script:Scripts,
+            '-FailOn', 'None')
+        $run.ExitCode | Should-Be 0
+        ($run.Output -join "`n") | Should-NotBeLikeString '*IntuneScripts.Tests.ps1*'
+        ($run.Output -join "`n") | Should-NotBeLikeString '*IslModuleDependency*'
+        $direct = Invoke-GateFile -Arguments @('-Path', (Join-Path $script:Scripts 'IntuneScripts.Tests.ps1'),
+            '-FailOn', 'None', '-Annotate:$false')
+        ($direct.Output -join "`n") | Should-BeLikeString '*IslModuleDependency*'
+    }
+
+    It 'percent-encodes the colon of an absolute path outside -Root in the file property' {
+        # With -Root below the scripts, every path stays absolute and carries a drive letter
+        $run = Invoke-GateFile -Arguments @('-Path', $script:Scripts, '-Annotate', '-FailOn', 'None',
+            '-Root', (Join-Path $script:Scripts 'Clean'))
+        $errorLines = @($run.Output | Where-Object { $_ -like '::error file=*' })
+        $errorLines.Count | Should-BeGreaterThan 0
+        $fileValue = ([regex]::Match($errorLines[0], '^::error file=([^,]*),')).Groups[1].Value
+        $fileValue | Should-NotBeLikeString '*:*'
+        $fileValue | Should-BeLikeString '*%3A*Detect.ps1'
     }
 
     It 'returns the findings with -PassThru' {
