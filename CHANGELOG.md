@@ -30,6 +30,10 @@ release notes.
   result without a location, with the policy's kind and name in front of the message.
 - `Examples/intune-script-gate.yml` uses `actions/checkout@v7` and
   `github/codeql-action/upload-sarif@v4`; CodeQL Action v3 is deprecated from December 2026.
+- `Examples/IntuneScripts.Tests.ps1.template` named its static tests after the file alone, so every
+  remediation's detection was a test called `Detect.ps1`; the folder is part of the name now
+  (`Report-Uptime/Detect.ps1`). Its 64-bit host test asked for `x64` outright, which Windows on ARM
+  refuses; it runs the device's own 64-bit host, as the commands do by default since 0.30.0.
 
 ## [0.32.0] - 2026-10-13
 

@@ -205,8 +205,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Import-Module Pester -MinimumVersion 6.2.0
           $cfg = New-PesterConfiguration
-          # The integration suite as well: it launches the 5.1 hosts the harness uses on a device,
-          # and the runner is elevated, so the SYSTEM-context tests run here as they do under pwsh
+          # The integration suite as well: it launches the 5.1 hosts the harness uses on a device.
+          # The hosted runner's token is not elevated (IsInRole Administrator is false), so the
+          # SYSTEM-context tests skip here as they do under pwsh; they run on the lab devices
           $cfg.Run.Path = './Tests/Unit', './Tests/Integration', './Validation/Tests/Unit'
           $cfg.Run.PassThru = $true
           $cfg.Output.Verbosity = 'Normal'

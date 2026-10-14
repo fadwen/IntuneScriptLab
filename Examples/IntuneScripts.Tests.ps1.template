@@ -24,18 +24,23 @@ BeforeAll {
     Import-Module IntuneScriptLab
     $script:IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
         IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    # The device's 64-bit host, for the WOW64 comparison: x64 on x64, arm64 on Windows on ARM
+    $script:Host64 = if ("$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)" -eq 'Arm64') {
+        'arm64'
+    }
+    else { 'x64' }
 }
 
 Describe 'Static analysis' -Tag 'Static' {
 
-    It 'has no warnings or errors: <_.Name>' -AllowNullOrEmptyForEach -ForEach (
+    It 'has no warnings or errors: <_.Directory.Name>/<_.Name>' -AllowNullOrEmptyForEach -ForEach (
         Get-ChildItem "$PSScriptRoot\Remediations" -Recurse -Filter *.ps1 -ErrorAction SilentlyContinue) {
         # Detection/Remediation is inferred from the file name; use -ScriptType or a directive
         # comment in the script if your names differ (see the README)
         $_ | Should-PassIntuneAnalysis
     }
 
-    It 'Win32 detection scripts survive the stdout/stderr rules: <_.Name>' -AllowNullOrEmptyForEach -ForEach (
+    It 'survives the stdout/stderr rules: <_.Directory.Name>/<_.Name>' -AllowNullOrEmptyForEach -ForEach (
         Get-ChildItem "$PSScriptRoot\Win32" -Recurse -Filter Detect.ps1 -ErrorAction SilentlyContinue) {
         $_ | Should-PassIntuneAnalysis -ScriptType Win32Detection
     }
@@ -53,8 +58,10 @@ Describe 'Remediation packages' -Tag 'Runtime' {
         }
 
         It 'reports the same in the 64-bit host (no WOW64 dependence)' {
+            # The 64-bit host is the device's own: x64 on x64, arm64 on Windows on ARM, where an
+            # explicit x64 is refused (the agent runs the native 64-bit host there too)
             $x86 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x86
-            $x64 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture x64
+            $x64 = Invoke-IntuneRemediationTest -DetectionPath "$($_.FullName)\Detect.ps1" -Architecture $script:Host64
             $x64.PreDetection.ExitCode | Should-Be $x86.PreDetection.ExitCode
         }
 
