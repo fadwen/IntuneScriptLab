@@ -11,16 +11,14 @@ release notes.
 
 ## [Unreleased]
 
-### Fixed
+## [0.34.0] - 2026-10-15
 
-- `Test-IntuneDeployedScript` cited ASSIGN-INEX, round 9's remediation included and excluded for
-  the same group, as evidence that a policy without an include never runs. That policy has an
-  include: the service drops the exclusion, and the device has run it every hour since 28 September
-  (180 probe records by 15 October, Graph run state updated 13 October, the policy unchanged since
-  its creation). The evidence names ASSIGN-NONE and ASSIGN-EXCLONLY only, and
-  `Validation/Findings.md` records the corrected result; the command's verdict on such a policy,
-  silence, was already right. Its file `doesNotExist` finding cited `W32-FILE-NOTEXIST-PRESENT`;
-  the experiment is `W32-FILE-NOTEXIST-FALSE`.
+A correction to the evidence behind one finding, found while writing up the validation lab. Round 9
+concluded that a remediation included and excluded for the same group never runs; the device has
+run it every hour since, because the service drops the exclusion and keeps the include. The
+command's verdict on such a policy, silence, was already right, so no verdict changes; the evidence
+string and Findings say what the device did. The validation kit's agent restart now works, and its
+lab scripts and docs describe the kit as it is.
 
 ### Changed
 
@@ -32,6 +30,20 @@ release notes.
   and the rerun after a lost result, and it and the two probe scripts require PowerShell 7.6 like
   the driver. The kit's README no longer points at the monorepo paths the module came from, and the
   experiment catalog's header says what it holds.
+
+### Fixed
+
+- `Test-IntuneDeployedScript` cited ASSIGN-INEX, round 9's remediation included and excluded for
+  the same group, as evidence that a policy without an include never runs. That policy has an
+  include: the service drops the exclusion, and the device has run it every hour since 28 September
+  (186 probe records by 15 October, Graph run state updated 13 October, the policy unchanged since
+  its creation). The evidence names ASSIGN-NONE and ASSIGN-EXCLONLY only, and
+  `Validation/Findings.md` records the corrected result; the command's verdict on such a policy,
+  silence, was already right. Its file `doesNotExist` finding cited `W32-FILE-NOTEXIST-PRESENT`;
+  the experiment is `W32-FILE-NOTEXIST-FALSE`.
+- `Tests/Unit/Private/Get-IslInboxModule.Tests.ps1` failed on a hosted runner that lacked
+  `ConfigDefender` and `ConfigDefenderPerformance`, which the Defender platform update puts under
+  System32 rather than the Windows image; the test allows the two to be absent from the host.
 
 ## [0.33.0] - 2026-10-15
 
@@ -696,7 +708,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.33.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.34.0...HEAD
+[0.34.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.33.0...v0.34.0
 [0.33.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...v0.31.0
