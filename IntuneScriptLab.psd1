@@ -1,7 +1,7 @@
 @{
     # Module manifest for IntuneScriptLab
     RootModule = 'IntuneScriptLab.psm1'
-    ModuleVersion = '0.33.0'
+    ModuleVersion = '0.34.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
     CompanyName = ''
@@ -64,6 +64,14 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
             LicenseUri = 'https://github.com/fadwen/IntuneScriptLab/blob/main/LICENSE'
             ProjectUri = 'https://github.com/fadwen/IntuneScriptLab'
             ReleaseNotes = @'
+0.34.0 - Evidence correction. Test-IntuneDeployedScript cited the round 9 include-plus-exclude
+        experiment as a policy no device runs; the device has run it every hour since, because the
+        service drops the exclusion and keeps the include. The evidence names the two experiments
+        that do show a policy without an include never running, and Findings records the corrected
+        result; the command's verdict, silence on such a policy, was already right. A file
+        doesNotExist finding now cites the experiment that exists. The validation kit restarts the
+        agent by stopping its process, since Restart-Service restarted nothing, and its lab scripts
+        and docs are current. See CHANGELOG.md.
 0.33.0 - The CI pieces, after a run against a repository laid out the way the templates describe.
         The gate script no longer analyzes a Pester suite next to the scripts or the contents of a
         Win32 app's Package folder, both of which the suite template puts there and both of which
@@ -80,15 +88,7 @@ pre-flight over the tenant's deployed scripts and readers for the agent's logs
         tables is 40 characters wide, so a long policy name stays on one line. The README's log
         blocks show the Agent abbreviation and the list form of the diagnostic result. See
         CHANGELOG.md.
-0.31.0 - Assignment filter messages. The parser warns about a -contains value that is only
-        whitespace, which the service trims to nothing so the clause matches every device; a double
-        quote inside a value is refused with a message saying no escape exists and that -contains
-        or -startsWith on the parts around it is the way through. In exclude mode,
-        Test-IntuneAssignmentFilter and Test-IntuneDeployedScript say what a warning means for the
-        assignment: a clause that never matches excludes nobody, so the assignment reaches every
-        device in the group. The tenant-wide help example keeps to Windows filters. See
-        CHANGELOG.md.
-Earlier versions, 0.1.0 to 0.30.0: CHANGELOG.md, which ships with the module.
+Earlier versions, 0.1.0 to 0.31.0: CHANGELOG.md, which ships with the module.
 '@
             RequireLicenseAcceptance = $false
         }
