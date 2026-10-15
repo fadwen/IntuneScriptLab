@@ -1,15 +1,15 @@
-#Requires -Version 7.4
+#Requires -Version 7.6
 
 <#
     .SYNOPSIS
         Runs a local PowerShell script inside a Proxmox lab VM through the QEMU guest agent, as SYSTEM.
 
     .DESCRIPTION
-        The guest agent's command line fails silently above a few KB, so the script is delivered as
-        base64 in numbered part files (Set-Content, so a chunk retried after a host-side timeout
-        rewrites the same part rather than appending it twice), joined and decoded on the VM, then
-        run with Windows PowerShell under a process-scoped execution policy bypass. Talks to the
-        Proxmox host over key-based SSH; the VM needs the guest agent.
+        The guest agent's command line fails silently above a few KB, so the script is written to
+        the VM through the agent's file-write call (Send-GuestFile in GuestAgent.ps1: numbered
+        base64 part files, joined and hashed on the VM and the hash compared here), then run with
+        Windows PowerShell under a process-scoped execution policy bypass. Talks to the Proxmox host
+        over key-based SSH; the VM needs the guest agent.
 
     .PARAMETER VmId
         The Proxmox VM id.
@@ -52,9 +52,9 @@
 
     .NOTES
         Author: Jeffrey Stuhr. The guest agent calls are GuestAgent.ps1's: each command is started
-        once and its result asked for by process id, so a status call that times out is asked
-        again without running the script a second time. A start call that times out is retried and
-        can run it twice.
+        once and its result asked for by process id. A status call that times out on the host can
+        take the finished result with it, and the command is then run again, up to three times, so
+        the script has to be safe to run twice.
 #>
 [CmdletBinding()]
 # ProxmoxHost is read inside Invoke-GuestPowerShell (GuestAgent.ps1); the analyzer cannot see that

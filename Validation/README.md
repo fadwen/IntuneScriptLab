@@ -35,8 +35,7 @@ with the documented behaviour next to the observed one.
 - An app registration with certificate auth and these application permissions:
   `DeviceManagementScripts.ReadWrite.All`, `DeviceManagementConfiguration.ReadWrite.All`,
   `DeviceManagementApps.ReadWrite.All`, `DeviceManagementManagedDevices.Read.All`,
-  `Group.ReadWrite.All`, `Device.Read.All`.
-  `Scripts\Entra\Grant-ClaudeDevTenantPermissions.ps1` grants them.
+  `Group.ReadWrite.All`, `Device.Read.All`, granted as application permissions with admin consent.
 - A Proxmox host reachable over key-based SSH, a sysprepped Windows 11 Enterprise/Pro template
   with the QEMU guest agent installed, and a licensed test user (Windows E3/E5 for remediations).
 - `Tools\IntuneWinAppUtil.exe` (only for the Win32 experiments). `Deploy` downloads it from
@@ -50,7 +49,7 @@ remediations are assigned hourly and will keep running on whatever is in the gro
 
 ```powershell
 $conn = @{ TenantId = '<tenant>'; ClientId = '<app>'; CertificateThumbprint = '<thumbprint>' }
-cd Scripts\Intune\IntuneScriptLab\Validation
+cd Validation
 
 # 1. Test VM. Ends at the OOBE account screen with a clean-oobe snapshot.
 .\New-IntuneLabVm.ps1 -TemplateId 123 -VmId 125 -Name INTUNE-TEST-02
