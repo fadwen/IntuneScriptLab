@@ -18,6 +18,12 @@ release notes.
   IntuneScriptLab` as an `IslModuleDependency` warning, which failed a build at `-FailOn Warning`.
   Folders are searched by the gate now and `*.Tests.ps1` files are left out; a suite named directly
   on `-Path` is still analyzed.
+- The gate also analyzed the contents of a Win32 app's `Package` folder (`Win32\<app>\Package\`,
+  what becomes the `.intunewin`), and an `install.ps1` there, which the agent runs through the
+  install command as SYSTEM, was read as a user-context platform script: every machine-wide write
+  became an `IslContextIssue` warning, and the build failed at `-FailOn Warning`. Files under a
+  `Package` folder are left out of a folder search; a `Packages` folder, which holds Win32 apps,
+  stays in, and a file named directly on `-Path` is still analyzed.
 - The gate's GitHub annotations percent-encode the `file=` and `title=` values as well as the
   message, so a script outside `-Root`, whose path stays absolute, no longer ends the property list
   at its drive letter.

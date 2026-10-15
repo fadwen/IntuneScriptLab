@@ -23,8 +23,10 @@
 
     .PARAMETER Path
         Folders or scripts to analyze; folders are searched for .ps1 files recursively, leaving out
-        Pester suites (*.Tests.ps1), which the suite template places next to the scripts. A suite
-        named directly is analyzed. Default: the current directory.
+        Pester suites (*.Tests.ps1), which the suite template places next to the scripts, and the
+        contents of a Win32 app's Package folder (Win32\<app>\Package\, what becomes the .intunewin),
+        which the agent runs through the install command rather than as a script. A file named
+        directly is analyzed. Default: the current directory.
 
     .PARAMETER FailOn
         The lowest severity that fails the build: Error (default), Warning, Information, or None
@@ -155,14 +157,21 @@ function ConvertTo-AnnotationProperty {
     (ConvertTo-AnnotationText -Text $Text).Replace(':', '%3A').Replace(',', '%2C')
 }
 
-# Folders are searched here rather than by Test-IntuneScript, so that a Pester suite next to the
-# scripts (IntuneScripts.Tests.ps1, where the suite template puts it) is not analyzed as an Intune
-# script; a suite named directly on -Path still is
+# Folders are searched here rather than by Test-IntuneScript, so that two kinds of file the suite
+# template puts under the script folders are not analyzed as Intune scripts: a Pester suite next to
+# the scripts (IntuneScripts.Tests.ps1) and the contents of a Win32 app's Package folder
+# (Win32\<app>\Package\), which become the .intunewin and run through the install command as
+# SYSTEM, where an install.ps1 would otherwise be read as a user-context platform script. A file
+# named directly on -Path is still analyzed. Only the singular segment 'Package' is left out: a
+# 'Packages' folder is one that holds Win32 apps, and their detection scripts stay in.
 $scriptFiles = @(foreach ($item in $Path) {
         foreach ($resolved in (Resolve-Path -Path $item)) {
             if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                 Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
-                    Where-Object { $_.Name -notlike '*.Tests.ps1' } | ForEach-Object { $_.FullName }
+                    Where-Object {
+                        $_.Name -notlike '*.Tests.ps1' -and
+                        "$($_.DirectoryName)\" -notmatch '(?i)[\\/]Package[\\/]'
+                    } | ForEach-Object { $_.FullName }
             }
             else { $resolved.ProviderPath }
         }

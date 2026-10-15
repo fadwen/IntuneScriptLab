@@ -24,6 +24,15 @@ BeforeAll {
     # A Pester suite next to the scripts, as the suite template places it: not an Intune script
     [System.IO.File]::WriteAllText((Join-Path $script:Scripts 'IntuneScripts.Tests.ps1'),
         "BeforeAll { Import-Module IntuneScriptLab }`r`nDescribe 'x' { It 'y' { 1 | Should-Be 1 } }`r`n", $utf8Bom)
+    # A Win32 app's package content, as the suite template lays it out: the installer runs through
+    # the install command as SYSTEM, so it is not an Intune script either. Read as one, its
+    # machine-wide write is a user-context warning. 'Packages' is a folder of Win32 apps and stays in.
+    $null = New-Item -ItemType Directory -Path (Join-Path $script:Scripts 'Win32\Widget\Package') -Force
+    $null = New-Item -ItemType Directory -Path (Join-Path $script:Scripts 'Packages\Gadget') -Force
+    [System.IO.File]::WriteAllText((Join-Path $script:Scripts 'Win32\Widget\Package\install.ps1'),
+        "New-Item -Path HKLM:\SOFTWARE\Widget -Force | Out-Null`r`nexit 0`r`n", $utf8Bom)
+    [System.IO.File]::WriteAllText((Join-Path $script:Scripts 'Packages\Gadget\Detect.ps1'),
+        "Write-Output 'installed'`r`nexit 0`r`n", $utf8Bom)
 
     # -File carries the script's exit code out as the process exit code on both hosts; a switch
     # cannot be negated that way, so the quiet run uses -Command (and expects exit 0 anyway)
@@ -108,6 +117,17 @@ Describe 'Invoke-IntuneScriptGate' -Tag 'Integration', 'Gate' {
         $direct = Invoke-GateFile -Arguments @('-Path', (Join-Path $script:Scripts 'IntuneScripts.Tests.ps1'),
             '-FailOn', 'None')
         ($direct.Output -join "`n") | Should-BeLikeString '*IslModuleDependency*'
+    }
+
+    It 'leaves a Win32 Package folder out, keeps a Packages folder in, and analyzes a named installer' {
+        $run = Invoke-GateFile -Arguments @('-Path', $script:Scripts, '-Annotate', '-Root', $script:Scripts,
+            '-FailOn', 'None')
+        $run.ExitCode | Should-Be 0
+        ($run.Output -join "`n") | Should-NotBeLikeString '*Package\install.ps1*'
+        ($run.Output -join "`n") | Should-BeLikeString '*Packages\Gadget\Detect.ps1*'
+        $installer = Join-Path $script:Scripts 'Win32\Widget\Package\install.ps1'
+        $direct = Invoke-GateFile -Arguments @('-Path', $installer, '-FailOn', 'None')
+        ($direct.Output -join "`n") | Should-BeLikeString '*IslContextIssue*'
     }
 
     It 'percent-encodes the colon of an absolute path outside -Root in the file property' {

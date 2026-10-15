@@ -660,8 +660,9 @@ as a Markdown table per kind, Broken first.
 repository of Intune scripts: on every pull request that touches a script it takes the module from a
 checked-in copy when `ISL_MODULE_PATH` names its manifest, or installs it from the Gallery,
 runs [Examples/Invoke-IntuneScriptGate.ps1](./Examples/Invoke-IntuneScriptGate.ps1) over the script
-folders (a Pester suite under them, `*.Tests.ps1`, is left out) and fails the build at the chosen
-severity. The gate script annotates the changed files
+folders (a Pester suite under them, `*.Tests.ps1`, and the contents of a Win32 app's `Package`
+folder are left out) and fails the build at the chosen severity. The gate script annotates the
+changed files
 with each finding (file, line, rule, message), appends a Markdown summary to the job, and returns
 the findings with `-PassThru`; it works on any CI with `-Annotate:$false`. With `-SarifPath` it
 also writes a SARIF 2.1.0 log (`Export-IntuneFindingSarif`: a rule entry per rule with its help
