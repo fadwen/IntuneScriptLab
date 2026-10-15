@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-15
+
+Fixes to the CI pieces, found by running the gate script, the workflow template, the suite template
+and the SARIF export against a repository laid out the way the templates describe. The gate leaves
+out the two kinds of file the suite template puts under the script folders, the Pester suite and a
+Win32 app's package content, so neither fails a build for findings that do not apply to it; the
+SARIF export describes the policy rules and no longer throws on a policy check; the templates work
+on Windows on ARM and use current action versions. No verdict changes.
+
 ### Fixed
 
 - `Examples/Invoke-IntuneScriptGate.ps1` analyzed a Pester suite placed next to the scripts, where
@@ -665,7 +674,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.33.0...HEAD
+[0.33.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...v0.30.0
