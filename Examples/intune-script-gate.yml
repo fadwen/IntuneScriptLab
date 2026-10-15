@@ -27,7 +27,8 @@ env:
   # Folders holding the scripts: remediations, platform scripts, Win32 detection and requirement
   # scripts. Folder and file names tell the analysis what each script is (Remediations\<name>\
   # Detect.ps1, Win32\<app>\Detect.ps1, PlatformScripts\*.ps1); a directive comment overrides.
-  # Pester suites under them (*.Tests.ps1) are left out of the analysis.
+  # Pester suites under them (*.Tests.ps1) and the contents of a Win32 app's Package folder
+  # (Win32\<app>\Package\, what becomes the .intunewin) are left out of the analysis.
   SCRIPT_PATHS: ./Intune
   # Error fails the build; Warning is stricter; None reports only
   FAIL_ON: Error

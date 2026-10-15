@@ -11,6 +11,15 @@ release notes.
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-15
+
+Fixes to the CI pieces, found by running the gate script, the workflow template, the suite template
+and the SARIF export against a repository laid out the way the templates describe. The gate leaves
+out the two kinds of file the suite template puts under the script folders, the Pester suite and a
+Win32 app's package content, so neither fails a build for findings that do not apply to it; the
+SARIF export describes the policy rules and no longer throws on a policy check; the templates work
+on Windows on ARM and use current action versions. No verdict changes.
+
 ### Fixed
 
 - `Examples/Invoke-IntuneScriptGate.ps1` analyzed a Pester suite placed next to the scripts, where
@@ -18,6 +27,12 @@ release notes.
   IntuneScriptLab` as an `IslModuleDependency` warning, which failed a build at `-FailOn Warning`.
   Folders are searched by the gate now and `*.Tests.ps1` files are left out; a suite named directly
   on `-Path` is still analyzed.
+- The gate also analyzed the contents of a Win32 app's `Package` folder (`Win32\<app>\Package\`,
+  what becomes the `.intunewin`), and an `install.ps1` there, which the agent runs through the
+  install command as SYSTEM, was read as a user-context platform script: every machine-wide write
+  became an `IslContextIssue` warning, and the build failed at `-FailOn Warning`. Files under a
+  `Package` folder are left out of a folder search; a `Packages` folder, which holds Win32 apps,
+  stays in, and a file named directly on `-Path` is still analyzed.
 - The gate's GitHub annotations percent-encode the `file=` and `title=` values as well as the
   message, so a script outside `-Root`, whose path stays absolute, no longer ends the property list
   at its drive letter.
@@ -659,7 +674,8 @@ Nothing any command does has changed.
 
 - Static rules: `Test-IntuneScript`.
 
-[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...HEAD
+[Unreleased]: https://github.com/fadwen/IntuneScriptLab/compare/v0.33.0...HEAD
+[0.33.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.32.0...v0.33.0
 [0.32.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.31.0...v0.32.0
 [0.31.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/fadwen/IntuneScriptLab/compare/v0.29.0...v0.30.0
