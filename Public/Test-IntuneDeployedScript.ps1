@@ -221,7 +221,7 @@ function Test-IntuneDeployedScript {
                 Message    = "${what}: no device resolves the policy, so it never runs anywhere"
                 Evidence   = 'A remediation with no assignment and one with only an exclusion were absent ' +
                     'from every device''s resolved policies after an agent restart, while the same scripts ' +
-                    'with an include assignment ran (ASSIGN-NONE, ASSIGN-EXCLONLY, ASSIGN-INEX)'
+                    'with an include assignment ran (ASSIGN-NONE, ASSIGN-EXCLONLY)'
             }
             ConvertTo-PolicyFinding @noneSplat
         }
@@ -353,7 +353,7 @@ function Test-IntuneDeployedScript {
                             Evidence   = 'File doesNotExist: on a missing file the app was not detected ' +
                                 'and the install ran; on a present file the detection ended "Invalid ' +
                                 'detection rule or unable to parse detection rule" 0x87D30004 ' +
-                                '(W32-FILE-NOTEXIST, W32-FILE-NOTEXIST-PRESENT)'
+                                '(W32-FILE-NOTEXIST, W32-FILE-NOTEXIST-FALSE)'
                         }
                         ConvertTo-PolicyFinding @ruleSplat
                     }

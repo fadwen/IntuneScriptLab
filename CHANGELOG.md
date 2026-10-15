@@ -11,6 +11,17 @@ release notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- `Test-IntuneDeployedScript` cited ASSIGN-INEX, round 9's remediation included and excluded for
+  the same group, as evidence that a policy without an include never runs. That policy has an
+  include: the service drops the exclusion, and the device has run it every hour since 28 September
+  (180 probe records by 15 October, Graph run state updated 13 October, the policy unchanged since
+  its creation). The evidence names ASSIGN-NONE and ASSIGN-EXCLONLY only, and
+  `Validation/Findings.md` records the corrected result; the command's verdict on such a policy,
+  silence, was already right. Its file `doesNotExist` finding cited `W32-FILE-NOTEXIST-PRESENT`;
+  the experiment is `W32-FILE-NOTEXIST-FALSE`.
+
 ## [0.33.0] - 2026-10-15
 
 Fixes to the CI pieces, found by running the gate script, the workflow template, the suite template

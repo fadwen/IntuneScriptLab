@@ -502,7 +502,7 @@ clock runs seven hours behind UTC) and VM 126 (Entra joined by Autopilot, in ISL
 |---|---|---|---|
 | No assignment | A policy must be assigned to apply (portal) | **Never resolved**: absent from both devices' `ProcessResolvedPolicies` lists and logs; no run, no probe record (ASSIGN-NONE) | ✅ |
 | Only an exclusion | Not documented | The same: never resolved on either device (ASSIGN-EXCLONLY) | ⚠️ |
-| Include and exclude of the same group | Exclusion wins over inclusion (Intune assignment docs) | **Graph shows only the include**: `POST /assign` with both accepted, `GET /assignments` returns one `groupAssignmentTarget`. VM 125 resolved the policy and inspected its schedule (`inspect hourly schedule for policy <INEX>`, queued with the others) but **the runner never executed it**: the 25 other resolved remediations ran in the following cycle, this one did not in 55 minutes, no probe record. The exclusion holds on the device while the API hides it, so there is nothing to detect after the fact (ASSIGN-INEX) | ⚠️ |
+| Include and exclude of the same group | Exclusion wins over inclusion (Intune assignment docs) | **The exclusion is dropped and the policy runs.** `POST /assign` with both accepted, `GET /assignments` returns one `groupAssignmentTarget`, hourly. VM 125 resolved the policy at the restart and inspected its schedule, and the round's ten-minute read and a 55-minute watch saw no run, which this entry first recorded as the exclusion holding on the device. It did not hold: the device's probe file for the policy had 180 records by 2026-10-15 (120 detections, 60 remediations, all as SYSTEM), the first on the evening of 2026-09-28 and the last that morning, and Graph's `deviceRunStates` for it carry `lastStateUpdateDateTime` 2026-10-13. The policy was not changed after the round: `lastModifiedDateTime` equals `createdDateTime` and the audit log holds only its create and assign events. The service keeps the include, the device runs the policy every hour, and nothing of the exclusion survives for a tool to find (ASSIGN-INEX, corrected 2026-10-15) | ❌ |
 | Run-once schedule in the past | `deviceHealthScriptRunOnceSchedule` date, time (GRAPH-HS) | A device fetching the policy two hours after the time **ran it once at the fetch**: resolved 16:57:55, `will try to execute now` 17:03:24, detection, remediation, detection, and no second run (ASSIGN-PAST2 on VM 126). VM 125 inspected the same shape of schedule as a future time on its slow clock (ASSIGN-PAST): a device clock decides | ⚠️ |
 | SYSTEM remediation assigned to a user group | User-targeted policies apply where the user signs in (portal) | Resolved and run on VM 126 under the signed-in member's id (`"UserId":"c3b8cf61..."`, ran 17:02:55, 5 minutes after the fetch, as SYSTEM); never resolved on VM 125, where no member is signed in (ASSIGN-USERGRP) | ✅ |
 | Fetch to first run | Not documented | Fetch at the agent start (16:57:55), first run 17:02:55, five minutes later, as in round 1 | ✅ |
@@ -510,8 +510,10 @@ clock runs seven hours behind UTC) and VM 126 (Entra joined by Autopilot, in ISL
 **For the tool:** `Test-IntuneDeployedScript` warns about a policy with no assignment or only
 exclusions (`IslAssignmentIssue`), notes a run-once schedule whose time has passed
 (`IslScheduleIssue`, Information) and a user-context script assigned to a device group (skipped on
-Entra registered devices, round 1). An include and an exclude of the same group cannot be seen
-after the fact, so it is documented only.
+Entra registered devices, round 1). An include and an exclude of the same group leaves only the
+include in Graph and the policy runs on every device in the group, so there is nothing for the
+command to detect; `IslAssignmentIssue` stays silent on it, which is the right verdict for a policy
+that runs. Its evidence string cites ASSIGN-NONE and ASSIGN-EXCLONLY only.
 
 ## PowerShell 7 at run time, a built credential, and the drives SYSTEM sees
 
