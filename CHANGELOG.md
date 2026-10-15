@@ -22,6 +22,17 @@ release notes.
   silence, was already right. Its file `doesNotExist` finding cited `W32-FILE-NOTEXIST-PRESENT`;
   the experiment is `W32-FILE-NOTEXIST-FALSE`.
 
+### Changed
+
+- Validation kit: `Invoke-ValidationRound.ps1 -Action Trigger` stops the agent's process and starts
+  the service, and prints the process start time before and after, since `Restart-Service` reported
+  the service running and restarted nothing (round 11). `New-IntuneLabVm.ps1` makes its guest calls
+  through `GuestAgent.ps1` instead of its own synchronous `qm guest exec`, whose results Windows'
+  process id reuse mixed up. `Invoke-LabGuestScript.ps1`'s help describes the file-write transfer
+  and the rerun after a lost result, and it and the two probe scripts require PowerShell 7.6 like
+  the driver. The kit's README no longer points at the monorepo paths the module came from, and the
+  experiment catalog's header says what it holds.
+
 ## [0.33.0] - 2026-10-15
 
 Fixes to the CI pieces, found by running the gate script, the workflow template, the suite template

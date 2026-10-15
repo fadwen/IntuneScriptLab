@@ -42,14 +42,15 @@ function Invoke-Qm {
     $out
 }
 
+# The guest agent calls are GuestAgent.ps1's; Invoke-GuestPowerShell reads $ProxmoxHost and $VmId
+# from this scope
+. (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
+
 function Invoke-Guest {
-    # Runs PowerShell inside the VM via the guest agent; returns stdout or $null if the agent isn't up.
+    # Runs PowerShell inside the VM; $null while the agent is not up, which the OOBE wait polls on
     param([Parameter(Mandatory)][string]$Script)
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-    $raw = ssh -o BatchMode=yes $ProxmoxHost ("qm guest exec $VmId --timeout 60 -- powershell -NoProfile " +
-        "-NonInteractive -EncodedCommand $encoded") 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $raw) { return $null }
-    (($raw -join "`n") | ConvertFrom-Json).'out-data'
+    try { Invoke-GuestPowerShell -Script $Script -TimeoutSeconds 60 -WarningAction SilentlyContinue }
+    catch { $null }
 }
 
 function Wait-GuestAtOobe {

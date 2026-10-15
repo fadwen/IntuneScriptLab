@@ -1,4 +1,4 @@
-﻿# Round 1 experiments. Each script body is appended to Probe.ps1 before upload.
+﻿# The experiment catalog, rounds 1 to 11. Each script body is appended to Probe.ps1 before upload.
 # Names are prefixed with ISL- in Intune so Invoke-ValidationRound can find and remove them.
 #
 # Keys:

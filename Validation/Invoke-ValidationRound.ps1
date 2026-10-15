@@ -615,8 +615,23 @@ function Invoke-Trigger {
     [CmdletBinding(SupportsShouldProcess)]
     param()
     if ($PSCmdlet.ShouldProcess("VM $VmId", 'Restart IntuneManagementExtension')) {
-        Invoke-GuestPowerShell -Script ('Restart-Service -Name IntuneManagementExtension -Force; (Get-Service ' +
-            'IntuneManagementExtension).Status')
+        # Restart-Service reports Running and restarts nothing: the stop fails and the process keeps
+        # its start time (round 11, VM 126). Stopping the service's process and then starting the
+        # service fetched new assignments within ten minutes. Both start times are printed, so a
+        # restart that did not happen shows as an unchanged Before/After
+        Invoke-GuestPowerShell -Script @'
+$name = 'IntuneManagementExtension'
+$service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$name'"
+$before = if ($service.ProcessId) { (Get-Process -Id $service.ProcessId).StartTime.ToString('o') }
+Stop-Service -Name $name -Force -ErrorAction SilentlyContinue
+if ($service.ProcessId -and (Get-Process -Id $service.ProcessId -ErrorAction SilentlyContinue)) {
+    Stop-Process -Id $service.ProcessId -Force
+}
+Start-Service -Name $name
+$service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$name'"
+$after = if ($service.ProcessId) { (Get-Process -Id $service.ProcessId).StartTime.ToString('o') }
+"Status=$((Get-Service -Name $name).Status) Before=$before After=$after"
+'@
     }
 }
 
