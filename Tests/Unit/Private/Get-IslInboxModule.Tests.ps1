@@ -26,6 +26,11 @@ BeforeAll {
     $script:EngineModule = 'Microsoft.PowerShell.Core'
     # Pro and Enterprise features a Home edition does not ship (Windows 11 Home 24H2, ARM64)
     $script:EditionOnly = 'AppLocker', 'AppvClient', 'AssignedAccess', 'BranchCache', 'ConfigCI', 'iSCSI', 'UEV'
+    # Put under System32 by the Defender platform update rather than the Windows image, so a host
+    # whose Defender platform is still at the image's baseline does not have them yet. Two hosted
+    # ARM64 runners on the same image (windows-11-vs2026-arm64 20261013.183.4) differed on this
+    # within ten minutes of each other; a device that has updated once has both
+    $script:PlatformUpdateModules = 'ConfigDefender', 'ConfigDefenderPerformance'
     # Windows features that put a module under System32 when they are turned on: Hyper-V and the
     # container and host-guardian family. HostNetworkingService is there on a Windows 11 Home ARM64
     # host without the feature. None is on a plain device, so none is in the table
@@ -84,7 +89,7 @@ Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {
             $script:HostModules.Count | Should-BeGreaterThan 50
             $missing = @($script:Table | Where-Object {
                     $_ -ne $script:EngineModule -and $_ -notin $script:EditionOnly -and
-                    $_ -notin $script:HostModules
+                    $_ -notin $script:PlatformUpdateModules -and $_ -notin $script:HostModules
                 })
             $missing | Should-BeCollection @()
         }
