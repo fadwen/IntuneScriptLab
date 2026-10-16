@@ -11,6 +11,14 @@ release notes.
 
 ## [Unreleased]
 
+### Changed
+
+- `Validation/Findings.md` records an enrollment of the Windows 11 Home ARM64 device: in 75 minutes
+  and 11 syncs the service never sent the Intune Management Extension, so the agent's behaviour on
+  ARM64 stays a host survey until a Pro or Enterprise ARM64 device is available. The LAPS
+  settings-catalog policy failed on every node with `0x86000011` on Home, as the CSP's edition list
+  says.
+
 ## [0.34.0] - 2026-10-15
 
 A correction to the evidence behind one finding, found while writing up the validation lab. Round 9
