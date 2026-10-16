@@ -117,7 +117,9 @@ IME log evidence (registered device): `IsDeviceWPJ()` throws from `NetGetAadJoin
 
 Not from an Intune run: a read-only survey of the in-box PowerShell hosts on a Windows 11 ARM64
 device (Snapdragon X, build 26200), to know what "32-bit" and "64-bit" mean there. The Intune
-agent's own behaviour on ARM64 is still ⏳.
+agent's own behaviour on ARM64 is still ⏳: the one ARM64 device available runs Windows 11 Home, and
+an enrollment of it on 2026-10-16 (below) showed that the agent is never sent to a Home device, so
+no agent run on ARM64 has been observed.
 
 | Fact | `System32` host | `SysWOW64` host |
 |---|---|---|
@@ -133,6 +135,25 @@ agent's own behaviour on ARM64 is still ⏳.
 Consequences: everything the 32-bit rules say applies unchanged to the x86 host on ARM64; the
 "64-bit" host is native ARM64, so `PROCESSOR_ARCHITECTURE -eq 'AMD64'` is false there; there is
 no x64 PowerShell to run at all.
+
+### Windows 11 Home: the agent is never sent
+
+2026-10-16, the same ARM64 device (Surface Pro 11, Windows 11 Home 25H2, build 26200.9711), Entra
+registered and MDM enrolled through Settings > Access work or school with a licensed (E5) user at
+03:51 UTC, added to a device group of its own at 03:55, and 27 existing experiments (15 remediations,
+4 platform scripts, 8 Win32 apps) assigned to that group at 03:56. Read from the device's MDM
+diagnostic log (`DeviceManagement-Enterprise-Diagnostics-Provider/Admin`), the agent's install
+locations and the tenant's reports; nothing on the device was changed beyond the enrollment.
+
+| Documented | Observed | |
+|---|---|---|
+| The Intune Management Extension applies to supported Windows versions "excluding Windows Home and Windows devices running in S mode"; Win32 apps need Enterprise, Pro or Education; remediations need a joined device on one of those editions | **The agent is never delivered.** The device synced 11 times in 75 minutes (03:51 to 04:54 UTC, 44 MDM events) and the service addressed only `DMClient`, `NodeCache`, `Policy/ConfigOperations/ADMXInstall` and, until the group exclusion took effect, `LAPS`. Not one `EnterpriseDesktopAppManagement` command, which is how the agent's MSI arrives; no agent folder, service, log or `IntuneManagementExtension` registry key. The 27 policies have no run state for the device and the Win32 apps' device install report has no row for it, applicable or not. Intune lists the device as `skuFamily = Home`, Entra registered, compliant, and the policy evaluation stops there | ✅ |
+| LAPS CSP: Pro, Enterprise, Education and IoT Enterprise only | Every LAPS node the All-devices policy carried (`BackupDirectory`, `PasswordAgeDays`, `PasswordComplexity`, `PasswordLength`, `PostAuthenticationActions`, `PostAuthenticationResetDelay`) failed with `0x86000011` on each of the four syncs before the exclusion reached the device; nothing was applied | ✅ |
+
+**For the tool:** nothing changes. A Home device never gets the agent, so no script, remediation
+or Win32 app is ever run on it, and the rules describe what the agent does where it runs. The
+ARM64 observations above therefore remain a host survey until a Pro or Enterprise ARM64 device is
+enrolled; `Get-IslHostArchitecture` and the rules that read it stand on the survey.
 
 ## Win32 requirement scripts
 
