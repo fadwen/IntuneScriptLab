@@ -4,10 +4,8 @@ All notable changes to this module are recorded here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Versions before 0.25.0 were released from the
-[powershell_scripts](https://github.com/fadwen/powershell_scripts) repository, where the module
-lived under `Scripts/Intune/IntuneScriptLab`. Their entries are carried over from the manifest's
-release notes.
+Versions before 0.25.0 were released from a private repository where the module began; their
+entries are carried over from the manifest's release notes.
 
 ## [Unreleased]
 
@@ -21,6 +19,11 @@ release notes.
 
 ### Changed
 
+- The README's section headings no longer carry the version that introduced each feature, the
+  tenant pre-flight paragraph no longer says since when each check exists, and the roadmap points
+  at this changelog instead of listing versions; a first-time reader wants the overview, and the
+  history is here. The changelog's own preamble no longer links to the private repository the
+  module came from.
 - The `help` job in `quality-gates.yml`, the one that runs on Linux, also analyzes a folder of two
   fixture scripts with `Test-IntuneScript` and fails unless the return-before-exit detection and the
   silent Win32 detection are reported with the script type taken from the folder names. The static
