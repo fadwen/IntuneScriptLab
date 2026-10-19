@@ -11,6 +11,14 @@ release notes.
 
 ## [Unreleased]
 
+### Added
+
+- A Gallery downloads badge in the README that sums the per-version download counts, because the
+  Gallery's own total is broken (PowerShell/PowerShellGallery#347 and #350: 0 for this module, stuck
+  or wrong for others). `.github/workflows/gallery-downloads.yml` reads every version from the v2
+  feed daily and publishes a shields.io endpoint file on the `badges` branch when the number moves;
+  it is reusable from another module's repository through `workflow_call` with the package name.
+
 ### Changed
 
 - The `help` job in `quality-gates.yml`, the one that runs on Linux, also analyzes a folder of two

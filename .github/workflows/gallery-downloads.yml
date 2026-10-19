@@ -1,0 +1,102 @@
+name: Gallery downloads badge
+
+# The PowerShell Gallery's per-package total (DownloadCount, which the page and the shields.io
+# powershellgallery/dt badge read) is broken: 0 for this module, and stuck or wrong for others
+# (PowerShell/PowerShellGallery#347, #350). The per-version counts still move, so this sums them
+# and publishes a shields.io endpoint badge on the badges branch. The README reads it through
+# https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/<owner>/<repo>/badges/downloads.json
+#
+# Reusable: another module's repository calls this workflow with its package name and gets the
+# same badge on its own badges branch. The schedule below is this repository's; a caller sets
+# its own.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      package:
+        description: The Gallery package id. Defaults to the repository name.
+        type: string
+        required: false
+      label:
+        description: The badge's left-hand text.
+        type: string
+        required: false
+        default: Gallery downloads
+
+permissions:
+  contents: write
+
+jobs:
+  badge:
+    name: Sum the version downloads
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sum VersionDownloadCount over every version
+        id: sum
+        shell: pwsh
+        env:
+          PACKAGE: ${{ inputs.package || github.event.repository.name }}
+          LABEL: ${{ inputs.label || 'Gallery downloads' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The v2 feed is OData Atom. Invoke-RestMethod hands back the entries but not the paging
+          # link, so the pages are read as XML; a package with many versions spans several.
+          $uri = "https://www.powershellgallery.com/api/v2/FindPackagesById()?id='$env:PACKAGE'"
+          $versions = 0
+          $total = 0L
+          $brokenTotal = $null
+          while ($uri) {
+              $xml = [xml](Invoke-WebRequest -Uri $uri -UseBasicParsing).Content
+              foreach ($entry in @($xml.feed.entry)) {
+                  $versions++
+                  $total += [long]$entry.properties.VersionDownloadCount.'#text'
+                  $brokenTotal = $entry.properties.DownloadCount.'#text'
+              }
+              $uri = @($xml.feed.link | Where-Object rel -eq 'next' | Select-Object -First 1).href
+          }
+          if ($versions -eq 0) { throw "The Gallery returned no versions for '$env:PACKAGE'." }
+          Write-Host "$env:PACKAGE : $versions version(s), $total downloads summed (the Gallery's own total says $brokenTotal)"
+
+          $badge = [ordered]@{
+              schemaVersion = 1
+              label         = $env:LABEL
+              message       = $total.ToString('N0', [cultureinfo]::InvariantCulture)
+              color         = 'blue'
+              cacheSeconds  = 3600
+          } | ConvertTo-Json -Compress
+          Set-Content -Path downloads.json -Value $badge -NoNewline
+          "total=$total" >> $env:GITHUB_OUTPUT
+          "versions=$versions" >> $env:GITHUB_OUTPUT
+
+      # The badges branch holds nothing but the badge files, with no history in common with main,
+      # and gains a commit only when a number changed.
+      - name: Publish to the badges branch
+        shell: bash
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TOTAL: ${{ steps.sum.outputs.total }}
+          VERSIONS: ${{ steps.sum.outputs.versions }}
+        run: |
+          set -euo pipefail
+          mkdir badges && cd badges
+          git init -q -b badges
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          git remote add origin "$remote"
+          if git fetch -q origin badges 2>/dev/null; then
+              git reset -q --hard origin/badges
+          fi
+          if [ -f downloads.json ] && cmp -s downloads.json ../downloads.json; then
+              echo "Badge unchanged at ${TOTAL} downloads; nothing to publish."
+              exit 0
+          fi
+          cp ../downloads.json downloads.json
+          git add downloads.json
+          git commit -q -m "badge: ${TOTAL} downloads across ${VERSIONS} versions"
+          git push -q origin badges
+          echo "Published ${TOTAL} downloads to the badges branch."
