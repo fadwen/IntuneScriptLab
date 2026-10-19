@@ -119,7 +119,7 @@ gets an `IslAssumedContext` note saying what was assumed; `-ExcludeRule IslAssum
 
 For a mixed fleet run the analysis once per host you deploy to, e.g. `x86` and `arm64`.
 
-## Suppressions and settings (0.13)
+## Suppressions and settings
 
 ```powershell
 # One line, from a trailing or preceding directive; the whole file from the header
@@ -156,7 +156,7 @@ PSScriptAnalyzer rules and the gate pick the file up on their own.
 [Examples/IntuneScriptLab.settings.psd1](./Examples/IntuneScriptLab.settings.psd1) is a commented
 template.
 
-## Fixing what can be fixed (0.15)
+## Fixing what can be fixed
 
 ```powershell
 Repair-IntuneScript -Path .\Remediations -WhatIf
@@ -185,7 +185,7 @@ was meant, a `return` with an exit other than 0 after it in the same block (`ret
 there is no edit: `1; exit 0; exit 1` would behave the same, hide the exit the author wrote and
 leave no finding behind, so that one stays for a person. Findings carry the edit as `Fix`.
 
-## Runtime harness (0.2)
+## Runtime harness
 
 Runs a script the way the Intune Management Extension does and interprets the result the way
 Intune does. `-Context User` (the default) runs it as whoever is running the harness: Intune runs
@@ -225,7 +225,7 @@ output through the OEM code page, a timeout that kills the process tree, any non
 exit triggering the remediation, the Without issues / Fixed / Recurred / Failed mapping, last
 line + 2,048-character tail for remediations, full output for platform scripts.
 
-### SYSTEM context (0.3)
+### SYSTEM context
 
 `-Context System` on any of the runtime functions runs the script as `NT AUTHORITY\SYSTEM` in
 session 0, where the agent runs it, through a one-shot scheduled task (`cmd.exe` redirects the
@@ -238,7 +238,7 @@ flow and timeout cleanup all matched the agent's behaviour.
 Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 -Context System
 ```
 
-### Running as another account (0.18)
+### Running as another account
 
 ```powershell
 $cred = Import-Clixml C:\ProgramData\IntuneScriptLab\isl-user.cred.xml   # or Get-Credential
@@ -273,7 +273,7 @@ account granted Modify, since another account cannot reach your temp folder.
 account with a generated password stored as a DPAPI credential, and the `UserContext` integration
 suite runs against it when `ISL_TEST_CREDENTIAL` points at that file.
 
-### Win32 app flow (0.3)
+### Win32 app flow
 
 ```powershell
 Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
@@ -295,7 +295,7 @@ Deviations: `User` is the default context (SYSTEM needs elevation); stdin is an 
 stream rather than a hidden console, so a `Read-Host` returns immediately instead of hanging
 (`Test-IntuneScript` flags those); default timeouts are 5–10 minutes, not Intune's 30/60.
 
-### Win32 rules, uninstall and signature check (0.6)
+### Win32 rules, uninstall and signature check
 
 ```powershell
 # A portal-style rule against this machine, evaluated the way the agent evaluates it
@@ -339,7 +339,7 @@ and MSI rules"):
   total at the agent's script policy fetches (a service start or restart, otherwise every 8
   hours), then Failed for good.
 
-### Win32 base requirements and assignment facts (0.7)
+### Win32 base requirements and assignment facts
 
 ```powershell
 Test-IntuneWin32Requirement -Architecture x64 -MinimumWindowsRelease Windows11_23H2 -MinimumMemoryMB 4096
@@ -377,7 +377,7 @@ emulates:
   beta API on a policy that has one, it changed nothing and the remediation ran every hour; the
   same policy recreated with a detection script alone ran the detection alone.
 
-### Win32 dependencies and supersedence (0.8)
+### Win32 dependencies and supersedence
 
 ```powershell
 $runtime = @{
@@ -412,7 +412,7 @@ The relationships page of an app, run in the order the agent was observed to run
 - Each related app gets an `IntuneScriptLab.Win32RelatedResult` in `Dependencies` or `Superseded`
   with its own pre and post detection, rule results and install or uninstall run.
 
-### Reading the agent's own logs (0.9)
+### Reading the agent's own logs
 
 ```powershell
 Get-IntuneAgentLog -Id bbf7e139-fe9d-4783-80df-627b8e084059 -After (Get-Date).AddHours(-1)
@@ -435,7 +435,7 @@ and script output (`-ListEvent` shows them all). Filter by `-Log`, `-Id` (policy
 `-EventName`, `-Level`, `-After`/`-Before`, `-Pattern` and `-Last`. The files are opened with
 shared access, so the live agent is no obstacle, and a copied log folder works with `-Path`.
 
-### The Enrollment Status Page (0.19)
+### The Enrollment Status Page
 
 ```powershell
 Get-IntuneAgentLog -EventName ScriptEspPhase, EspPhase, EspAppsSelected, EspAppRegistered,
@@ -464,7 +464,7 @@ closes, and a user-context script that writes to a SYSTEM-created file under Pro
 access denied and is reported as failed despite exit 0. The help of `Invoke-IntunePlatformScriptTest`
 and `Invoke-IntuneRemediationTest` carries the same notes.
 
-### Timelines and a diagnostic package (0.23)
+### Timelines and a diagnostic package
 
 ```powershell
 Get-IntuneAgentTimeline -Log HealthScripts, AppWorkload -After (Get-Date).AddHours(-2)
@@ -496,7 +496,7 @@ subgraph an app is processed in, a skipped subgraph, the report that names the i
 its classification and conflict reason, the dependency toast, the unassigned child's missing intent
 and the content download step.
 
-### Under PSScriptAnalyzer (0.10)
+### Under PSScriptAnalyzer
 
 ```powershell
 Invoke-ScriptAnalyzer -Path .\Remediations -Recurse -CustomRulePath (Get-IntuneAnalyzerRulePath) -IncludeDefaultRules
@@ -524,7 +524,7 @@ PSScriptAnalyzer registers every custom rule as Warning and filters on that, so 
 returns none of them and `-Severity Warning` returns all of them, whatever each record says
 (PSScriptAnalyzer 1.25.0). Filter the output instead: `... | Where-Object Severity -eq Error`.
 
-### Pre-flight against the tenant (0.11)
+### Pre-flight against the tenant
 
 ```powershell
 Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
@@ -552,10 +552,10 @@ with the script type, run-as account, bitness and signature check taken from the
 than inferred, so the verdict matches what the agent will do. Four deployment-level checks come
 from the rounds: a file `doesNotExist` detection rule (the agent does not evaluate it, W32-FILE-NOTEXIST),
 a user install context app assigned to a device group (never installed, W32-USER-INSTALL), a
-remediation with no remediation script (detection runs alone, REM-DETECTONLY) and, since 0.17, an
-assignment filter whose clause no Windows device can match (a `"x64"` architecture or a
-`"Microsoft Entra joined"` trust type, FLT-V25 / FLT-E07; `IslFilterIssue`). Since 0.21 the
-assignments themselves are checked too (round 9): a policy with no assignment or only exclusions
+remediation with no remediation script (detection runs alone, REM-DETECTONLY) and an assignment
+filter whose clause no Windows device can match (a `"x64"` architecture or a
+`"Microsoft Entra joined"` trust type, FLT-V25 / FLT-E07; `IslFilterIssue`). The assignments
+themselves are checked too (round 9): a policy with no assignment or only exclusions
 is never resolved by any device (Warning), a run-once schedule whose time has passed runs once at
 the fetch on a device that has not run it (`IslScheduleIssue`, Information), and a user-context
 script assigned to devices is skipped on Entra registered devices (Information). Filter by `-Kind`,
@@ -563,7 +563,7 @@ script assigned to devices is skipped on Entra registered devices (Information).
 alone. Nothing in the tenant is changed, and the module does not depend on the Graph SDK: it uses
 the session you connected.
 
-### Assignment filters (0.17)
+### Assignment filters
 
 ```powershell
 Test-IntuneAssignmentFilter -Rule '(device.deviceName -startsWith "LAB-") and (device.operatingSystemVersion -ge 10.0.26100)'
@@ -595,7 +595,7 @@ filters from Graph. A value the service accepts but no Windows device reports (`
 assignment that carries such a filter. Evidence: `Validation/Findings.md`, "Assignment filter
 rules", produced by `Validation/Invoke-FilterProbe.ps1`.
 
-### Drift against git (0.20)
+### Drift against git
 
 ```powershell
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync
@@ -618,7 +618,7 @@ that sets the context, architecture or signature check is compared with the poli
 Policies without a local file, ambiguous matches and local files the tenant has no script for are
 states of their own, so `Where-Object State -ne InSync` is the whole gate.
 
-### Health report (0.22)
+### Health report
 
 ```powershell
 Get-IntuneScriptHealth -Path C:\Repos\intune-scripts -MarkdownPath .\intune-health.md | Where-Object Health -ne Healthy
@@ -645,7 +645,7 @@ Healthy otherwise, with the reasons in Notes. `-SkipAnalysis` and `-SkipRunState
 the run; a state that has not changed is not re-reported), `-MarkdownPath` writes the same report
 as a Markdown table per kind, Broken first.
 
-### In a GitHub Actions workflow (0.12)
+### In a GitHub Actions workflow
 
 ```yaml
 # The analyze step, in short; Examples/intune-script-gate.yml is the complete workflow
@@ -672,7 +672,7 @@ suppressions for what a directive silenced), and the template's upload step puts
 the Security tab and on the pull request when `UPLOAD_SARIF` is switched on. A second, switched-off
 job shows where the runtime harness fits once a Pester suite from the template exists.
 
-## In your own Pester suite (0.4)
+## In your own Pester suite
 
 The module exports Pester 6.2 assertions (approved-verb `Assert-*` functions under `Should-*`
 aliases, so `Import-Module` stays warning-free):
@@ -740,7 +740,4 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 
 ## Roadmap
 - 1.0 once the Gallery release has had a few rounds of real use. Everything on the original list
-  shipped: the Graph pre-flight (0.11), the GitHub Actions gate (0.12), suppressions and settings
-  (0.13), SARIF (0.14), Repair-IntuneScript (0.15), filters (0.17), another account (0.18), the
-  Enrollment Status Page (0.19), drift (0.20), assignment sanity (0.21), the health report (0.22),
-  timelines and the diagnostic zip (0.23). See [CHANGELOG.md](CHANGELOG.md).
+  has shipped; [CHANGELOG.md](CHANGELOG.md) says what arrived when.
