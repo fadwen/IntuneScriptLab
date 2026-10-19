@@ -13,6 +13,10 @@ release notes.
 
 ### Changed
 
+- The `help` job in `quality-gates.yml`, the one that runs on Linux, also analyzes a folder of two
+  fixture scripts with `Test-IntuneScript` and fails unless the return-before-exit detection and the
+  silent Win32 detection are reported with the script type taken from the folder names. The static
+  analysis needs only the file, and that is now tested where it is claimed.
 - `Validation/Findings.md` records an enrollment of the Windows 11 Home ARM64 device: in 75 minutes
   and 11 syncs the service never sent the Intune Management Extension, so the agent's behaviour on
   ARM64 stays a host survey until a Pro or Enterprise ARM64 device is available. The LAPS
