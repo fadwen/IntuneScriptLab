@@ -68,7 +68,9 @@ backslash entry names (build zips entry by entry with forward slashes).
 
 The harness launches `powershell.exe` hosts by architecture, reads the registry and registers
 scheduled tasks, so the suites run on Windows only: the `desktop` job under 5.1 and the `arm64`
-job on Windows on ARM. The `help` job proves the module imports on Linux; nothing else there runs.
+job on Windows on ARM. The `help` job proves the module imports on Linux and that
+`Test-IntuneScript` analyzes a folder there, with the script type inferred from forward-slash
+paths; no suite and no harness run there.
 
 ### Variable names are case-insensitive, and nested functions have their own `$PSBoundParameters`
 

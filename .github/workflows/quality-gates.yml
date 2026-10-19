@@ -362,3 +362,40 @@ jobs:
               throw 'MAML help was not served on a case-sensitive filesystem.'
           }
           Write-Host 'All commands served full help from MAML.'
+
+      # The static analysis is the one part of the module a Linux host can use: it needs the
+      # file and nothing else. This step keeps that true. The script type is inferred from
+      # folder names, so the fixtures use the layouts the suite template describes, with the
+      # separators this host writes; the harness and the log readers stay Windows-only.
+      - name: Analyze scripts on Linux
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./IntuneScriptLab.psd1 -Force
+
+          $root = Join-Path ([System.IO.Path]::GetTempPath()) "isl-linux-$([guid]::NewGuid().ToString('N'))"
+          $remediation = Join-Path $root 'Remediations/Widget'
+          $win32 = Join-Path $root 'Win32/Widget'
+          New-Item -ItemType Directory -Path $remediation, $win32 -Force | Out-Null
+          # return before exit 1: the remediation never runs (IslExitCodeIssue, Error)
+          Set-Content -Path (Join-Path $remediation 'Detect.ps1') -Value "if (Test-Path /tmp/x) { return 'ok' }`nexit 1"
+          # exit 0 with nothing on stdout: the app is never detected (IslOutputIssue, Error)
+          Set-Content -Path (Join-Path $win32 'Detect.ps1') -Value "if (Test-Path /tmp/x) { exit 0 }`nexit 1"
+
+          $findings = @(Test-IntuneScript -Path $root)
+          $findings | Format-Table Severity, RuleName, Line, @{ n = 'Script'; e = { Split-Path (Split-Path $_.ScriptPath) -Leaf } } -AutoSize | Out-String | Write-Host
+
+          $failed = @()
+          $exit = @($findings | Where-Object { $_.RuleName -eq 'IslExitCodeIssue' -and $_.Severity -eq 'Error' -and $_.ScriptPath -like '*Remediations*' })
+          if (-not $exit) { $failed += 'the return-before-exit detection was not reported' }
+          $output = @($findings | Where-Object { $_.RuleName -eq 'IslOutputIssue' -and $_.Severity -eq 'Error' -and $_.ScriptPath -like '*Win32*' })
+          if (-not $output) { $failed += 'the silent Win32 detection was not reported' }
+          $context = @($findings | Where-Object { $_.RuleName -eq 'IslAssumedContext' -and $_.Message -like '*Win32Detection*' })
+          if (-not $context) { $failed += 'the Win32 folder did not set the script type' }
+          Remove-Item -Path $root -Recurse -Force
+
+          if ($failed) {
+              $failed | ForEach-Object { Write-Host "FAILED: $_" }
+              throw 'Test-IntuneScript did not analyze the fixtures on Linux.'
+          }
+          Write-Host 'Test-IntuneScript analyzed both fixtures on Linux with the expected findings.'
