@@ -738,6 +738,22 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 | Runtime result differs from what Intune showed | Compare what the result carries as Intune reports it: `IntuneOutput` and `IntuneError` on a remediation result, `StdOut`, `StdErr` and `ExitCode` on a detection, platform script or requirement result (OEM code page; the 2,048-character tail where the portal caps it). The `-Verbose` switch prints each step. |
 | Pester says `Should-HaveIntuneStatus` is not recognised | The aliases come from this module, not Pester: `Import-Module IntuneScriptLab` in `BeforeAll`, and use Pester 6.2 or later (`New-ShouldAssertion`). |
 
+## Blog posts
+
+The [IntuneScriptLab series](https://www.techbyjeff.net/series/intunescriptlab/) on techbyjeff.net, in reading order:
+
+- [Testing Intune Scripts Before Intune Does](https://www.techbyjeff.net/testing-intune-scripts-before-intune-does/)
+- [Linting Intune Scripts With Rules Measured on Real Devices](https://www.techbyjeff.net/linting-intune-scripts-with-rules-measured-on-real-devices/)
+- [Running Intune Scripts Locally the Way the Agent Does](https://www.techbyjeff.net/running-intune-scripts-locally-the-way-the-agent-does/)
+- [What the Intune Agent Counts as Installed](https://www.techbyjeff.net/what-the-intune-agent-counts-as-installed/)
+- [Intune Assignment Filters That Never Match](https://www.techbyjeff.net/intune-assignment-filters-that-never-match/)
+- [Reading the Intune Management Extension Logs as Objects](https://www.techbyjeff.net/reading-the-intune-management-extension-logs-as-objects/)
+- [Auditing the Scripts Already in Your Intune Tenant](https://www.techbyjeff.net/auditing-the-scripts-already-in-your-intune-tenant/)
+- [Intune Rules Inside PSScriptAnalyzer](https://www.techbyjeff.net/intune-rules-inside-psscriptanalyzer/)
+- [Gating Intune Scripts in a Pull Request](https://www.techbyjeff.net/gating-intune-scripts-in-a-pull-request/)
+- [Measuring the Intune Agent on Three Proxmox VMs](https://www.techbyjeff.net/measuring-the-intune-agent-on-three-proxmox-vms/)
+- [Where to Start With a Broken Intune Script](https://www.techbyjeff.net/where-to-start-with-a-broken-intune-script/)
+
 ## Roadmap
 - 1.0 once the Gallery release has had a few rounds of real use. Everything on the original list
   has shipped; [CHANGELOG.md](CHANGELOG.md) says what arrived when.
