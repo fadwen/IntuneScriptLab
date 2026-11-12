@@ -145,7 +145,10 @@ the publish itself is gated by `ShouldProcess`.
 
 Bump `ModuleVersion`, update `CHANGELOG.md` and the manifest's `ReleaseNotes`, then
 `git tag v<ModuleVersion> && git push origin v<ModuleVersion>`. `.github/workflows/release.yml`
-re-runs every gate, rejects a tag that disagrees with the manifest, stages, verifies and publishes.
+re-runs every gate, rejects a tag that disagrees with the manifest, stages, verifies and publishes,
+then creates the tag's GitHub release from that version's `## [<version>]` CHANGELOG section. That
+section must exist and must not be empty, or the job fails; a dry run checks it too. A release that
+already exists for the tag is left as written.
 The API key is the `PSGALLERY_API_KEY` repository secret, passed as an environment variable.
 Locally the script resolves `-ApiKey`, then `$env:PSGALLERY_API_KEY`, then a SecretManagement
 secret named `PSGallery-ApiKey`.
