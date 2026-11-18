@@ -18,8 +18,8 @@ Thank you for looking. Issues and pull requests are welcome.
 ## The conventions
 
 General PowerShell conventions - module layout, comment-based help, Pester, error handling - are
-mirrored into `.github/` from
-[ai-powershell-standards](https://github.com/fadwen/ai-powershell-standards). Those paths are
+installed into `.github/`, `.claude/` and `.agents/` from
+[ai-powershell-standards](https://github.com/fadwen/ai-powershell-standards). Those files are
 overwritten on every sync, so a change to a convention belongs upstream.
 
 Everything specific to this module is in `CLAUDE.md`. The ones most often tripped over:
