@@ -18,7 +18,7 @@
 
         A new public function has no Markdown yet: write its comment-based help first, run
         New-MarkdownCommandHelp for it into docs\, then replace the help block with .EXTERNALHELP
-        (see .github\instructions\platyps.instructions.md for why that order matters).
+        (see .github\instructions\powershell-platyps.instructions.md for why that order matters).
 
         Update-MarkdownCommandHelp adds an INPUTS heading for every pipeline parameter type it
         finds, with a placeholder body if the Markdown lacks it; the build stops on placeholders,
@@ -28,10 +28,24 @@
         Compile the Markdown as it is without folding in signature changes first. Useful when the
         Markdown was edited by hand and the module has not changed.
 
+    .PARAMETER ValidateOnly
+        Run the checks on the committed Markdown without folding signatures in and without
+        compiling: the pull request gate. Nothing is written.
+
+    .PARAMETER ModuleRoot
+        The repository root, which is the module root. Defaults to the parent of the folder that
+        holds this script.
+
     .EXAMPLE
         .\Build\Build-Help.ps1
 
         Refreshes docs\ from the loaded module and rebuilds en-US\IntuneScriptLab-Help.xml.
+
+    .EXAMPLE
+        .\Build\Build-Help.ps1 -ValidateOnly
+
+        Checks the committed Markdown for structure, placeholders and relative links, and writes
+        nothing.
 
     .EXAMPLE
         .\Build\Build-Help.ps1 -SkipUpdate -Verbose
@@ -59,122 +73,137 @@
 #>
 [CmdletBinding()]
 param(
+    [Parameter()]
     [switch]$SkipUpdate,
 
-    # Run the checks on the committed Markdown without folding signatures in or compiling: the
-    # pull request gate
+    [Parameter()]
     [switch]$ValidateOnly,
 
-    # Repository root, the module root; the parent of the folder holding this script
+    [Parameter()]
     [ValidateNotNullOrEmpty()]
-    [string]$ModuleRoot = (Split-Path -Parent $PSScriptRoot)
+    [string]$ModuleRoot = (Split-Path -Path $PSScriptRoot -Parent)
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$moduleRoot = $ModuleRoot
-if ($ValidateOnly) { $SkipUpdate = $true }
-$docs = Join-Path $moduleRoot 'docs\IntuneScriptLab'
-$culture = Join-Path $moduleRoot 'en-US'
-$maml = Join-Path ([IO.Path]::GetTempPath()) "IntuneScriptLab-maml-$([guid]::NewGuid())"
 
-Import-Module (Join-Path $moduleRoot 'IntuneScriptLab.psd1') -Force
-$module = Get-Module IntuneScriptLab
+# -ValidateOnly reads the committed Markdown as it is, so it implies -SkipUpdate
+$skipSignatureUpdate = $SkipUpdate -or $ValidateOnly
+$docsRoot = Join-Path -Path $ModuleRoot -ChildPath 'docs'
+$docs = Join-Path -Path $docsRoot -ChildPath 'IntuneScriptLab'
+$markdownPattern = Join-Path -Path $docs -ChildPath '*.md'
+$culture = Join-Path -Path $ModuleRoot -ChildPath 'en-US'
+$shipped = Join-Path -Path $culture -ChildPath 'IntuneScriptLab-Help.xml'
+$maml = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab-maml-$([guid]::NewGuid())"
+$manifestPath = Join-Path -Path $ModuleRoot -ChildPath 'IntuneScriptLab.psd1'
 
-function Export-IslMaml {
-    # Compiles docs\IntuneScriptLab\*.md into en-US\IntuneScriptLab-Help.xml
-    $null = Measure-PlatyPSMarkdown -Path "$docs\*.md" |
-        Where-Object Filetype -match 'CommandHelp' |
-        Import-MarkdownCommandHelp -Path { $_.FilePath } |
-        Export-MamlCommandHelp -OutputFolder $maml -Force
-    $built = Get-ChildItem $maml -Recurse -Filter 'IntuneScriptLab-Help.xml' | Select-Object -First 1
-    if (-not $built) {
-        throw "Export-MamlCommandHelp produced no IntuneScriptLab-Help.xml under $maml"
-    }
-    $null = New-Item -ItemType Directory -Path $culture -Force
-    Copy-Item $built.FullName (Join-Path $culture 'IntuneScriptLab-Help.xml') -Force
-    Remove-Item $maml -Recurse -Force
-}
+Import-Module -Name $manifestPath -Force
+$module = Get-Module -Name IntuneScriptLab
 
-if (-not $SkipUpdate) {
+if (-not $skipSignatureUpdate) {
     # A build that stopped on a validation error leaves the update's backups behind, and the next
     # update refuses to overwrite them
-    Get-ChildItem $docs -Filter '*.bak' -ErrorAction SilentlyContinue | Remove-Item -Force
+    Get-ChildItem -LiteralPath $docs -Filter '*.bak' -ErrorAction SilentlyContinue | Remove-Item -Force
 
     # Update-MarkdownCommandHelp merges every parameter description Get-Help returns, and Get-Help
     # renders the shipped MAML one sentence per line, so the text never equals the Markdown and
     # comes back appended under it on every run. Park the MAML during the update: with no help
     # to merge, the update touches only the syntax and metadata, which is all it is here for.
-    $shipped = Join-Path $culture 'IntuneScriptLab-Help.xml'
     $parked = "$shipped.updating"
-    if (Test-Path $shipped) { Move-Item $shipped $parked -Force }
+    if (Test-Path -LiteralPath $shipped) {
+        Move-Item -LiteralPath $shipped -Destination $parked -Force
+    }
     try {
-        Import-Module (Join-Path $moduleRoot 'IntuneScriptLab.psd1') -Force
+        Import-Module -Name $manifestPath -Force
 
+        # Update-MarkdownCommandHelp and New-MarkdownCommandHelp of Microsoft.PowerShell.PlatyPS
+        # 1.0.3 end with "The property 'defaultValue' cannot be found on this object" for a
+        # command that has parameters when strict mode is on in the scope that calls them. Each
+        # therefore runs in a child scope with strict mode off; the rest of the script keeps it.
         Write-Verbose 'Folding signature changes into docs\IntuneScriptLab\*.md'
-        $null = Measure-PlatyPSMarkdown -Path "$docs\*.md" |
-            Where-Object Filetype -match 'CommandHelp' |
-            Update-MarkdownCommandHelp -Path { $_.FilePath }
+        & {
+            Set-StrictMode -Off
+            $null = Measure-PlatyPSMarkdown -Path $markdownPattern |
+                Where-Object -Property Filetype -Match -Value 'CommandHelp' |
+                Update-MarkdownCommandHelp -Path { $_.FilePath }
+        }
 
         # Public functions added since the last run have no Markdown yet. Their comment-based
         # help is the seed, so they are generated with the MAML still parked
-        $documented = (Get-ChildItem $docs -Filter *.md).BaseName
-        $missing = $module.ExportedFunctions.Keys | Where-Object { $_ -notin $documented }
-        if ($missing) {
+        $documented = @(Get-ChildItem -LiteralPath $docs -Filter '*.md' | ForEach-Object { $_.BaseName })
+        $missing = @($module.ExportedFunctions.Keys | Where-Object { $_ -notin $documented })
+        if ($missing.Count -gt 0) {
             Write-Verbose "Generating first-time Markdown for: $($missing -join ', ')"
-            $markdownHelpSplat = @{
-                CommandInfo  = Get-Command $missing
-                OutputFolder = Split-Path $docs
-                Locale       = 'en-US'
+            $markdownHelpParameters = @{
+                CommandInfo = Get-Command -Name $missing
+                OutputFolder = $docsRoot
+                Locale = 'en-US'
             }
-            $null = New-MarkdownCommandHelp @markdownHelpSplat
+            & {
+                Set-StrictMode -Off
+                $null = New-MarkdownCommandHelp @markdownHelpParameters
+            }
         }
 
         Write-Verbose 'Refreshing the module page'
-        $null = Measure-PlatyPSMarkdown -Path "$docs\*.md" |
-            Where-Object Filetype -match 'CommandHelp' |
+        $null = Measure-PlatyPSMarkdown -Path $markdownPattern |
+            Where-Object -Property Filetype -Match -Value 'CommandHelp' |
             Import-MarkdownCommandHelp -Path { $_.FilePath } |
-            Update-MarkdownModuleFile -Path (Join-Path $docs 'IntuneScriptLab.md')
-    }
-    finally {
-        if (Test-Path $parked) { Move-Item $parked $shipped -Force }
+            Update-MarkdownModuleFile -Path (Join-Path -Path $docs -ChildPath 'IntuneScriptLab.md')
+    } finally {
+        if (Test-Path -LiteralPath $parked) {
+            Move-Item -LiteralPath $parked -Destination $shipped -Force
+        }
     }
 }
 
 Write-Verbose 'Validating the Markdown structure'
-$invalid = Measure-PlatyPSMarkdown -Path "$docs\*.md" |
-    Where-Object Filetype -match 'CommandHelp' |
-    Test-MarkdownCommandHelp -Path { $_.FilePath } -DetailView |
-    Where-Object { -not $_.IsValid }
-if ($invalid) {
+$invalid = @(Measure-PlatyPSMarkdown -Path $markdownPattern |
+        Where-Object -Property Filetype -Match -Value 'CommandHelp' |
+        Test-MarkdownCommandHelp -Path { $_.FilePath } -DetailView |
+        Where-Object { -not $_.IsValid })
+if ($invalid.Count -gt 0) {
     throw "Markdown help failed validation: $(($invalid | ForEach-Object { $_.Path }) -join ', ')"
 }
 
 # A relative link passes Test-MarkdownCommandHelp and then breaks Get-Help at read time; only a
 # bare topic ([Name]()) or an absolute URL is allowed
-$relative = Select-String -Path "$docs\*.md" -Pattern '^\s*-?\s*\[.+\]\((?!https?://|\))'
-if ($relative) {
-    $where = ($relative | ForEach-Object { "$($_.Filename):$($_.LineNumber)" }) -join ', '
-    throw "Relative link in help Markdown: $where"
+$relative = @(Select-String -Path $markdownPattern -Pattern '^\s*-?\s*\[.+\]\((?!https?://|\))')
+if ($relative.Count -gt 0) {
+    $places = ($relative | ForEach-Object { "$($_.Filename):$($_.LineNumber)" }) -join ', '
+    throw "Relative link in help Markdown: $places"
 }
 
-# "{{ Fill in the Description }}" for a new command, "{{ Fill <Name> Description }}" for a new parameter
-$unfilled = Select-String -Path "$docs\*.md" -Pattern '\{\{\s*Fill' -List
-if ($unfilled) {
-    throw "Help templates still contain placeholders: $(($unfilled.Path | Split-Path -Leaf) -join ', ')"
+# Any placeholder in double braces: "{{ Fill in the Description }}" for a new command,
+# "{{ Fill <Name> Description }}" for a new parameter
+$unfilled = @(Select-String -Path $markdownPattern -Pattern '\{\{[^}]*\}\}' -List)
+if ($unfilled.Count -gt 0) {
+    $names = ($unfilled | ForEach-Object { Split-Path -Path $_.Path -Leaf }) -join ', '
+    throw "Help templates still contain placeholders: $names"
 }
 
+$markdownCount = @(Get-ChildItem -LiteralPath $docs -Filter '*.md').Count
 if ($ValidateOnly) {
-    $count = (Get-ChildItem $docs -Filter *.md).Count
     Write-Information -InformationAction Continue -MessageData (
-        "Help Markdown valid: $count files, no placeholders, no relative links")
+        "Help Markdown valid: $markdownCount files, no placeholders, no relative links")
     return
 }
 
 Write-Verbose 'Compiling MAML'
-Export-IslMaml
+$null = Measure-PlatyPSMarkdown -Path $markdownPattern |
+    Where-Object -Property Filetype -Match -Value 'CommandHelp' |
+    Import-MarkdownCommandHelp -Path { $_.FilePath } |
+    Export-MamlCommandHelp -OutputFolder $maml -Force
+$built = Get-ChildItem -LiteralPath $maml -Recurse -Filter 'IntuneScriptLab-Help.xml' | Select-Object -First 1
+if ($null -eq $built) {
+    throw "Export-MamlCommandHelp produced no IntuneScriptLab-Help.xml under $maml"
+}
+$null = New-Item -ItemType Directory -Path $culture -Force
+Copy-Item -LiteralPath $built.FullName -Destination $shipped -Force
+Remove-Item -LiteralPath $maml -Recurse -Force
 
 # Backups from Update-MarkdownCommandHelp; git holds the previous version
-Get-ChildItem $docs -Filter '*.bak' -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem -LiteralPath $docs -Filter '*.bak' -ErrorAction SilentlyContinue | Remove-Item -Force
 
 Write-Information -InformationAction Continue -MessageData (
-    "Help built: $((Get-ChildItem $docs -Filter *.md).Count) Markdown files, en-US\IntuneScriptLab-Help.xml")
+    "Help built: $markdownCount Markdown files, en-US\IntuneScriptLab-Help.xml")
