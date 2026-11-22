@@ -286,6 +286,8 @@ Describe 'Get-IslAgentLogEvent' -Tag 'Unit', 'Private' {
             '{"ApplicationId":"ec9586f0-3333-4cfb-a8fb-d780079278f6","ResultantAppState":3,' +
             '"ReportingImpact":{"DesiredState":3,"Classification":1,"ConflictReason":2,"ImpactingApps":' +
             '[{"AppId":"b107041b-4444-4cfb-a8fb-d780079278f6","RelationshipType":0}]},"ReportingImpact2":{}}'
+        # The table is compiled on the first call, so make one: this test may run first
+        $null = InModuleScope IntuneScriptLab { Get-IslAgentLogEvent -Message 'first check in on start' }
         $table = InModuleScope IntuneScriptLab { $script:IslAgentLogEvents }
         $fitting = @($table | Where-Object { $_.Regex.IsMatch($text) } | ForEach-Object { $_.Event })
         $fitting | Should-BeCollection @('AppRelationshipReport', 'AppReport')

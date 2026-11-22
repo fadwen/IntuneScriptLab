@@ -51,6 +51,11 @@ entries are carried over from the manifest's release notes.
   The PowerShell Gallery has no such limit on the list it shows, which carries two tags for every
   exported command, so the check could only ever refuse a release the Gallery would accept.
 
+### Fixed
+
+- A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
+  whenever the shuffled order of the CI run put it first in its file. It builds the table first.
+
 ## [0.34.0] - 2026-10-15
 
 A correction to the evidence behind one finding, found while writing up the validation lab. Round 9
