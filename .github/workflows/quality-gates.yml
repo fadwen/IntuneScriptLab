@@ -1,14 +1,20 @@
 # Quality gates for IntuneScriptLab.
 #
-# Four jobs, because the module makes claims that can only fail on different hosts:
+# Five jobs, because the module makes claims that can only fail on different hosts:
 #
 #   tests     Windows, PowerShell 7. PSScriptAnalyzer at Error and Warning over the module, the
-#             kit and the tests, the 115-character line limit, then the whole Pester suite (the
-#             module's unit and integration suites and the validation kit's unit suite) shuffled,
-#             with an 80% coverage gate over Public/ and Private/. Nothing here reaches a tenant:
-#             every Graph call in the suites goes through the mocked Invoke-IslGraphRequest seam,
-#             and the suites that need an elevated session, a lab account or a Graph connection
-#             skip themselves.
+#             kit and the tests, its ScriptSecurity rules, the 115-character line limit, then the
+#             whole Pester suite (the module's unit and integration suites and the validation
+#             kit's unit suite) with an 80% coverage gate over Public/ and Private/. Nothing here
+#             reaches a tenant: every Graph call in the suites goes through the mocked
+#             Invoke-IslGraphRequest seam, and the suites that need an elevated session, a lab
+#             account or a Graph connection skip themselves.
+#
+#   Every Pester run goes through Tests/Invoke-Tests.ps1, the script a developer runs as well. It
+#   shuffles the order, so a test that only passes because of what ran before it fails here
+#   rather than on somebody's machine, and it fails when Pester's result is not Passed, which
+#   covers a failed BeforeAll or AfterAll and a file that failed discovery, or when no tests ran.
+#   The seed is in the failure message and in the job summary; -ShuffleSeed repeats that order.
 #
 #   desktop   Windows PowerShell 5.1. The scripts the module analyzes run under 5.1 on the
 #             device, and so does the module: the manifest declares CompatiblePSEditions Desktop
@@ -32,6 +38,11 @@
 #             reference matches the rules, and Get-Help serves every command's full help on a
 #             case-sensitive filesystem - the only place the -Help.xml capital H can fail.
 #
+#   rehearsal Windows. The release as far as the upload: Build/Publish-Module.ps1 -WhatIf builds
+#             the help, measures the manifest against the Gallery's limits, stages the allowlist
+#             and imports the staged copy in a new process. A release that would fail at the tag
+#             fails at the pull request instead.
+#
 # There is no Linux test job on purpose: the harness launches Windows PowerShell hosts, reads
 # the registry and registers scheduled tasks, and the rules are about what happens on a Windows
 # device. The module imports on Linux, which the help job proves.
@@ -45,6 +56,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+  # Nightly, so that a change outside the repository shows up within a day: a new runner image,
+  # a Windows update that adds an in-box module, a Gallery that stops serving a pinned tool.
+  schedule:
+    - cron: '30 4 * * *'
+
   # Callable so release.yml can run these exact gates before publishing. A tag can be pushed
   # at any commit, including one that never passed a pull request, so the release re-runs the
   # gates rather than trusting that they ran at some point.
@@ -54,7 +70,7 @@ permissions:
   contents: read
 
 env:
-  # Style limit from .github/instructions/style-enforcement.instructions.md
+  # Style limit, STY-03 in .github/instructions/powershell-style.instructions.md
   MAX_LINE_LENGTH: '115'
 
 jobs:
@@ -69,15 +85,15 @@ jobs:
       - name: Install build modules
         shell: pwsh
         run: |
-          # Runners ship Pester 5.x. Pester 6 must be installed explicitly, and the version
-          # range keeps a future Pester 7 from silently changing the assertion surface. The
-          # floor is 6.2 to match the #Requires line every suite carries.
-          Install-PSResource -Name Pester -Version '[6.2.0,7.0.0)' -Scope CurrentUser -TrustRepository
-          Install-PSResource -Name PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+          $ErrorActionPreference = 'Stop'
+          # Runners ship Pester 5.x. Both tools are installed at one fixed version: a newer
+          # release can change what an assertion or a rule means, and with it what a passing
+          # build means. 6.2.0 is the version the #Requires line of every suite names.
+          Install-PSResource -Name Pester -Version 6.2.0 -Scope CurrentUser -TrustRepository
+          Install-PSResource -Name PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository
           $PSVersionTable | ConvertTo-Json -Depth 3
 
-      # The mirrored standards folder holds examples that are not this module's code; the
-      # module, the kit, the build scripts and the tests are what is gated.
+      # The module, the kit, the build scripts and the tests are what is gated.
       - name: PSScriptAnalyzer and line length
         shell: pwsh
         run: |
@@ -103,58 +119,38 @@ jobs:
           }
           Write-Host "PSScriptAnalyzer clean, no line over $env:MAX_LINE_LENGTH characters, in $($files.Count) files."
 
+      # The static part of a security gate: plain-text passwords, user name and password
+      # parameters, ConvertTo-SecureString -AsPlainText and hard-coded computer names, at every
+      # severity. The module has no dependency to scan, and secret scanning is a repository
+      # setting rather than a step.
+      - name: PSScriptAnalyzer security rules
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $folders = 'Public', 'Private', 'PSScriptAnalyzer', 'Examples', 'Build', 'Tests', 'Validation'
+          $files = @(Get-ChildItem -Path $folders -Recurse -Include *.ps1, *.psm1, *.psd1 -File) +
+              @(Get-Item ./IntuneScriptLab.psd1, ./IntuneScriptLab.psm1)
+          $issues = @($files | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Settings ScriptSecurity })
+          if ($issues) {
+              $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
+              throw "The security rules reported $($issues.Count) issue(s)."
+          }
+          Write-Host "No security finding in $($files.Count) files."
+
+      # Every suite, shuffled, with the 80% coverage gate. The reports are written before the
+      # checks run, so a failed run still leaves both files to upload.
       - name: Pester with coverage
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module Pester -MinimumVersion 6.2.0
-          $cfg = New-PesterConfiguration
-          $cfg.Run.Path = './Tests', './Validation/Tests'
-          $cfg.Run.PassThru = $true
-          $cfg.Output.Verbosity = 'Detailed'
-          $cfg.Should.DisableV5 = $true
-          # Shuffled, so a test that only passes because of what ran before it fails here rather
-          # than on somebody's machine. The seed is printed so a failing order can be replayed
-          # locally with $cfg.Run.ShuffleSeed.
-          $seed = Get-Random -Minimum 1 -Maximum 2147483647
-          $cfg.Run.Shuffle = $true
-          $cfg.Run.ShuffleSeed = $seed
-          Write-Host "Pester shuffle seed: $seed"
-
-          $cfg.CodeCoverage.Enabled = $true
-          $cfg.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1', './Private/Rules/*.ps1'
-          # CoveragePercentTarget only reports; the gate below is what enforces it.
-          $cfg.CodeCoverage.CoveragePercentTarget = 80
-          # Written before the gates below run, so a failed run still leaves both files to upload
-          $cfg.CodeCoverage.OutputPath = 'coverage.xml'
-          $cfg.TestResult.Enabled = $true
-          $cfg.TestResult.OutputPath = 'testResults.xml'
-
-          $result = Invoke-Pester -Configuration $cfg
-
-          # A file that fails discovery contributes nothing to FailedCount, so both are checked.
-          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
-              throw ("$($result.FailedCount) test(s) and $($result.FailedContainersCount) " +
-                  "container(s) failed under shuffle seed $seed.")
-          }
-
-          $coverage = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
-          Write-Host "Code coverage: $coverage%"
-          "## Pester`n`nPassed $($result.PassedCount), failed $($result.FailedCount), skipped " +
-              "$($result.SkippedCount); coverage $coverage% (seed $seed)." |
-              Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
-          if ($coverage -lt 80) {
-              throw "Code coverage $coverage% is below the 80% gate."
-          }
+          ./Tests/Invoke-Tests.ps1 -CodeCoverage -OutputPath ./reports -Output Detailed -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload test results and coverage
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: tests-and-analysis
-          path: |
-            testResults.xml
-            coverage.xml
+          path: reports/
           if-no-files-found: warn
 
   desktop:
@@ -190,44 +186,31 @@ jobs:
           if ($noHelp) { throw "Commands serving no help under 5.1: $($noHelp -join ', ')" }
           Write-Host "All $($actual.Count) commands exported with help under Windows PowerShell 5.1."
 
-      # Pester 6 declares PowerShellVersion 5.1 and runs the suite unchanged.
+      # Pester 6 declares PowerShellVersion 5.1 and runs the suite unchanged. Windows PowerShell
+      # has no PSResourceGet, so PowerShellGet installs the same fixed version the other jobs use.
       - name: Install Pester
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          Install-Module -Name Pester -MinimumVersion 6.2.0 -MaximumVersion 6.99.99 -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
-          Import-Module Pester -MinimumVersion 6.2.0
+          Install-Module -Name Pester -RequiredVersion 6.2.0 -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
+          Import-Module Pester -RequiredVersion 6.2.0
           "Pester $((Get-Module Pester).Version) on PowerShell $($PSVersionTable.PSVersion)" | Write-Host
 
+      # The integration suite as well: it launches the 5.1 hosts the harness uses on a device.
+      # The hosted runner's token is not elevated (IsInRole Administrator is false), so the
+      # SYSTEM-context tests skip here as they do under pwsh; they run on the lab devices
       - name: Pester under Windows PowerShell 5.1
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module Pester -MinimumVersion 6.2.0
-          $cfg = New-PesterConfiguration
-          # The integration suite as well: it launches the 5.1 hosts the harness uses on a device.
-          # The hosted runner's token is not elevated (IsInRole Administrator is false), so the
-          # SYSTEM-context tests skip here as they do under pwsh; they run on the lab devices
-          $cfg.Run.Path = './Tests/Unit', './Tests/Integration', './Validation/Tests/Unit'
-          $cfg.Run.PassThru = $true
-          $cfg.Output.Verbosity = 'Normal'
-          $cfg.Should.DisableV5 = $true
-          $cfg.TestResult.Enabled = $true
-          $cfg.TestResult.OutputPath = 'testResults-desktop.xml'
-          $result = Invoke-Pester -Configuration $cfg
-          "## Pester under Windows PowerShell 5.1`n`nPassed $($result.PassedCount), failed $($result.FailedCount), " +
-              "skipped $($result.SkippedCount)." | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
-          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
-              throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed under Windows PowerShell 5.1."
-          }
-          Write-Host "Passed $($result.PassedCount), skipped $($result.SkippedCount) under Windows PowerShell 5.1."
+          ./Tests/Invoke-Tests.ps1 -OutputPath ./reports -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: windows-powershell-5-1
-          path: testResults-desktop.xml
+          path: reports/
           if-no-files-found: warn
 
   arm64:
@@ -241,8 +224,9 @@ jobs:
       - name: Install Pester
         shell: pwsh
         run: |
-          Install-PSResource -Name Pester -Version '[6.2.0,7.0.0)' -Scope CurrentUser -TrustRepository
-          Import-Module Pester -MinimumVersion 6.2.0
+          $ErrorActionPreference = 'Stop'
+          Install-PSResource -Name Pester -Version 6.2.0 -Scope CurrentUser -TrustRepository
+          Import-Module Pester -RequiredVersion 6.2.0
           "Pester $((Get-Module Pester).Version) on $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)" |
               Write-Host
 
@@ -250,27 +234,14 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Import-Module Pester -MinimumVersion 6.2.0
-          $cfg = New-PesterConfiguration
-          $cfg.Run.Path = './Tests/Unit', './Validation/Tests/Unit'
-          $cfg.Run.PassThru = $true
-          $cfg.Output.Verbosity = 'Normal'
-          $cfg.Should.DisableV5 = $true
-          $cfg.TestResult.Enabled = $true
-          $cfg.TestResult.OutputPath = 'testResults-arm64.xml'
-          $result = Invoke-Pester -Configuration $cfg
-          "## Pester on Windows on ARM`n`nPassed $($result.PassedCount), failed $($result.FailedCount), " +
-              "skipped $($result.SkippedCount)." | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
-          if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
-              throw "$($result.FailedCount) test(s) and $($result.FailedContainersCount) container(s) failed on ARM64."
-          }
+          ./Tests/Invoke-Tests.ps1 -TestType Unit -OutputPath ./reports -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: windows-on-arm
-          path: testResults-arm64.xml
+          path: reports/
           if-no-files-found: warn
 
   help:
@@ -288,6 +259,7 @@ jobs:
       - name: Install PlatyPS
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Version '1.0.3' -Scope CurrentUser -TrustRepository
           $PSVersionTable | ConvertTo-Json -Depth 3
 
@@ -399,3 +371,27 @@ jobs:
               throw 'Test-IntuneScript did not analyze the fixtures on Linux.'
           }
           Write-Host 'Test-IntuneScript analyzed both fixtures on Linux with the expected findings.'
+
+  rehearsal:
+    name: 'Release rehearsal'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The same pin as the help job: the rehearsal rebuilds the MAML, and a different PlatyPS
+      # version would emit different XML than the committed help.
+      - name: Install PlatyPS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Version '1.0.3' -Scope CurrentUser -TrustRepository
+
+      # Everything the release does except the upload, which -WhatIf holds back. No API key is
+      # read under -WhatIf, so the job needs no secret.
+      - name: Stage and verify the package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./Build/Publish-Module.ps1 -WhatIf

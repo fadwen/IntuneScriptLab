@@ -40,7 +40,7 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 ## The checks
 
 ```powershell
-Invoke-Pester ./Tests, ./Validation/Tests               # a few minutes; suites needing elevation,
+./Tests/Invoke-Tests.ps1                                # a few minutes, shuffled; suites needing elevation,
                                                         # a lab account or PSScriptAnalyzer skip themselves
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
 ./Build/Build-Help.ps1                                  # after editing docs/
@@ -51,8 +51,11 @@ Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSA
 Run the unit suites under Windows PowerShell 5.1 as well:
 
 ```powershell
-powershell -NoProfile -Command "Invoke-Pester ./Tests/Unit, ./Validation/Tests/Unit"
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
 ```
+
+A failure message of `Invoke-Tests.ps1` carries the shuffle seed; `-ShuffleSeed <seed>` runs the
+same order again.
 
 The suites reach no tenant: every Graph call goes through a mocked seam. A change to what a rule
 or the harness claims about Intune should also be run against a device you own, and the pull
@@ -66,4 +69,5 @@ explains the rounds.
 - Add or update the tests that pin the behaviour, and a line in `CHANGELOG.md` under
   `[Unreleased]`.
 - The quality gates run on every pull request on PowerShell 7, Windows PowerShell 5.1, Windows on
-  ARM, and a case-sensitive filesystem for the help.
+  ARM, and a case-sensitive filesystem for the help, and they rehearse the release as far as the
+  upload.

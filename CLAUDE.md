@@ -99,8 +99,9 @@ on `mobileApps/{id}` is refused (derived-type property) - fetch the app without 
 
 A `Mock` defined in `BeforeEach` is not active in a Context's `BeforeAll`; define mocks in the
 Describe's `BeforeAll`. `Should-Invoke` for a call made in `BeforeAll` needs `-Scope Context`.
-CI shuffles the suite and prints the seed; a test that only passes in declaration order fails
-there first.
+`Tests/Invoke-Tests.ps1` shuffles every run, locally and in each CI job, and puts the seed in its
+failure message; a test that only passes in declaration order fails there first, and
+`-ShuffleSeed` runs that order again.
 
 ### The MAML filename carries a capital H
 
@@ -158,15 +159,21 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 ## Checks
 
 ```powershell
-Invoke-Pester ./Tests, ./Validation/Tests          # suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
+./Tests/Invoke-Tests.ps1                           # every suite, shuffled; suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
+./Tests/Invoke-Tests.ps1 -CodeCoverage             # the same with the 80% coverage gate, as the tests job runs it
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
 ./Build/Build-Help.ps1                             # rebuild MAML after editing docs/
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule
 ./Build/Publish-Module.ps1 -WhatIf                 # full release rehearsal, publishes nothing
 ```
 
-Run the unit suites under Windows PowerShell 5.1 as well before pushing:
+`Tests/Invoke-Tests.ps1` is the one way the suites are run: it fails when Pester's result is not
+`Passed` or when no tests ran, which a check of `FailedCount` alone does not. Run the unit suites
+under Windows PowerShell 5.1 as well before pushing:
 
 ```powershell
-powershell -NoProfile -Command "Invoke-Pester ./Tests/Unit, ./Validation/Tests/Unit"
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
 ```
+
+The script sets strict mode for itself and turns it off around the Pester run, because the suites,
+the validation kit and the module are not written for strict mode yet. Remove that when they are.
