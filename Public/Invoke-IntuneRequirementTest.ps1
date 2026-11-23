@@ -4,7 +4,7 @@ function Invoke-IntuneRequirementTest {
     .SYNOPSIS
         Runs a Win32 requirement script like Intune and applies the rule to its output.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.RequirementResult')]
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -59,6 +59,12 @@ function Invoke-IntuneRequirementTest {
             }
             $scriptRunSplat.Credential = $Credential
         }
+        # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
+        $action = "Run as a Win32 requirement script ($Context context, $Architecture)"
+        if (-not $PSCmdlet.ShouldProcess($Path, $action)) {
+            return
+        }
+
         $run = Invoke-IslScriptRun @scriptRunSplat
         $compareSplat = @{
             StdOut     = $run.StdOut

@@ -4,7 +4,7 @@ function Invoke-IntuneRemediationTest {
     .SYNOPSIS
         Runs a detection/remediation pair like Intune and reports the portal status.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.RemediationResult')]
     param(
         [Parameter(Mandatory, Position = 0)]
@@ -43,6 +43,17 @@ function Invoke-IntuneRemediationTest {
         }
         $scriptRunSplat.Credential = $Credential
     }
+    # The scripts are somebody's code and are about to run: -WhatIf names them and runs nothing
+    $action = if ($RemediationPath) {
+        "Run as a remediation ($Context context, $Architecture): the detection, then $RemediationPath " +
+            'when the detection reports an issue, then the detection again'
+    } else {
+        "Run as a detection-only remediation ($Context context, $Architecture)"
+    }
+    if (-not $PSCmdlet.ShouldProcess($DetectionPath, $action)) {
+        return
+    }
+
     $pre = Invoke-IslScriptRun -Path $DetectionPath -Phase 'detect' @scriptRunSplat
     $remediation = $null
     $post = $null

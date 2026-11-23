@@ -321,6 +321,22 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
         }
     }
 
+    Context 'A WhatIf preference in the caller''s session' {
+        It 'reads the tenant and analyzes the scripts as it does without one' {
+            # The command changes nothing, so there is nothing to preview. Its work folder is its
+            # own: with the preference in effect there, the scripts could not be written to it
+            $expected = @(Test-IntuneDeployedScript)
+            $underPreference = @(InModuleScope IntuneScriptLab {
+                    $WhatIfPreference = $true
+                    Test-IntuneDeployedScript
+                })
+
+            $expected.Count | Should-BeGreaterThan 0
+            $underPreference.Count | Should-Be $expected.Count
+            @($underPreference.RuleName | Sort-Object) | Should-BeCollection @($expected.RuleName | Sort-Object)
+        }
+    }
+
     Context 'Filters' {
         It 'reads only the kinds asked for' {
             @(Test-IntuneDeployedScript -Kind PlatformScript).PolicyName | Should-All { $_ -eq 'Set-Wallpaper' }

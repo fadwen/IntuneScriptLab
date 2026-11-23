@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneWin32AppTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/05/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneWin32AppTest
 ---
@@ -25,7 +25,7 @@ Invoke-IntuneWin32AppTest [[-DetectionPath] <string>] [[-DetectionRule] <hashtab
  [[-Intent] <string>] [[-DependsOn] <hashtable[]>] [[-Supersedes] <hashtable[]>]
  [[-Architecture] <string>] [[-Context] <string>] [[-Credential] <pscredential>]
  [[-InstallContext] <string>] [[-ReturnCodes] <hashtable>] [[-TimeoutSeconds] <int>]
- [[-InstallTimeoutSeconds] <int>] [-EnforceSignatureCheck] [<CommonParameters>]
+ [[-InstallTimeoutSeconds] <int>] [-EnforceSignatureCheck] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -154,6 +154,28 @@ Aliases: []
 ParameterSets:
 - Name: (All)
   Position: 8
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
+ParameterSets:
+- Name: (All)
+  Position: Named
   IsRequired: false
   ValueFromPipeline: false
   ValueFromPipelineByPropertyName: false
@@ -498,6 +520,28 @@ Aliases: []
 ParameterSets:
 - Name: (All)
   Position: 4
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which command line would be run in which content folder, and runs neither it nor the detection. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
+ParameterSets:
+- Name: (All)
+  Position: Named
   IsRequired: false
   ValueFromPipeline: false
   ValueFromPipelineByPropertyName: false

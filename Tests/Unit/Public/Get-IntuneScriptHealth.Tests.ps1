@@ -181,6 +181,20 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
     }
 
     Context 'Switches' {
+        It 'returns the reports under -WhatIf, creates no export job and writes no Markdown' {
+            $file = Join-Path $TestDrive 'whatif.md'
+            $expected = @(Get-IntuneScriptHealth).Count
+            $report = @(Get-IntuneScriptHealth -MarkdownPath $file -WhatIf)
+
+            $expected | Should-BeGreaterThan 0
+            $report.Count | Should-Be $expected
+            Test-Path -LiteralPath $file | Should-BeFalse
+            # Once, for the run without -WhatIf above
+            Should-Invoke Get-IslExportReport -ModuleName IntuneScriptLab -Times 1 -Exactly
+            # Without the export the apps have no install counts
+            ($report | Where-Object PolicyId -eq 'app-a').Succeeded | Should-Be 0
+        }
+
         It 'leaves the device columns and the export alone with -SkipRunState' {
             $report = @(Get-IntuneScriptHealth -SkipRunState)
             ($report | Where-Object PolicyId -eq 'rem-a').Succeeded | Should-Be 0

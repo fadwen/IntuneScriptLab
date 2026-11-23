@@ -4,7 +4,7 @@ function Export-IntuneAgentDiagnostic {
     .SYNOPSIS
         Packs the agent's logs, its registry state and the parsed timelines into one zip for a ticket.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.Diagnostic')]
     param(
         [Parameter(Mandatory, Position = 0)]
@@ -32,6 +32,9 @@ function Export-IntuneAgentDiagnostic {
         }
         $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
+    if (-not $PSCmdlet.ShouldProcess($zip, 'Write the diagnostic package')) {
+        return
+    }
     if (-not $LogPath) {
         $programData = if ($env:ProgramData) { $env:ProgramData } else { 'C:\ProgramData' }
         $LogPath = Join-Path -Path $programData -ChildPath 'Microsoft\IntuneManagementExtension\Logs'
@@ -44,7 +47,8 @@ function Export-IntuneAgentDiagnostic {
     function Write-Section {
         param([string]$Relative, [string[]]$Lines)
         $file = Join-Path -Path $staging -ChildPath $Relative
-        $null = New-Item -ItemType Directory -Path (Split-Path -Path $file -Parent) -Force
+        $folder = Split-Path -Path $file -Parent
+        $null = New-Item -ItemType Directory -Path $folder -Force @script:IslInternal
         [System.IO.File]::WriteAllLines($file, [string[]]$Lines, $utf8)
     }
 
@@ -99,14 +103,14 @@ function Export-IntuneAgentDiagnostic {
     }
 
     try {
-        $null = New-Item -ItemType Directory -Path $staging -Force
+        $null = New-Item -ItemType Directory -Path $staging -Force @script:IslInternal
 
         # Logs
         $logFiles = @()
         if (Test-Path -LiteralPath $LogPath -PathType Container) {
             $logFiles = @(Get-ChildItem -LiteralPath $LogPath -Filter '*.log' -File)
             $logFolder = Join-Path -Path $staging -ChildPath 'Logs'
-            $null = New-Item -ItemType Directory -Path $logFolder -Force
+            $null = New-Item -ItemType Directory -Path $logFolder -Force @script:IslInternal
             foreach ($file in $logFiles) {
                 $destination = Join-Path -Path $logFolder -ChildPath $file.Name
                 Copy-SharedFile -Source $file.FullName -Destination $destination
@@ -165,20 +169,20 @@ function Export-IntuneAgentDiagnostic {
         # Timeline
         if (-not $SkipTimeline -and $logFiles.Count) {
             $timelineFolder = Join-Path -Path $staging -ChildPath 'Timeline'
-            $null = New-Item -ItemType Directory -Path $timelineFolder -Force
+            $null = New-Item -ItemType Directory -Path $timelineFolder -Force @script:IslInternal
             $events = @(Get-IntuneAgentLog -Path $LogPath -Log All | Where-Object Event)
             $iso = @{ Name = 'Time'; Expression = { $_.Time.ToString('o') } }
             $eventRows = $events | Select-Object -Property $iso, Log, Event, Detail, Id, Message
             $csvSplat = @{ NoTypeInformation = $true; Encoding = 'UTF8' }
             $eventsCsv = Join-Path -Path $timelineFolder -ChildPath 'events.csv'
-            $eventRows | Export-Csv -LiteralPath $eventsCsv @csvSplat
+            $eventRows | Export-Csv -LiteralPath $eventsCsv @csvSplat @script:IslInternal
             $timelines = @(Get-IntuneAgentTimeline -Path $LogPath -Log All)
             $timelineRows = $timelines | Select-Object -Property Id, Name, Kind,
             @{ Name = 'Started'; Expression = { $_.Started.ToString('o') } },
             @{ Name = 'Ended'; Expression = { $_.Ended.ToString('o') } },
             @{ Name = 'Duration'; Expression = { $_.Duration.ToString() } }, Runs, Outcome, Summary
             $timelinesCsv = Join-Path -Path $timelineFolder -ChildPath 'timelines.csv'
-            $timelineRows | Export-Csv -LiteralPath $timelinesCsv @csvSplat
+            $timelineRows | Export-Csv -LiteralPath $timelinesCsv @csvSplat @script:IslInternal
             $manifest.Add("Timeline: $($events.Count) event(s), $($timelines.Count) timeline(s)")
         }
         else { $manifest.Add('Timeline: skipped') }
@@ -186,10 +190,10 @@ function Export-IntuneAgentDiagnostic {
         $manifest.Insert(0, "IntuneScriptLab diagnostic package, $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))")
         Write-Section -Relative 'Manifest.txt' -Lines $manifest
 
-        if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+        if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force @script:IslInternal }
         $zipFolder = Split-Path -Path $zip -Parent
         if ($zipFolder -and -not (Test-Path -LiteralPath $zipFolder)) {
-            $null = New-Item -ItemType Directory -Path $zipFolder -Force
+            $null = New-Item -ItemType Directory -Path $zipFolder -Force @script:IslInternal
         }
         $entryCount = Compress-Staging -Folder $staging -Destination $zip
     }
@@ -198,7 +202,7 @@ function Export-IntuneAgentDiagnostic {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     finally {
-        Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
 
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name): $zip"

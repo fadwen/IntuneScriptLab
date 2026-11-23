@@ -33,6 +33,13 @@ foreach ($functionFolder in $functionFolders) {
     }
 }
 
+# What every internal operation passes to a cmdlet that asks ShouldProcess: a run folder, a copy,
+# a work folder, a cleanup. A command that runs a script or writes a report asks its caller once.
+# After that neither -WhatIf nor -Confirm, nor a preference in the caller's session, has a say in
+# the bookkeeping. With -WhatIf alone pinned, a caller who had said Yes to -Confirm was asked again
+# for each of these, and a No to the copy started the host on a file that was not there.
+$script:IslInternal = @{ WhatIf = $false; Confirm = $false }
+
 # Rule registry: every Find-* function in Private\Rules is a rule. Test-IntuneScript runs them
 # in this order so the output reads from "will it run at all" down to "will it report well".
 $script:RuleOrder = @(

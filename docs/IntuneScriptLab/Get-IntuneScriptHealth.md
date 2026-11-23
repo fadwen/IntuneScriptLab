@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Get-IntuneScriptHealth.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Get-IntuneScriptHealth
 ---
@@ -22,7 +22,7 @@ One line per deployed script policy: findings, drift, assignment and what the de
 ```
 Get-IntuneScriptHealth [[-Kind] <string[]>] [[-Name] <string[]>] [[-Id] <string[]>]
  [[-Path] <string>] [[-Map] <hashtable>] [[-Settings] <Object>] [[-MarkdownPath] <string>]
- [-SkipAnalysis] [-SkipRunState] [-SkipGroupLookup] [<CommonParameters>]
+ [-SkipAnalysis] [-SkipRunState] [-SkipGroupLookup] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -89,6 +89,28 @@ The remediations judged on their scripts and assignments alone, without the lagg
 The findings behind the counts of one policy family.
 
 ## PARAMETERS
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
 
 ### -Id
 
@@ -293,6 +315,28 @@ Type: System.Management.Automation.SwitchParameter
 DefaultValue: False
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Reads the tenant and returns the reports, but leaves out the two things the command changes: it creates no report export job, so the device columns of the apps stay empty, and it does not write the file of -MarkdownPath.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
 ParameterSets:
 - Name: (All)
   Position: Named

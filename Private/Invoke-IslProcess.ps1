@@ -258,7 +258,9 @@
             }
         }
         finally {
-            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+            # Of the task cmdlets used here only this one has -WhatIf. Under a preference the
+            # task would be registered and started and then left behind
+            Unregister-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue @script:IslInternal
         }
         $stopwatch.Stop()
         $stdout = if (Test-Path -LiteralPath $outFile) {

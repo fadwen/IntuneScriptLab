@@ -4,7 +4,7 @@ function Invoke-IntuneDetectionTest {
     .SYNOPSIS
         Runs a Win32 custom detection script like Intune and returns the verdict.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.DetectionResult')]
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -39,6 +39,12 @@ function Invoke-IntuneDetectionTest {
         # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
         # host exists, and x64 elsewhere
         if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
+
+        # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
+        $action = "Run as a Win32 detection script ($Context context, $Architecture)"
+        if (-not $PSCmdlet.ShouldProcess($Path, $action)) {
+            return
+        }
 
         $reasons = [System.Collections.Generic.List[string]]::new()
         $signatureStatus = ''

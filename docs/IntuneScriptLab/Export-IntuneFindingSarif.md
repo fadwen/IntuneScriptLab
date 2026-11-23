@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Export-IntuneFindingSarif.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Export-IntuneFindingSarif
 ---
@@ -20,8 +20,8 @@ Writes IntuneScriptLab findings as a SARIF 2.1.0 log for code scanning.
 ### __AllParameterSets
 
 ```
-Export-IntuneFindingSarif [-Finding] <psobject[]> [-Path] <string> [[-Root] <string>]
- [<CommonParameters>]
+Export-IntuneFindingSarif [-Finding] <psobject[]> [-Path] <string> [[-Root] <string>] [-WhatIf]
+ [-Confirm]
 ```
 
 ## ALIASES
@@ -66,6 +66,28 @@ Export-IntuneFindingSarif -Finding @() -Path .\results.sarif
 A valid log with no results, so a clean run still uploads and closes earlier alerts.
 
 ## PARAMETERS
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
 
 ### -Finding
 
@@ -125,6 +147,28 @@ Aliases: []
 ParameterSets:
 - Name: (All)
   Position: 2
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which SARIF log would be written and with how many results, and writes nothing. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
+ParameterSets:
+- Name: (All)
+  Position: Named
   IsRequired: false
   ValueFromPipeline: false
   ValueFromPipelineByPropertyName: false

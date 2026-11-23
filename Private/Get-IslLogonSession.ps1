@@ -30,8 +30,10 @@ function Get-IslLogonSession {
     $seen = @{}
     foreach ($shell in ($shells | Sort-Object -Property SessionId, Name)) {
         # Either call returns nothing for a process that ended or that this session may not ask about
-        $owner = Invoke-CimMethod -InputObject $shell -MethodName GetOwner -ErrorAction SilentlyContinue
-        $ownerSid = Invoke-CimMethod -InputObject $shell -MethodName GetOwnerSid -ErrorAction SilentlyContinue
+        # Invoke-CimMethod asks ShouldProcess for any method, these two reads included
+        $methodSplat = @{ InputObject = $shell; ErrorAction = 'SilentlyContinue' }
+        $owner = Invoke-CimMethod @methodSplat -MethodName GetOwner @script:IslInternal
+        $ownerSid = Invoke-CimMethod @methodSplat -MethodName GetOwnerSid @script:IslInternal
         $sid = Get-IslPropertyValue -InputObject $ownerSid -Name 'Sid'
         $userName = Get-IslPropertyValue -InputObject $owner -Name 'User'
         if (-not $sid -or -not $userName) { continue }
