@@ -79,25 +79,31 @@ function Get-IntuneAgentLog {
         AgentExecutor = 'AgentExecutor*.log'
         All           = '*.log'
     }
-    # A path that does not exist ends the command here. Without the catch, the error of a function
-    # this one calls would end only the statement that made the call, and the command would go on
-    try {
-        $files = foreach ($item in $Path) {
+    # Each path is one item of the input. One that cannot be resolved is reported, and the others
+    # are still read
+    $unresolved = 0
+    $files = foreach ($item in $Path) {
+        try {
             $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
-            if (Test-Path -LiteralPath $resolved -PathType Container) {
-                foreach ($name in $Log) {
-                    Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File |
-                        ForEach-Object { $_.FullName }
-                }
-            }
-            else { $resolved }
+        } catch {
+            $unresolved++
+            $PSCmdlet.WriteError($_)
+            continue
         }
-    } catch {
-        $PSCmdlet.ThrowTerminatingError($_)
+        if (Test-Path -LiteralPath $resolved -PathType Container) {
+            foreach ($name in $Log) {
+                Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File |
+                    ForEach-Object { $_.FullName }
+            }
+        }
+        else { $resolved }
     }
     $files = @($files | Sort-Object -Unique)
     if (-not $files) {
-        Write-Warning "No log files under $($Path -join ', ')"
+        # When no path could be resolved, the errors have said so already
+        if ($unresolved -lt @($Path).Count) {
+            Write-Warning "No log files under $($Path -join ', ')"
+        }
         return
     }
 
@@ -127,7 +133,10 @@ function Get-IntuneAgentLog {
         try {
             $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
         } catch {
-            $PSCmdlet.ThrowTerminatingError($_)
+            # A log that cannot be read or parsed is one item of the input too: it is reported
+            # and gives no entries, and the other logs are still read
+            $PSCmdlet.WriteError($_)
+            continue
         }
         if (-not $kept.Count) { continue }
         $classified = @(Get-IslAgentLogEvent -Message @($kept | ForEach-Object { $_.Message }))

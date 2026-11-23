@@ -85,9 +85,17 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
                 Should-Throw -FullyQualifiedErrorId 'UnknownAgentLogEvent,Get-IntuneAgentLog'
         }
 
-        It 'fails for a path that does not exist and warns for a folder with no logs' {
-            { Get-IntuneAgentLog -Path (Join-Path $TestDrive 'nowhere') } |
-                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        It 'reports a path that does not exist and warns for a folder with no logs' {
+            $nowhere = Join-Path $TestDrive 'nowhere'
+            $warnings = @()
+            $logSplat = @{ Path = $nowhere; ErrorAction = 'Continue'; WarningVariable = 'warnings' }
+            $output = Get-IntuneAgentLog @logSplat 2>&1 3>$null
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'PathNotFound,*'
+            @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }).Count | Should-Be 0
+            # The error has said why there is nothing; the warning about no logs would say it again
+            $warnings.Count | Should-Be 0
             $emptyFolder = Join-Path $TestDrive 'empty'
             $null = New-Item -ItemType Directory -Path $emptyFolder -Force
             $warnings = @()
@@ -205,34 +213,70 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
     }
 
     Context 'Error Handling' {
-        It 'stops where it fails and lets a script without try go on, for each failure' {
-            # Should-Throw cannot show this: it calls inside a try, where every error travels all
-            # the way up. The script here has none, as a caller's script may not
-            $corrupt = Join-Path $TestDrive 'CorruptLog'
-            $null = Write-TestLog $corrupt 'HealthScripts.log' @(
+        BeforeAll {
+            # The logs of the fixture without its AgentExecutor.log, and in its place one whose
+            # second entry has no time
+            $script:Mixed = Join-Path $TestDrive 'MixedLogs'
+            Copy-Item -LiteralPath $script:Logs -Destination $script:Mixed -Recurse
+            $null = Write-TestLog $script:Mixed 'AgentExecutor.log' @(
                 New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
                 New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
             )
+            $script:Others = 'Agent', 'AppWorkload', 'HealthScripts'
+            $script:Readable = @(Get-IntuneAgentLog -Path $script:Logs -Log $script:Others).Count
+        }
+
+        It 'reports a log it cannot parse and still returns the entries of the others' {
+            $script:Readable | Should-BeGreaterThan 0
+            $output = Get-IntuneAgentLog -Path $script:Mixed -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $entries = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'CmTraceTimestampInvalid,*'
+            $entries.Count | Should-Be $script:Readable
+            # The log that failed gives nothing, not the entries before the one that broke it
+            @($entries | Where-Object Log -eq 'AgentExecutor').Count | Should-Be 0
+        }
+
+        It 'reports a path that does not exist and still reads the other paths' {
+            $paths = (Join-Path $TestDrive 'nowhere'), $script:Logs
+            $output = Get-IntuneAgentLog -Path $paths -Log $script:Others -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'PathNotFound,*'
+            @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }).Count |
+                Should-Be $script:Readable
+        }
+
+        It 'ends at the first such error when the caller asks it to stop' {
+            { Get-IntuneAgentLog -Path $script:Mixed -ErrorAction Stop } |
+                Should-Throw -FullyQualifiedErrorId 'CmTraceTimestampInvalid,*'
+            { Get-IntuneAgentLog -Path (Join-Path $TestDrive 'nowhere') -ErrorAction Stop } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'ends on a bad argument and reports a bad log, for a script without try' {
+            # Should-Throw cannot show what such a caller sees: it calls inside a try, where every
+            # error travels all the way up. The script here has none
             $logs = $script:Logs
+            $mixed = $script:Mixed
             $run = Invoke-CallerScript -Statement @(
                 "`$unknown = @(Get-IntuneAgentLog -Path '$logs' -EventName Nope)"
                 "'unknown: ' + `$unknown.Count"
-                "`$missing = @(Get-IntuneAgentLog -Path '$TestDrive\nowhere')"
-                "'missing: ' + `$missing.Count"
-                "`$corrupt = @(Get-IntuneAgentLog -Path '$corrupt')"
-                "'corrupt: ' + `$corrupt.Count"
+                "`$mixed = @(Get-IntuneAgentLog -Path '$mixed')"
+                "'mixed: ' + `$mixed.Count"
             )
 
             $run.ReachedEnd | Should-BeTrue
-            $run.Output | Should-BeCollection -Count 3
+            $run.Output | Should-BeCollection -Count 2
             $run.Output[0] | Should-Be 'unknown: 0'
-            $run.Output[1] | Should-Be 'missing: 0'
-            $run.Output[2] | Should-Be 'corrupt: 0'
-            # One error for each failure and nothing after it: the command did not go on
-            $run.ErrorId | Should-BeCollection -Count 3
+            $run.Output[1] | Should-Be "mixed: $($script:Readable)"
+            # One error for each failure, and none from a statement that ran after one
+            $run.ErrorId | Should-BeCollection -Count 2
             $run.ErrorId[0] | Should-Be 'UnknownAgentLogEvent,Get-IntuneAgentLog'
-            $run.ErrorId[1] | Should-BeLikeString 'PathNotFound,*'
-            $run.ErrorId[2] | Should-Be 'CmTraceTimestampInvalid,ConvertFrom-IslCmTraceLog'
+            $run.ErrorId[1] | Should-BeLikeString 'CmTraceTimestampInvalid,*'
         }
     }
 }

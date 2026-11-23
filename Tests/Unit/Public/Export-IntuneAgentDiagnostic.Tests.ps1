@@ -146,36 +146,56 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
     }
 
     Context 'Error Handling' {
-        It 'writes no package and returns nothing when a step fails, for a script without try' {
-            $corrupt = Join-Path $TestDrive 'CorruptLog'
-            $null = New-Item -ItemType Directory -Path $corrupt -Force
+        It 'still writes the package when one log cannot be parsed, and reports that log' {
+            $mixed = Join-Path $TestDrive 'MixedLogs'
+            Copy-Item -LiteralPath $script:Logs -Destination $mixed -Recurse
             $lines = @(
                 New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
                 New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
             )
-            [System.IO.File]::WriteAllLines((Join-Path $corrupt 'HealthScripts.log'), [string[]]$lines)
+            [System.IO.File]::WriteAllLines((Join-Path $mixed 'AppWorkload.log'), [string[]]$lines)
+            $zip = Join-Path $TestDrive 'mixed.zip'
+
+            $exportSplat = @{ Path = $zip; LogPath = $mixed; SkipRegistry = $true; ErrorAction = 'Continue' }
+            $output = Export-IntuneAgentDiagnostic @exportSplat 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $result = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            # The events and the timelines each read the logs, so the log is reported by both
+            $errors.Count | Should-BeGreaterThan 0
+            $errors | Should-All { $_.FullyQualifiedErrorId -like 'CmTraceTimestampInvalid,*' }
+            $result | Should-BeCollection -Count 1
+            $result[0].Path | Should-Be $zip
+            # The log itself is in the package, which is what a ticket needs most
+            Get-ZipEntry -Zip $zip | Should-ContainCollection 'Logs/AppWorkload.log'
+            Get-ZipEntry -Zip $zip | Should-ContainCollection 'Timeline/events.csv'
+        }
+
+        It 'writes no package and returns nothing when a step fails, for a script without try' {
             $existing = Join-Path $TestDrive 'existing.zip'
             [System.IO.File]::WriteAllText($existing, 'not a zip')
-            $new = Join-Path $TestDrive 'never.zip'
+            # A zip cannot be created below a file
+            $below = Join-Path $existing 'inner.zip'
+            $logs = $script:Logs
             $run = Invoke-CallerScript -Statement @(
-                "`$first = Export-IntuneAgentDiagnostic -Path '$existing' -LogPath '$($script:Logs)' -SkipRegistry"
+                "`$first = Export-IntuneAgentDiagnostic -Path '$existing' -LogPath '$logs' -SkipRegistry"
                 "'existing: ' + [bool]`$first"
-                "`$second = Export-IntuneAgentDiagnostic -Path '$new' -LogPath '$corrupt' -SkipRegistry"
-                "'corrupt: ' + [bool]`$second"
+                "`$second = Export-IntuneAgentDiagnostic -Path '$below' -LogPath '$logs' -SkipRegistry"
+                "'below: ' + [bool]`$second"
             )
 
             $run.ReachedEnd | Should-BeTrue
             $run.Output | Should-BeCollection -Count 2
             $run.Output[0] | Should-Be 'existing: False'
-            $run.Output[1] | Should-Be 'corrupt: False'
-            Test-Path -LiteralPath $new | Should-BeFalse
+            $run.Output[1] | Should-Be 'below: False'
             [System.IO.File]::ReadAllText($existing) | Should-Be 'not a zip'
             # A service or a command that is not on this computer is asked for quietly and still
             # leaves a record in the session; those are not failures of the command
             $failures = @($run.ErrorId | Where-Object { $_ -notlike '*,Microsoft.PowerShell.Commands.*' })
             $failures | Should-BeCollection -Count 2
             $failures[0] | Should-Be 'DiagnosticPackageExists,Export-IntuneAgentDiagnostic'
-            $failures[1] | Should-Be 'CmTraceTimestampInvalid,ConvertFrom-IslCmTraceLog'
+            # The error of .NET, whose ID is the name of its exception
+            $failures[1] | Should-BeLikeString '*Exception*'
         }
     }
 }

@@ -69,6 +69,12 @@ entries are carried over from the manifest's release notes.
   `try` and without `$ErrorActionPreference = 'Stop'` now goes on at its next statement after the
   failure, where it used to end.** In return, `-ErrorAction SilentlyContinue` on the call no longer
   lets the command carry on past its own failure. The other commands still use `throw`.
+- `Get-IntuneAgentLog` reports a path that does not exist, and a log it cannot read or parse, as
+  an error for that one item and goes on with the others, where the first such item ended the
+  command. The same holds for `Get-IntuneAgentTimeline` and `Export-IntuneAgentDiagnostic`, which
+  read the logs through it: the timelines are built from the logs that could be read, and the
+  package is still written, with every log in it. `-ErrorAction Stop` ends the command at the
+  first such error.
 - The module's functions run under strict mode, set once in the root module. A read of a variable
   that was never assigned, or of a member that is not there, is an error where it was a silent
   `$null`. Graph replies, export rows and the other data with optional members are read through one
