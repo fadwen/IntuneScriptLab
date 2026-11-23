@@ -8,13 +8,18 @@
 
 #pester:no-parallel
 
+BeforeDiscovery {
+    # Pester evaluates -Skip during discovery, before any BeforeAll runs. Set there, this was still
+    # unset when the conditions read it, and the tests were skipped in an elevated session too
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $script:IsAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $script:IsAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
 AfterAll {

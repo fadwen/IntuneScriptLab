@@ -79,6 +79,11 @@ entries are carried over from the manifest's release notes.
 
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
+- Four tests were skipped on every run: the three of the SYSTEM-context integration suite, which
+  are the only ones that launch a script through a scheduled task as SYSTEM, and the file-version
+  test of `Test-IntuneWin32Rule`. Their skip condition read a variable that was set only after
+  Pester had evaluated the condition. It is decided during discovery now, so the SYSTEM-context
+  suite runs in an elevated session and is skipped in any other.
 
 ## [0.34.0] - 2026-10-15
 
