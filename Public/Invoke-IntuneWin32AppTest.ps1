@@ -112,7 +112,6 @@ function Invoke-IntuneWin32AppTest {
     if (-not $PSCmdlet.ShouldProcess($ContentPath, $action)) {
         return
     }
-    $detectionSplat['Confirm'] = $false
 
     $runAs = if ($Credential) { $Credential.UserName }
     elseif ($Context -eq 'System') { 'NT AUTHORITY\SYSTEM' }
@@ -123,7 +122,10 @@ function Invoke-IntuneWin32AppTest {
     # them must say installed (W32-MULTI-ONEFALSE, W32-MULTI-BOTHTRUE)
     function Invoke-DetectionPass {
         param([string]$Phase, [string]$Path, [hashtable[]]$Rule, [string]$Label)
-        $script = if ($Path) { Invoke-IntuneDetectionTest -Path $Path @detectionSplat } else { $null }
+        $script = $null
+        if ($Path) {
+            $script = Invoke-IntuneDetectionTest -Path $Path @detectionSplat @script:IslInternal
+        }
         $rules = @(foreach ($entry in $Rule) { Test-IntuneWin32Rule -Rule $entry -RuleType Detection })
         $unmet = @($rules | Where-Object { -not $_.Met })
         $detected = ($null -eq $script -or $script.Detected) -and $unmet.Count -eq 0
@@ -179,9 +181,9 @@ function Invoke-IntuneWin32AppTest {
             Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
         }
         $copy = Join-Path -Path $cache -ChildPath 'content'
-        $null = New-Item -ItemType Directory -Path $copy -Force -WhatIf:$false
+        $null = New-Item -ItemType Directory -Path $copy -Force @script:IslInternal
         $contentItems = Join-Path -Path $source -ChildPath '*'
-        Copy-Item -Path $contentItems -Destination $copy -Recurse -Force -WhatIf:$false
+        Copy-Item -Path $contentItems -Destination $copy -Recurse -Force @script:IslInternal
         if ($Credential) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
         try {
             $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
@@ -199,7 +201,7 @@ function Invoke-IntuneWin32AppTest {
             $run = Invoke-IslProcess @processSplat
         }
         finally {
-            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue -WhatIf:$false
+            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
         }
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.RunResult'

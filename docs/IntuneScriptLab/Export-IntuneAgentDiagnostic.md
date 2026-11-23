@@ -1,4 +1,4 @@
-﻿---
+---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Export-IntuneAgentDiagnostic.md
@@ -204,7 +204,7 @@ HelpMessage: ''
 
 ### -WhatIf
 
-Says which package would be written, and writes nothing. The command returns nothing.
+Says which package would be written, and writes nothing. The command returns nothing. A package that exists is refused without -Force before the preview, as a run would refuse it.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter

@@ -169,4 +169,94 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
             @($underPreference.RuleName | Sort-Object) | Should-BeCollection @($expected.RuleName | Sort-Object)
         }
     }
+
+    Context 'Internal operations' {
+        It 'pins -WhatIf and -Confirm at every call to a command that asks ShouldProcess' {
+            # A run folder, a copy, a cleanup: none of them is the caller's to preview or to
+            # confirm. The rule is checked on the syntax trees, so that the next such call gets
+            # both pins too. A call passes with the module's splat or with both switches written out
+            $functionType = [System.Management.Automation.Language.FunctionDefinitionAst]
+            $parser = [System.Management.Automation.Language.Parser]
+            $trees = foreach ($folder in 'Public', 'Private', 'Private\Rules') {
+                $folderPath = Join-Path $script:ModuleRoot $folder
+                foreach ($file in Get-ChildItem -LiteralPath $folderPath -Filter '*.ps1') {
+                    $parser::ParseFile($file.FullName, [ref]$null, [ref]$null)
+                }
+            }
+            # The module's own functions that declare SupportsShouldProcess
+            $gated = @(foreach ($tree in $trees) {
+                    foreach ($definition in $tree.FindAll({ param($node) $node -is $functionType }, $true)) {
+                        $binding = $definition.Body.ParamBlock.Attributes |
+                            Where-Object { $_.TypeName.Name -eq 'CmdletBinding' }
+                        if ("$($binding.Extent.Text)" -match 'SupportsShouldProcess') {
+                            $definition.Name
+                        }
+                    }
+                })
+            $commandType = [System.Management.Automation.Language.CommandAst]
+            $calls = foreach ($tree in $trees) {
+                foreach ($command in $tree.FindAll({ param($node) $node -is $commandType }, $true)) {
+                    $name = $command.GetCommandName()
+                    # ForEach-Object asks only in its member form, which the module does not use
+                    if (-not $name -or $name -eq 'ForEach-Object') {
+                        continue
+                    }
+                    $asks = $name -in $gated
+                    if (-not $asks) {
+                        $resolved = Get-Command -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1
+                        $parameters = if ($null -ne $resolved) { $resolved.Parameters } else { $null }
+                        $asks = $null -ne $parameters -and $parameters.ContainsKey('WhatIf')
+                    }
+                    if ($asks) {
+                        $source = $command.Extent.Text
+                        $hasSplat = $source -like '*@script:IslInternal*'
+                        $hasBoth = $source -like '*-WhatIf:$false*' -and $source -like '*-Confirm:$false*'
+                        $leaf = Split-Path -Leaf $command.Extent.File
+                        [pscustomobject]@{
+                            Call = "${leaf}:$($command.Extent.StartLineNumber) $name"
+                            Pinned = $hasSplat -or $hasBoth
+                        }
+                    }
+                }
+            }
+
+            # Guards against a scan that found nothing to check
+            @($calls).Count | Should-BeGreaterThan 20
+            @($calls | Where-Object { -not $_.Pinned } | ForEach-Object { $_.Call }) | Should-BeCollection @()
+        }
+
+        It 'does not ask again inside a run the caller agreed to, in a session that cannot answer' {
+            # After a Yes to -Confirm the preference is still Low in the command's scope, and the
+            # functions it calls see it. With only -WhatIf pinned, the run folder and the copy each
+            # asked again; here, where nobody can answer, they failed, and the host was started on
+            # a copy that was never made
+            $probe = New-MarkerScript -Name 'ConfirmLow'
+            $run = Invoke-CallerScript -Statement @(
+                "`$result = & (Get-Module IntuneScriptLab) {"
+                "    param(`$Path)"
+                "    `$ConfirmPreference = 'Low'"
+                "    `$runSplat = @{ Path = `$Path; Architecture = 'x86'; Context = 'User'; Phase = 'detect' }"
+                "    Invoke-IslScriptRun @runSplat -TimeoutSeconds 60"
+                "} '$($probe.Script)'"
+                "'exit code: ' + `$result.ExitCode"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection @('exit code: 0')
+            Test-Path -LiteralPath $probe.Marker | Should-BeTrue
+            @($run.ErrorId | Where-Object { $_ -like '*ItemCommand' }) | Should-BeCollection @()
+        }
+
+        It 'runs when the caller declines to be asked, whatever its confirm preference' {
+            $probe = New-MarkerScript -Name 'ConfirmFalse'
+            $run = Invoke-CallerScript -Statement @(
+                "`$ConfirmPreference = 'Low'"
+                "`$result = @(Invoke-IntuneDetectionTest -Path '$($probe.Script)' -Confirm:`$false)"
+                "'detected: ' + `$result[0].Detected"
+            )
+
+            $run.Output | Should-BeCollection @('detected: True')
+            Test-Path -LiteralPath $probe.Marker | Should-BeTrue
+        }
+    }
 }

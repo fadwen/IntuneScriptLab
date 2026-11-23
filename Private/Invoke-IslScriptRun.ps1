@@ -63,11 +63,12 @@ function Invoke-IslScriptRun {
         Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
     }
     # The run folder and the copy are this function's own bookkeeping. The command that asked for
-    # the run has had its -WhatIf answered before it called; with a preference still in effect
-    # here, the copy would be skipped and the host started on a file that is not there
-    $null = New-Item -ItemType Directory -Path $cache -Force -WhatIf:$false
+    # the run has had its -WhatIf and its -Confirm answered before it called; with a preference
+    # still in effect here, the copy would be skipped and the host started on a file that is not
+    # there
+    $null = New-Item -ItemType Directory -Path $cache -Force @script:IslInternal
     $scriptCopy = Join-Path -Path $cache -ChildPath "$Phase.ps1"
-    Copy-Item -LiteralPath $source -Destination $scriptCopy -WhatIf:$false
+    Copy-Item -LiteralPath $source -Destination $scriptCopy @script:IslInternal
 
     try {
         $processSplat = @{
@@ -86,7 +87,7 @@ function Invoke-IslScriptRun {
         $run = Invoke-IslProcess @processSplat
     }
     finally {
-        Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue -WhatIf:$false
+        Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
 
     [pscustomobject]@{

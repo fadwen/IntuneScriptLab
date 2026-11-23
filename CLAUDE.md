@@ -187,9 +187,13 @@ complaint came back as the script's result (#88). So the rule has two halves. Th
 `Invoke-Intune*Test` commands, the two `Export-` commands and `Get-IntuneScriptHealth` declare
 `SupportsShouldProcess` and ask once, before anything runs or is written, and return nothing when
 the answer is no. Every internal operation - the run folder, the copy, a work folder, the removal
-of a scheduled task - passes `-WhatIf:$false`, and a call from one gated command to another passes
-`-Confirm:$false`, so that one run asks once. `Tests/Unit/Module.WhatIf.Tests.ps1` checks the
-preview on the disk, with scripts that leave a marker file when they run.
+of a scheduled task, a call from one gated command to another - passes both `-WhatIf:$false` and
+`-Confirm:$false`, written `@script:IslInternal`, which the root module defines. Both are needed:
+after a Yes to `-Confirm` the preference is still `Low` inside the command, so an operation that
+pinned only `-WhatIf` asked again, and a No to the copy started the host on a file that was not
+there. `Tests/Unit/Module.WhatIf.Tests.ps1` checks the preview on the disk, with scripts that leave
+a marker file when they run, and checks on the syntax trees that every call to a command that asks
+`ShouldProcess` has both pins. `Invoke-CimMethod` is such a command, for any method.
 
 Of the scheduled-task cmdlets only `Unregister-ScheduledTask` has `-WhatIf`. Under a preference
 the task was registered and started, and then left behind.

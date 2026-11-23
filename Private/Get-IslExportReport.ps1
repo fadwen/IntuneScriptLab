@@ -79,6 +79,6 @@ function Get-IslExportReport {
         @($csv | ConvertFrom-Csv)
     }
     finally {
-        Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue -WhatIf:$false
+        Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
 }

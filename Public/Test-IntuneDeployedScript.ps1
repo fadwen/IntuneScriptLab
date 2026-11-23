@@ -37,8 +37,8 @@ function Test-IntuneDeployedScript {
     $workName = "IntuneScriptLab\preflight-$([guid]::NewGuid().ToString('N'))"
     $workFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $workName
     # The work folder is this command's own: it reads the tenant and changes nothing, so a
-    # caller's -WhatIf preference has no say in it
-    $null = New-Item -ItemType Directory -Path $workFolder -Force -WhatIf:$false
+    # caller's -WhatIf or -Confirm preference has no say in it
+    $null = New-Item -ItemType Directory -Path $workFolder -Force @script:IslInternal
     # Mutable state the nested functions share (an assignment inside them would make a local copy)
     $groupState = @{ Cache = @{}; Blocked = $false }
     $filterState = @{ Cache = @{}; Blocked = $false }
@@ -105,7 +105,7 @@ function Test-IntuneDeployedScript {
         $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         $safeName = [regex]::Replace($policyName, '[^\w.-]', '_')
         $folder = Join-Path -Path $workFolder -ChildPath "$PolicyKind\$safeName-$policyId"
-        $null = New-Item -ItemType Directory -Path $folder -Force -WhatIf:$false
+        $null = New-Item -ItemType Directory -Path $folder -Force @script:IslInternal
         $file = Join-Path -Path $folder -ChildPath "$Role.ps1"
         # Byte for byte: the encoding rule needs to see the BOM, or its absence, as the tenant stores it
         [System.IO.File]::WriteAllBytes($file, [System.Convert]::FromBase64String($Content))
@@ -449,7 +449,7 @@ function Test-IntuneDeployedScript {
         }
     }
     finally {
-        Remove-Item -LiteralPath $workFolder -Recurse -Force -ErrorAction SilentlyContinue -WhatIf:$false
+        Remove-Item -LiteralPath $workFolder -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
 }

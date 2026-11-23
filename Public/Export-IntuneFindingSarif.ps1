@@ -172,7 +172,7 @@ function Export-IntuneFindingSarif {
             return
         }
         $folder = Split-Path -Path $outFile -Parent
-        if ($folder) { $null = New-Item -ItemType Directory -Path $folder -Force }
+        if ($folder) { $null = New-Item -ItemType Directory -Path $folder -Force @script:IslInternal }
         $json = $log | ConvertTo-Json -Depth 12
         [System.IO.File]::WriteAllText($outFile, $json, [System.Text.UTF8Encoding]::new($false))
         Write-Verbose "Wrote $($all.Count) result(s) for $($rules.Count) rule(s) to $outFile"

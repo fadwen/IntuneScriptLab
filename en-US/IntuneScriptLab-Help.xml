@@ -1496,7 +1496,7 @@ unless -Force is given.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="wi">
         <maml:name>WhatIf</maml:name>
         <maml:description>
-          <maml:para>Says which package would be written, and writes nothing. The command returns nothing.</maml:para>
+          <maml:para>Says which package would be written, and writes nothing. The command returns nothing. A package that exists is refused without -Force before the preview, as a run would refuse it.</maml:para>
         </maml:description>
         <dev:type>
           <maml:name>System.Management.Automation.SwitchParameter</maml:name>
