@@ -23,7 +23,14 @@ function Export-IntuneAgentDiagnostic {
     if ([System.IO.Path]::GetExtension($Path) -ne '.zip') { $Path = "$Path.zip" }
     $zip = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     if ((Test-Path -LiteralPath $zip) -and -not $Force) {
-        throw "$zip exists; use -Force to overwrite it"
+        $recordSplat = @{
+            Message = "$zip exists; use -Force to overwrite it"
+            ErrorId = 'DiagnosticPackageExists'
+            Category = [System.Management.Automation.ErrorCategory]::ResourceExists
+            TargetObject = $zip
+            ExceptionType = [System.IO.IOException]
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
     if (-not $LogPath) {
         $programData = if ($env:ProgramData) { $env:ProgramData } else { 'C:\ProgramData' }
@@ -185,6 +192,10 @@ function Export-IntuneAgentDiagnostic {
             $null = New-Item -ItemType Directory -Path $zipFolder -Force
         }
         $entryCount = Compress-Staging -Folder $staging -Destination $zip
+    }
+    catch {
+        # Whatever failed, the package is not complete: the command ends without a result
+        $PSCmdlet.ThrowTerminatingError($_)
     }
     finally {
         Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue

@@ -73,15 +73,21 @@ function ConvertFrom-IslCmTraceLog {
         [string[]]$Contains
     )
 
-    $file = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
-    $stream = [System.IO.File]::Open($file, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read,
-        [System.IO.FileShare]::ReadWrite)
+    # A log that is not there or cannot be read ends the function. The caller decides what that
+    # means for its own work
+    $stream = $null
     try {
+        $file = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+        $stream = [System.IO.File]::Open($file, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::ReadWrite)
         $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true)
         $text = $reader.ReadToEnd()
-    }
-    finally {
-        $stream.Dispose()
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    } finally {
+        if ($null -ne $stream) {
+            $stream.Dispose()
+        }
     }
 
     $levels = @{ '1' = 'Information'; '2' = 'Warning'; '3' = 'Error' }
@@ -135,7 +141,14 @@ function ConvertFrom-IslCmTraceLog {
         $time = [datetime]::MinValue
         $stamp = "$($groups['date'].Value) $timeText"
         if (-not [datetime]::TryParseExact($stamp, $timeFormat, $invariant, $noStyle, [ref]$time)) {
-            throw "Not a CMTrace timestamp: $stamp ($file)"
+            $recordSplat = @{
+                Message = "Not a CMTrace timestamp: $stamp ($file)"
+                ErrorId = 'CmTraceTimestampInvalid'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidData
+                TargetObject = $file
+                ExceptionType = [System.FormatException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
         if ($hasAfter -and $time -lt $After) { continue }
         if ($hasBefore -and $time -ge $Before) { continue }

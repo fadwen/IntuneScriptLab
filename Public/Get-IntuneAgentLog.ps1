@@ -57,7 +57,14 @@ function Get-IntuneAgentLog {
     $knownEvents = @($script:IslAgentLogEvents | ForEach-Object { $_.Event })
     foreach ($name in $EventName) {
         if ($name -notin $knownEvents) {
-            throw "Unknown event '$name'. Get-IntuneAgentLog -ListEvent shows the names"
+            $recordSplat = @{
+                Message = "Unknown event '$name'. Get-IntuneAgentLog -ListEvent shows the names"
+                ErrorId = 'UnknownAgentLogEvent'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                TargetObject = $name
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
     }
 
@@ -72,18 +79,31 @@ function Get-IntuneAgentLog {
         AgentExecutor = 'AgentExecutor*.log'
         All           = '*.log'
     }
+    # Each path is one item of the input. One that cannot be resolved is reported, and the others
+    # are still read
+    $unresolved = 0
     $files = foreach ($item in $Path) {
-        $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
+        try {
+            $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
+        } catch {
+            $unresolved++
+            $PSCmdlet.WriteError($_)
+            continue
+        }
         if (Test-Path -LiteralPath $resolved -PathType Container) {
             foreach ($name in $Log) {
-                Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File | ForEach-Object { $_.FullName }
+                Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File |
+                    ForEach-Object { $_.FullName }
             }
         }
         else { $resolved }
     }
     $files = @($files | Sort-Object -Unique)
     if (-not $files) {
-        Write-Warning "No log files under $($Path -join ', ')"
+        # When no path could be resolved, the errors have said so already
+        if ($unresolved -lt @($Path).Count) {
+            Write-Warning "No log files under $($Path -join ', ')"
+        }
         return
     }
 
@@ -110,7 +130,14 @@ function Get-IntuneAgentLog {
             continue
         }
         Write-Verbose "Reading $file"
-        $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
+        try {
+            $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
+        } catch {
+            # A log that cannot be read or parsed is one item of the input too: it is reported
+            # and gives no entries, and the other logs are still read
+            $PSCmdlet.WriteError($_)
+            continue
+        }
         if (-not $kept.Count) { continue }
         $classified = @(Get-IslAgentLogEvent -Message @($kept | ForEach-Object { $_.Message }))
         for ($index = 0; $index -lt $kept.Count; $index++) {

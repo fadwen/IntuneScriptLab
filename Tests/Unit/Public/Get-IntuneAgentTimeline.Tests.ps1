@@ -9,6 +9,7 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
         param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
@@ -178,6 +179,55 @@ Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
             $empty = Join-Path $TestDrive 'Empty'
             Write-TestLog $empty 'HealthScripts.log' @(New-CmTraceLine -Message 'noise' -Time '01:00:00.0000000')
             @(Get-IntuneAgentTimeline -Path $empty).Count | Should-Be 0
+        }
+    }
+
+    Context 'Error Handling' {
+        BeforeAll {
+            # The logs of the fixture, and one more whose second entry has no time
+            $script:Mixed = Join-Path $TestDrive 'MixedLogs'
+            Copy-Item -LiteralPath $script:Logs -Destination $script:Mixed -Recurse
+            $null = Write-TestLog $script:Mixed 'AgentExecutor.log' @(
+                New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
+                New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
+            )
+            $script:Expected = @(Get-IntuneAgentTimeline -Path $script:Logs).Count
+        }
+
+        It 'passes on the error of a log that cannot be parsed and builds the timelines of the others' {
+            $script:Expected | Should-BeGreaterThan 0
+            $output = Get-IntuneAgentTimeline -Path $script:Mixed -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'CmTraceTimestampInvalid,*'
+            @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }).Count |
+                Should-Be $script:Expected
+        }
+
+        It 'ends with the error of the read when the caller asks it to stop' {
+            { Get-IntuneAgentTimeline -Path $script:Mixed -ErrorAction Stop } |
+                Should-Throw -FullyQualifiedErrorId 'CmTraceTimestampInvalid,*'
+            { Get-IntuneAgentTimeline -Path (Join-Path $TestDrive 'nowhere') -ErrorAction Stop } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'reports what it could not read and goes on, for a script without try' {
+            $mixed = $script:Mixed
+            $run = Invoke-CallerScript -Statement @(
+                "`$missing = @(Get-IntuneAgentTimeline -Path '$TestDrive\nowhere')"
+                "'missing: ' + `$missing.Count"
+                "`$mixed = @(Get-IntuneAgentTimeline -Path '$mixed')"
+                "'mixed: ' + `$mixed.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection -Count 2
+            $run.Output[0] | Should-Be 'missing: 0'
+            $run.Output[1] | Should-Be "mixed: $($script:Expected)"
+            $run.ErrorId | Should-BeCollection -Count 2
+            $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
+            $run.ErrorId[1] | Should-BeLikeString 'CmTraceTimestampInvalid,*'
         }
     }
 }

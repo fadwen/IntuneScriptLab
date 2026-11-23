@@ -103,6 +103,26 @@ The loader fails the import when `Private`, `Private/Rules` or `Public` is missi
 them fails to load. A file that does not parse used to leave the module imported without its
 commands.
 
+### A call to a function that can fail sits inside `try` with a `catch`
+
+A function that ends with `$PSCmdlet.ThrowTerminatingError()` ends only itself. The module function
+that called it carries on at its next statement with nothing where the result should be, unless the
+call is inside a `try` that has a `catch`; a `try` with only a `finally`, a nested helper and a
+pipeline do not stop it. A `throw` ended every function above it, which is what the callers were
+written for. The module is moving from `throw` to `ThrowTerminatingError` one area at a time (#64),
+callers first: the caller gets `try { ... } catch { $PSCmdlet.ThrowTerminatingError($_) }`, then the
+function it calls is converted.
+
+`Tests/Unit/Module.ErrorFlow.Tests.ps1` holds the rule on the syntax trees, because behaviour does
+not show it: a caller that goes on with nothing often returns nothing too, and `Should-Throw` calls
+inside a `try`, where every error travels all the way up. The test lists the calls that still rely
+on a `throw`, and the list must match the code exactly. `Invoke-CallerScript` in the test helpers
+runs statements from a script without `try` in a new process, for what such a caller sees.
+
+A failure the module detects itself is raised with a record from `New-IslErrorRecord`, which gives
+it an ID and a category. That function must not fail: it is called in the argument of
+`ThrowTerminatingError`, and an error there would end only that statement.
+
 ### A nested function returning `@()` hands the caller `$null`
 
 Several public commands use nested helper functions. PowerShell unrolls an empty array on the

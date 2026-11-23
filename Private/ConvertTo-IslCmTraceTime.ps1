@@ -38,7 +38,16 @@ function ConvertTo-IslCmTraceTime {
     $value = [datetime]::MinValue
     $parsed = [datetime]::TryParseExact("$Date $plain", $script:IslCmTraceTimeFormat,
         [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$value)
-    if (-not $parsed) { throw "Not a CMTrace timestamp: date=$Date time=$Time" }
+    if (-not $parsed) {
+        $recordSplat = @{
+            Message = "Not a CMTrace timestamp: date=$Date time=$Time"
+            ErrorId = 'CmTraceTimestampInvalid'
+            Category = [System.Management.Automation.ErrorCategory]::InvalidData
+            TargetObject = "$Date $Time"
+            ExceptionType = [System.FormatException]
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+    }
     $value
 }
 
