@@ -1,3 +1,10 @@
 # Text files are stored and checked out with LF on every platform, so that a Windows runner,
 # a Linux runner and a developer test the same bytes (CIC-11 of the PowerShell standards).
 * text=auto eol=lf
+
+# The scripts the validation kit uploads to Intune or runs on the lab devices are checked out
+# with CRLF on every platform, as a Windows checkout had them before this file existed, so that
+# a round sends the same bytes wherever it is started from.
+Validation/Fixtures.ps1 text eol=crlf
+Validation/Probe.ps1 text eol=crlf
+Validation/Win32Install.ps1 text eol=crlf

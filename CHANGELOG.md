@@ -24,6 +24,11 @@ entries are carried over from the manifest's release notes.
 - A `rehearsal` job in `quality-gates.yml` that runs `Build/Publish-Module.ps1 -WhatIf` on every
   pull request, so that a release which would fail at the tag fails before the merge. The same
   workflow now also runs every night, and checks PSScriptAnalyzer's `ScriptSecurity` rules.
+- A `.gitattributes` file that checks every text file out with LF on every platform, so that a
+  Windows runner, a Linux runner and a developer test the same bytes. The three scripts the
+  validation kit uploads or runs on the lab devices keep CRLF everywhere. `Build/Build-Help.ps1`
+  writes the compiled help with LF wherever it runs, so a build on Windows gives the committed
+  file byte for byte.
 
 ### Changed
 
