@@ -19,9 +19,10 @@ function Stop-IslProcessTree {
     The id of the process at the root of the tree.
 
     .EXAMPLE
-    Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false
+    Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false -WhatIf:$false
 
-    Ends the process a run started, and what that process started, after the run timed out.
+    Ends the process a run started, and what that process started, after the run timed out. The
+    two switches keep the caller's preferences out of it: the cleanup has to happen.
 
     .EXAMPLE
     Stop-IslProcessTree -ProcessId 4711 -WhatIf

@@ -98,7 +98,10 @@
         $stderrTask = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             $timedOut = $true
-            Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false
+            # The cleanup is not the caller's to preview or confirm. A function of this module
+            # sees a global $WhatIfPreference, and under it the tree would stay and the wait
+            # below would not end
+            Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false -WhatIf:$false
             $process.WaitForExit()
         }
         $stopwatch.Stop()
@@ -240,7 +243,9 @@
                 # children, so a later id in the list is often gone already
                 Get-CimInstance @cimInstanceSplat |
                     Where-Object { $_.ProcessId -ne $PID } |
-                    ForEach-Object { Stop-IslProcessTree -ProcessId $_.ProcessId -Confirm:$false }
+                    ForEach-Object {
+                        Stop-IslProcessTree -ProcessId $_.ProcessId -Confirm:$false -WhatIf:$false
+                    }
             }
             else {
                 # cmd writes the exit file before its own redirections are flushed; give it a moment
