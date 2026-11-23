@@ -59,6 +59,15 @@ entries are carried over from the manifest's release notes.
   without the key.
 - CI installs Pester 6.2.0 and PSScriptAnalyzer 1.25.0 exactly, where it took any Pester 6 from
   6.2.0 on and the newest PSScriptAnalyzer.
+- The module's functions run under strict mode, set once in the root module. A read of a variable
+  that was never assigned, or of a member that is not there, is an error where it was a silent
+  `$null`. Graph replies, export rows and the other data with optional members are read through one
+  private accessor that takes a dictionary and an object alike, so a reply that leaves out an
+  optional field, such as a policy without a run schedule or a remediation script, is read as
+  before.
+- Importing the module fails when its `Private`, `Private\Rules` or `Public` folder is missing or
+  when one of their files fails to load. A file that did not parse wrote an error and left the
+  module imported without the commands of that file.
 
 ### Removed
 

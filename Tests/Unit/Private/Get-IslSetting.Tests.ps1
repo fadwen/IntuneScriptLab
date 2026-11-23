@@ -32,8 +32,9 @@ BeforeAll {
 
     function script:Get-Setting {
         param([string]$Relative, $Settings, [hashtable]$Cache = @{})
-        $parameters = @{ Path = (Join-Path $script:Tree $Relative); Cache = $Cache }
-        if ($null -ne $Settings) { $parameters.Settings = $Settings }
+        # Settings is always passed, as $null when the test gives none: the block below runs under
+        # the module's strict mode, where a variable that was never set cannot be read
+        $parameters = @{ Path = (Join-Path $script:Tree $Relative); Cache = $Cache; Settings = $Settings }
         InModuleScope IntuneScriptLab -Parameters $parameters {
             $splat = @{ Path = $Path; Cache = $Cache }
             if ($null -ne $Settings) { $splat.Settings = $Settings }

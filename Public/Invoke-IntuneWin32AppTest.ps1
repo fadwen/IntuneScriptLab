@@ -77,11 +77,13 @@ function Invoke-IntuneWin32AppTest {
     $null = Resolve-Path -LiteralPath $ContentPath -ErrorAction Stop
     foreach ($related in @($DependsOn) + @($Supersedes)) {
         if (-not $related) { continue }
-        if (-not $related.Name) { throw 'Every -DependsOn and -Supersedes entry needs a Name' }
-        if (-not $related.DetectionPath -and -not $related.DetectionRule) {
-            throw "$($related.Name) needs a DetectionPath, DetectionRule entries, or both"
+        if (-not $related['Name']) { throw 'Every -DependsOn and -Supersedes entry needs a Name' }
+        if (-not $related['DetectionPath'] -and -not $related['DetectionRule']) {
+            throw "$($related['Name']) needs a DetectionPath, DetectionRule entries, or both"
         }
-        if ($related.ContentPath) { $null = Resolve-Path -LiteralPath $related.ContentPath -ErrorAction Stop }
+        if ($related['ContentPath']) {
+            $null = Resolve-Path -LiteralPath $related['ContentPath'] -ErrorAction Stop
+        }
     }
 
     $warnings = [System.Collections.Generic.List[string]]::new()
@@ -241,10 +243,12 @@ function Invoke-IntuneWin32AppTest {
     # (W32-DEPD-PARENT)
     if (-not $status -and $Intent -eq 'Install') {
         foreach ($dependency in @($DependsOn | Where-Object { $_ })) {
-            $type = if ($dependency.Type) { "$($dependency.Type)" } else { 'autoInstall' }
-            $name = "$($dependency.Name)"
+            $type = if ($dependency['Type']) { "$($dependency['Type'])" } else { 'autoInstall' }
+            $name = "$($dependency['Name'])"
             $detect = @{
-                Path = $dependency.DetectionPath; Rule = $dependency.DetectionRule; Label = " for dependency $name"
+                Path = $dependency['DetectionPath']
+                Rule = $dependency['DetectionRule']
+                Label = " for dependency $name"
             }
             $childPre = Invoke-DetectionPass -Phase 'Pre' @detect
             $childInstall = $null
@@ -252,12 +256,14 @@ function Invoke-IntuneWin32AppTest {
             $childStatus = if ($childPre.TimedOut) { 'TimedOut' }
             elseif ($childPre.Detected) { 'Installed' }
             elseif ($type -ne 'autoInstall') { 'Not detected (detect-only dependency)' }
-            elseif (-not $dependency.InstallCommand -or -not $dependency.ContentPath) {
+            elseif (-not $dependency['InstallCommand'] -or -not $dependency['ContentPath']) {
                 'Not detected (no InstallCommand or ContentPath)'
             }
             else {
                 $childRun = @{
-                    Phase = 'install'; Content = $dependency.ContentPath; CommandLine = $dependency.InstallCommand
+                    Phase = 'install'
+                    Content = $dependency['ContentPath']
+                    CommandLine = $dependency['InstallCommand']
                 }
                 $childInstall = Invoke-ContentCommand @childRun
                 switch (Get-Outcome -Run $childInstall) {
@@ -291,10 +297,12 @@ function Invoke-IntuneWin32AppTest {
     # installed (W32-SUP-OLD-A)
     if (-not $status -and $Intent -eq 'Install') {
         foreach ($old in @($Supersedes | Where-Object { $_ })) {
-            $type = if ($old.Type) { "$($old.Type)" } else { 'update' }
-            $name = "$($old.Name)"
+            $type = if ($old['Type']) { "$($old['Type'])" } else { 'update' }
+            $name = "$($old['Name'])"
             $detect = @{
-                Path = $old.DetectionPath; Rule = $old.DetectionRule; Label = " for superseded app $name"
+                Path = $old['DetectionPath']
+                Rule = $old['DetectionRule']
+                Label = " for superseded app $name"
             }
             $oldPre = Invoke-DetectionPass -Phase 'Pre' @detect
             $oldUninstall = $null
@@ -302,11 +310,15 @@ function Invoke-IntuneWin32AppTest {
             $oldStatus = if ($oldPre.TimedOut) { 'TimedOut' }
             elseif (-not $oldPre.Detected) { 'Not installed' }
             elseif ($type -ne 'replace') { 'Installed (left in place by update)' }
-            elseif (-not $old.UninstallCommand -or -not $old.ContentPath) {
+            elseif (-not $old['UninstallCommand'] -or -not $old['ContentPath']) {
                 'Installed (no UninstallCommand or ContentPath)'
             }
             else {
-                $oldRun = @{ Phase = 'uninstall'; Content = $old.ContentPath; CommandLine = $old.UninstallCommand }
+                $oldRun = @{
+                    Phase = 'uninstall'
+                    Content = $old['ContentPath']
+                    CommandLine = $old['UninstallCommand']
+                }
                 $oldUninstall = Invoke-ContentCommand @oldRun
                 switch (Get-Outcome -Run $oldUninstall) {
                     'timedOut' { 'TimedOut' }

@@ -27,7 +27,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
     BeforeEach {
         # Echo the launch back so the test can read it, and record the cache folder
         Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-            [pscustomobject]@{
+            ConvertTo-FakeRunResult @{
                 ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::FromSeconds(1)
                 StdOut = "$FilePath|$Arguments|$WorkingDirectory|$WorkFolder|$Context|$TimeoutSeconds"
             }
@@ -85,7 +85,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
 
         It 'copies the run result through unchanged' {
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 4; TimedOut = $true; StdOut = 'o'; StdErr = 'e'; Duration = [timespan]::Zero
                 }
             }
@@ -101,7 +101,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
         It 'runs from a ProgramData cache the account is granted, and passes the credential through' {
             Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::Zero
                     StdOut = "$WorkFolder|$($Credential.UserName)|$LogonType"
                     UserName = $Credential.UserName; LogonType = 'Interactive'

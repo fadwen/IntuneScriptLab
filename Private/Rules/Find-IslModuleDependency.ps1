@@ -64,7 +64,13 @@ function Find-IslModuleDependency {
         New-IslFinding @findingSplat
     }
 
-    foreach ($required in @($Context.Ast.ScriptRequirements.RequiredModules | Where-Object { $_ })) {
+    # A script without a #Requires line has no requirements object at all
+    $requirements = $Context.Ast.ScriptRequirements
+    $requiredModules = @()
+    if ($null -ne $requirements) {
+        $requiredModules = @($requirements.RequiredModules | Where-Object { $_ })
+    }
+    foreach ($required in $requiredModules) {
         if (-not (Test-InBox -Name "$($required.Name)")) {
             Write-Missing -Name $required.Name -Extent $Context.Ast.Extent -How '#Requires -Modules'
         }

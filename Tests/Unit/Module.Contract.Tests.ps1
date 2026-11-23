@@ -172,6 +172,114 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         Get-Command @commandSplat | Should-BeNull
     }
 
+    It 'runs its functions under strict mode' {
+        # Set once at the top of the root module: a read of a variable that was never assigned is
+        # an error in every function, where it used to be a silent $null
+        { InModuleScope IntuneScriptLab { $null = $neverAssignedAnywhere } } |
+            Should-Throw -ExceptionMessage '*neverAssignedAnywhere*'
+    }
+
+    Context 'When a part of the module cannot be loaded' {
+        BeforeAll {
+            # Each copy is imported in a new process: a second module of this name imported here
+            # would stand beside the one under test for the rest of the run
+            $script:Shell = (Get-Process -Id $PID).Path
+            function script:Import-ModuleCopy {
+                <#
+                .SYNOPSIS
+                    Copies the module under TestDrive, changes the copy and imports it in a new process.
+
+                .DESCRIPTION
+                    The import is a plain one, as a user types it. Returns the exit code of that process
+                    and what it wrote: 'imported' when the module is loaded afterwards, and otherwise
+                    the message of the error that ended the import, followed by 'not imported'.
+
+                .PARAMETER Name
+                    The folder under TestDrive that holds this copy.
+
+                .PARAMETER Change
+                    Changes the copy before it is imported. It receives the folder of the copy.
+
+                .EXAMPLE
+                    Import-ModuleCopy -Name 'Intact' -Change { }
+
+                    Imports an unchanged copy.
+
+                .INPUTS
+                    None.
+
+                .OUTPUTS
+                    System.Management.Automation.PSCustomObject. ExitCode and Output of the process.
+                #>
+                [CmdletBinding()]
+                [OutputType([System.Management.Automation.PSCustomObject])]
+                param(
+                    [Parameter(Mandatory)]
+                    [string]$Name,
+
+                    [Parameter(Mandatory)]
+                    [scriptblock]$Change
+                )
+                $copy = Join-Path (Join-Path $TestDrive $Name) 'IntuneScriptLab'
+                $null = New-Item -ItemType Directory -Path $copy -Force
+                $parts = @(
+                    'IntuneScriptLab.psd1'
+                    'IntuneScriptLab.psm1'
+                    'IntuneScriptLab.Format.ps1xml'
+                    'Private'
+                    'Public'
+                )
+                foreach ($part in $parts) {
+                    Copy-Item -LiteralPath (Join-Path $script:ModuleRoot $part) -Destination $copy -Recurse
+                }
+                & $Change $copy
+                # The child reports the failure on its output: a native error stream read under an
+                # error preference of Stop, which a CI step sets, would end the test instead
+                $manifest = Join-Path $copy 'IntuneScriptLab.psd1'
+                $import = "try { Import-Module '$manifest' } catch { 'error: ' + `$_.Exception.Message }"
+                $report = "if (Get-Module -Name IntuneScriptLab) { 'imported' } else { 'not imported'; exit 1 }"
+                $command = "$import; $report"
+                $arguments = @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', $command)
+                $output = & $script:Shell @arguments
+                [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = "$output" }
+            }
+        }
+
+        It 'imports an intact copy, so that the failures below come from what was broken' {
+            $result = Import-ModuleCopy -Name 'Intact' -Change { }
+            $result.Output | Should-Be 'imported'
+            $result.ExitCode | Should-Be 0
+        }
+
+        It 'fails the import when a function file <Problem>' -ForEach @(
+            @{ Problem = 'throws while it loads'; Body = "throw 'this file cannot load'" }
+            @{ Problem = 'does not parse'; Body = 'function Get-IslBrokenFile {' }
+        ) {
+            # The file that does not parse is the case the loader's rethrow exists for: dot-sourcing
+            # it is an error that ends only that statement, and the import used to carry on and
+            # leave the module loaded without the commands of that file
+            $result = Import-ModuleCopy -Name ($Problem -replace '\W', '-') -Change {
+                param($copy)
+                $broken = Join-Path $copy 'Private\Get-IslBrokenFile.ps1'
+                Set-Content -LiteralPath $broken -Value $Body -Encoding ascii
+            }
+            $result.ExitCode | Should-Be 1
+            $result.Output | Should-BeLikeString 'error: *not imported'
+        }
+
+        It 'fails the import when the <Folder> folder is missing' -ForEach @(
+            @{ Folder = 'Private\Rules' }
+            @{ Folder = 'Public' }
+        ) {
+            $result = Import-ModuleCopy -Name ($Folder -replace '\W', '-') -Change {
+                param($copy)
+                Remove-Item -LiteralPath (Join-Path $copy $Folder) -Recurse -Force
+            }
+            $result.ExitCode | Should-Be 1
+            $result.Output | Should-BeLikeString "error: *$($Folder -replace '^.*\\')*is missing*not imported"
+        }
+    }
+
     It 'loads on Windows PowerShell 5.1 as well as PowerShell 7' {
         # The rules reference PowerShell 7 AST types by name only; a hard type reference would
         # break import on 5.1, which is where many admins will run this.

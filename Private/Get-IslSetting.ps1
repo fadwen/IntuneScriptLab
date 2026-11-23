@@ -58,37 +58,45 @@ function Get-IslSetting {
         if ($unknown) {
             Write-Warning "Unknown settings key(s) in ${Source}: $($unknown -join ', ')"
         }
-        if ($Table.MinimumSeverity -and "$($Table.MinimumSeverity)" -notin $validSeverities) {
+        # Every key is optional. An index reads a key that is not there as $null, where member
+        # access is an error under strict mode
+        $minimumSeverity = $Table['MinimumSeverity']
+        $scriptType = $Table['ScriptType']
+        $context = $Table['Context']
+        $architecture = $Table['Architecture']
+        $severityTable = $Table['Severity']
+        if ($minimumSeverity -and "$minimumSeverity" -notin $validSeverities) {
             throw "${Source}: MinimumSeverity must be one of $($validSeverities -join ', ')"
         }
-        if ($Table.ScriptType -and "$($Table.ScriptType)" -notin $validTypes) {
+        if ($scriptType -and "$scriptType" -notin $validTypes) {
             throw "${Source}: ScriptType must be one of $($validTypes -join ', ')"
         }
-        if ($Table.Context -and "$($Table.Context)" -notin 'System', 'User') {
+        if ($context -and "$context" -notin 'System', 'User') {
             throw "${Source}: Context must be System or User"
         }
-        if ($Table.Architecture -and "$($Table.Architecture)" -notin 'x86', 'x64', 'arm64') {
+        if ($architecture -and "$architecture" -notin 'x86', 'x64', 'arm64') {
             throw "${Source}: Architecture must be x86, x64 or arm64"
         }
         $severity = @{}
-        foreach ($key in @($Table.Severity.Keys | Where-Object { $null -ne $_ })) {
-            if ("$($Table.Severity[$key])" -notin $validSeverities) {
+        $severityKeys = if ($severityTable) { @($severityTable.Keys | Where-Object { $null -ne $_ }) } else { @() }
+        foreach ($key in $severityKeys) {
+            if ("$($severityTable[$key])" -notin $validSeverities) {
                 throw "${Source}: Severity for $key must be one of $($validSeverities -join ', ')"
             }
-            $severity[$key] = "$($Table.Severity[$key])"
+            $severity[$key] = "$($severityTable[$key])"
         }
         [pscustomobject]@{
             PSTypeName            = 'IntuneScriptLab.Settings'
             Source                = $Source
-            ExcludeRule           = @($Table.ExcludeRule | Where-Object { $_ })
-            IncludeRule           = @($Table.IncludeRule | Where-Object { $_ })
-            MinimumSeverity       = if ($Table.MinimumSeverity) { "$($Table.MinimumSeverity)" } else { $null }
+            ExcludeRule           = @($Table['ExcludeRule'] | Where-Object { $_ })
+            IncludeRule           = @($Table['IncludeRule'] | Where-Object { $_ })
+            MinimumSeverity       = if ($minimumSeverity) { "$minimumSeverity" } else { $null }
             Severity              = $severity
-            ScriptType            = if ($Table.ScriptType) { "$($Table.ScriptType)" } else { $null }
-            Context               = if ($Table.Context) { "$($Table.Context)" } else { $null }
-            Architecture          = if ($Table.Architecture) { "$($Table.Architecture)" } else { $null }
+            ScriptType            = if ($scriptType) { "$scriptType" } else { $null }
+            Context               = if ($context) { "$context" } else { $null }
+            Architecture          = if ($architecture) { "$architecture" } else { $null }
             EnforceSignatureCheck = if ($Table.ContainsKey('EnforceSignatureCheck')) {
-                [bool]$Table.EnforceSignatureCheck
+                [bool]$Table['EnforceSignatureCheck']
             }
             else { $null }
         }

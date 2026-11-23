@@ -53,10 +53,11 @@ function Test-IntuneDeployedScript {
 
     function Test-Wanted {
         param($Policy)
-        $displayName = "$($Policy.displayName)"
+        $displayName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
         $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
-        $byId = $Id -and "$($Policy.id)" -in $Id
+        $byId = $Id -and $policyId -in $Id
         $byName -or $byId
     }
 
@@ -65,8 +66,8 @@ function Test-IntuneDeployedScript {
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.DeploymentFinding'
             Kind       = $PolicyKind
-            PolicyName = "$($Policy.displayName)"
-            PolicyId   = "$($Policy.id)"
+            PolicyName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+            PolicyId   = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
             Role       = $Role
             RuleName   = $Finding.RuleName
             Severity   = $Finding.Severity
@@ -98,8 +99,10 @@ function Test-IntuneDeployedScript {
             $RunAsAccount, $RunAs32Bit, $EnforceSignatureCheck
         )
         if (-not $Content) { return }
-        $safeName = [regex]::Replace("$($Policy.displayName)", '[^\w.-]', '_')
-        $folder = Join-Path -Path $workFolder -ChildPath "$PolicyKind\$safeName-$($Policy.id)"
+        $policyName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
+        $safeName = [regex]::Replace($policyName, '[^\w.-]', '_')
+        $folder = Join-Path -Path $workFolder -ChildPath "$PolicyKind\$safeName-$policyId"
         $null = New-Item -ItemType Directory -Path $folder -Force
         $file = Join-Path -Path $folder -ChildPath "$Role.ps1"
         # Byte for byte: the encoding rule needs to see the BOM, or its absence, as the tenant stores it
@@ -117,7 +120,7 @@ function Test-IntuneDeployedScript {
         if ($settingsGiven) { $testSplat.Settings = $Settings }
         if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }
         if ($ExcludeRule) { $testSplat.ExcludeRule = $ExcludeRule }
-        Write-Verbose "$PolicyKind '$($Policy.displayName)' $Role as $ScriptType, $context, $architecture"
+        Write-Verbose "$PolicyKind '$policyName' $Role as $ScriptType, $context, $architecture"
         foreach ($finding in (Test-IntuneScript @testSplat)) {
             ConvertTo-DeploymentFinding -PolicyKind $PolicyKind -Policy $Policy -Role $Role -Finding $finding
         }
@@ -171,20 +174,22 @@ function Test-IntuneDeployedScript {
     # device can match is a warning (the assignment silently reaches nobody, or everybody)
     function Test-AssignmentFilter {
         param([string]$PolicyKind, $Policy)
-        foreach ($assignment in @($Policy.assignments)) {
-            $target = $assignment.target
-            $filterId = "$($target.deviceAndAppManagementAssignmentFilterId)"
-            $filterType = "$($target.deviceAndAppManagementAssignmentFilterType)"
+        foreach ($assignment in @(Get-IslPropertyValue -InputObject $Policy -Name 'assignments')) {
+            # An assignment without a filter carries neither key, or a type of none
+            $target = Get-IslPropertyValue -InputObject $assignment -Name 'target'
+            $filterId = Get-IslPropertyValue -InputObject $target -Name 'deviceAndAppManagementAssignmentFilterId'
+            $filterTypeName = 'deviceAndAppManagementAssignmentFilterType'
+            $filterType = "$(Get-IslPropertyValue -InputObject $target -Name $filterTypeName)"
             if (-not $filterId -or $filterType -eq 'none') { continue }
             $filter = Get-AssignmentFilter -FilterId $filterId
             if (-not $filter) { continue }
-            $label = "Filter '$($filter.displayName)' ($filterType)"
-            $parsed = ConvertFrom-IslFilterRule -Rule "$($filter.rule)"
+            $filterRule = "$(Get-IslPropertyValue -InputObject $filter -Name 'rule')"
+            $label = "Filter '$(Get-IslPropertyValue -InputObject $filter -Name 'displayName')' ($filterType)"
+            $parsed = ConvertFrom-IslFilterRule -Rule $filterRule
             if ($parsed.Error) {
                 $unreadSplat = @{
                     PolicyKind = $PolicyKind; Policy = $Policy; Rule = 'IslFilterIssue'; Severity = 'Information'
-                    Message    = "$label uses syntax this evaluator does not read ($($parsed.Error)): " +
-                        "$($filter.rule)"
+                    Message    = "$label uses syntax this evaluator does not read ($($parsed.Error)): $filterRule"
                     Evidence   = $filterEvidence
                 }
                 ConvertTo-PolicyFinding @unreadSplat
@@ -196,7 +201,7 @@ function Test-IntuneDeployedScript {
                 $message = Get-IslFilterWarningMessage -Warning $warning -Mode $mode
                 $issueSplat = @{
                     PolicyKind = $PolicyKind; Policy = $Policy; Rule = 'IslFilterIssue'; Severity = $severity
-                    Message    = "${label}: $message. Rule: $($filter.rule)"
+                    Message    = "${label}: $message. Rule: $filterRule"
                     Evidence   = $filterEvidence
                 }
                 ConvertTo-PolicyFinding @issueSplat
@@ -210,9 +215,11 @@ function Test-IntuneDeployedScript {
     # device group is skipped on Entra registered devices
     function Test-Assignment {
         param([string]$PolicyKind, $Policy, $RunAsAccount)
-        $assignments = @($Policy.assignments | Where-Object { $_ })
+        $assignments = @(Get-IslPropertyValue -InputObject $Policy -Name 'assignments' | Where-Object { $_ })
+        $exclusionType = '#microsoft.graph.exclusionGroupAssignmentTarget'
         $includes = @($assignments | Where-Object {
-                "$($_.target.'@odata.type')" -ne '#microsoft.graph.exclusionGroupAssignmentTarget'
+                $target = Get-IslPropertyValue -InputObject $_ -Name 'target'
+                "$(Get-IslPropertyValue -InputObject $target -Name '@odata.type')" -ne $exclusionType
             })
         if ($includes.Count -eq 0) {
             $what = if ($assignments.Count -eq 0) { 'No assignment' } else { 'Only exclusion assignments' }
@@ -226,14 +233,19 @@ function Test-IntuneDeployedScript {
             ConvertTo-PolicyFinding @noneSplat
         }
         foreach ($assignment in $includes) {
-            $schedule = $assignment.runSchedule
-            if ("$($schedule.'@odata.type')" -ne '#microsoft.graph.deviceHealthScriptRunOnceSchedule') { continue }
-            $stamp = "$($schedule.date) $($schedule.time)"
+            # Only a remediation's assignment has a schedule, and only a run-once one has a date
+            $schedule = Get-IslPropertyValue -InputObject $assignment -Name 'runSchedule'
+            $scheduleType = "$(Get-IslPropertyValue -InputObject $schedule -Name '@odata.type')"
+            if ($scheduleType -ne '#microsoft.graph.deviceHealthScriptRunOnceSchedule') { continue }
+            $scheduleDate = Get-IslPropertyValue -InputObject $schedule -Name 'date'
+            $scheduleTime = Get-IslPropertyValue -InputObject $schedule -Name 'time'
+            $useUtc = [bool](Get-IslPropertyValue -InputObject $schedule -Name 'useUtc')
+            $stamp = "$scheduleDate $scheduleTime"
             $at = [datetime]::MinValue
             if (-not [datetime]::TryParse($stamp, [cultureinfo]::InvariantCulture, 'None', [ref]$at)) { continue }
-            $now = if ([bool]$schedule.useUtc) { [datetime]::UtcNow } else { [datetime]::Now }
+            $now = if ($useUtc) { [datetime]::UtcNow } else { [datetime]::Now }
             if ($at -ge $now) { continue }
-            $zone = if ([bool]$schedule.useUtc) { 'UTC' } else { 'device local time' }
+            $zone = if ($useUtc) { 'UTC' } else { 'device local time' }
             $when = $at.ToString('yyyy-MM-dd HH:mm:ss')
             $pastSplat = @{
                 PolicyKind = $PolicyKind; Policy = $Policy; Rule = 'IslScheduleIssue'; Severity = 'Information'
@@ -247,11 +259,12 @@ function Test-IntuneDeployedScript {
         }
         if ("$RunAsAccount" -ne 'user') { return }
         $deviceGroups = foreach ($assignment in $includes) {
-            $target = $assignment.target
-            $type = "$($target.'@odata.type')"
+            $target = Get-IslPropertyValue -InputObject $assignment -Name 'target'
+            $type = "$(Get-IslPropertyValue -InputObject $target -Name '@odata.type')"
             if ($type -eq '#microsoft.graph.allDevicesAssignmentTarget') { 'all devices'; continue }
             if ($type -ne '#microsoft.graph.groupAssignmentTarget') { continue }
-            if (Test-DeviceGroup -GroupId "$($target.groupId)") { "$($target.groupId)" }
+            $groupId = "$(Get-IslPropertyValue -InputObject $target -Name 'groupId')"
+            if (Test-DeviceGroup -GroupId $groupId) { $groupId }
         }
         if ($deviceGroups) {
             $userSplat = @{
@@ -276,20 +289,27 @@ function Test-IntuneDeployedScript {
         if ('Remediation' -in $Kind) {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
-                $policy = Invoke-IslGraphRequest -Uri "$remediations/$($summary.id)?`$expand=assignments"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $policy = Invoke-IslGraphRequest -Uri "$remediations/$summaryId`?`$expand=assignments"
+                $runAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
                 $policySettings = @{
-                    RunAsAccount = $policy.runAsAccount; RunAs32Bit = $policy.runAs32Bit
-                    EnforceSignatureCheck = $policy.enforceSignatureCheck
+                    RunAsAccount = $runAsAccount
+                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
                 }
                 $detectSplat = @{
-                    PolicyKind = 'Remediation'; Policy = $policy; Role = 'detection'; ScriptType = 'Detection'
-                    Content    = $policy.detectionScriptContent
+                    PolicyKind = 'Remediation'
+                    Policy = $policy
+                    Role = 'detection'
+                    ScriptType = 'Detection'
+                    Content = Get-IslPropertyValue -InputObject $policy -Name 'detectionScriptContent'
                 }
                 Test-PolicyScript @detectSplat @policySettings
-                if ($policy.remediationScriptContent) {
+                $remediationContent = Get-IslPropertyValue -InputObject $policy -Name 'remediationScriptContent'
+                if ($remediationContent) {
                     $remediateSplat = @{
                         PolicyKind = 'Remediation'; Policy = $policy; Role = 'remediation'
-                        ScriptType = 'Remediation'; Content = $policy.remediationScriptContent
+                        ScriptType = 'Remediation'; Content = $remediationContent
                     }
                     Test-PolicyScript @remediateSplat @policySettings
                 }
@@ -304,7 +324,7 @@ function Test-IntuneDeployedScript {
                     }
                     ConvertTo-PolicyFinding @noteSplat
                 }
-                Test-Assignment -PolicyKind 'Remediation' -Policy $policy -RunAsAccount $policy.runAsAccount
+                Test-Assignment -PolicyKind 'Remediation' -Policy $policy -RunAsAccount $runAsAccount
                 Test-AssignmentFilter -PolicyKind 'Remediation' -Policy $policy
             }
         }
@@ -312,14 +332,21 @@ function Test-IntuneDeployedScript {
         if ('PlatformScript' -in $Kind) {
             $scripts = '/beta/deviceManagement/deviceManagementScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")) {
-                $policy = Invoke-IslGraphRequest -Uri "$scripts/$($summary.id)?`$expand=assignments"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $policy = Invoke-IslGraphRequest -Uri "$scripts/$summaryId`?`$expand=assignments"
+                $runAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
                 $scriptSplat = @{
-                    PolicyKind = 'PlatformScript'; Policy = $policy; Role = 'script'; ScriptType = 'PlatformScript'
-                    Content    = $policy.scriptContent; RunAsAccount = $policy.runAsAccount
-                    RunAs32Bit = $policy.runAs32Bit; EnforceSignatureCheck = $policy.enforceSignatureCheck
+                    PolicyKind = 'PlatformScript'
+                    Policy = $policy
+                    Role = 'script'
+                    ScriptType = 'PlatformScript'
+                    Content = Get-IslPropertyValue -InputObject $policy -Name 'scriptContent'
+                    RunAsAccount = $runAsAccount
+                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
                 }
                 Test-PolicyScript @scriptSplat
-                Test-Assignment -PolicyKind 'PlatformScript' -Policy $policy -RunAsAccount $policy.runAsAccount
+                Test-Assignment -PolicyKind 'PlatformScript' -Policy $policy -RunAsAccount $runAsAccount
                 Test-AssignmentFilter -PolicyKind 'PlatformScript' -Policy $policy
             }
         }
@@ -328,27 +355,38 @@ function Test-IntuneDeployedScript {
             $apps = '/beta/deviceAppManagement/mobileApps'
             $listUri = "$apps`?`$filter=isof('microsoft.graph.win32LobApp')&`$select=id,displayName"
             foreach ($summary in (Get-WantedPolicy -Uri $listUri)) {
-                $app = Invoke-IslGraphRequest -Uri "$apps/$($summary.id)?`$expand=assignments"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $app = Invoke-IslGraphRequest -Uri "$apps/$summaryId`?`$expand=assignments"
                 $ruleIndex = 0
-                foreach ($rule in @($app.detectionRules)) {
+                foreach ($rule in @(Get-IslPropertyValue -InputObject $app -Name 'detectionRules')) {
                     $ruleIndex++
-                    $ruleType = "$($rule.'@odata.type')"
+                    # Each kind of rule has its own members: a script rule has no detectionType,
+                    # a file rule no scriptContent
+                    $ruleType = "$(Get-IslPropertyValue -InputObject $rule -Name '@odata.type')"
+                    $detectionType = "$(Get-IslPropertyValue -InputObject $rule -Name 'detectionType')"
                     if ($ruleType -eq '#microsoft.graph.win32LobAppPowerShellScriptDetection') {
+                        $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
                         $detectSplat = @{
-                            PolicyKind = 'Win32App'; Policy = $app; Role = 'detection'
-                            ScriptType = 'Win32Detection'; Content = $rule.scriptContent
-                            RunAsAccount = 'system'; RunAs32Bit = $rule.runAs32Bit
-                            EnforceSignatureCheck = $rule.enforceSignatureCheck
+                            PolicyKind = 'Win32App'
+                            Policy = $app
+                            Role = 'detection'
+                            ScriptType = 'Win32Detection'
+                            Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                            RunAsAccount = 'system'
+                            RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                            EnforceSignatureCheck = $signatureCheck
                         }
                         Test-PolicyScript @detectSplat
                     }
                     elseif ($ruleType -eq '#microsoft.graph.win32LobAppFileSystemDetection' -and
-                        "$($rule.detectionType)" -eq 'doesNotExist') {
+                        $detectionType -eq 'doesNotExist') {
+                        $rulePath = Get-IslPropertyValue -InputObject $rule -Name 'path'
+                        $ruleFile = Get-IslPropertyValue -InputObject $rule -Name 'fileOrFolderName'
                         $ruleSplat = @{
                             PolicyKind = 'Win32App'; Policy = $app; Rule = 'IslDetectionRuleIssue'
                             Severity   = 'Error'
                             Message    = "Detection rule $ruleIndex is a file rule with detectionType " +
-                                "doesNotExist ($($rule.path)\$($rule.fileOrFolderName)): the agent does " +
+                                "doesNotExist ($rulePath\$ruleFile): the agent does " +
                                 'not evaluate it. Use a registry doesNotExist rule or a script'
                             Evidence   = 'File doesNotExist: on a missing file the app was not detected ' +
                                 'and the install ran; on a present file the detection ended "Invalid ' +
@@ -358,25 +396,35 @@ function Test-IntuneDeployedScript {
                         ConvertTo-PolicyFinding @ruleSplat
                     }
                 }
-                foreach ($rule in @($app.requirementRules)) {
-                    if ("$($rule.'@odata.type')" -ne '#microsoft.graph.win32LobAppPowerShellScriptRequirement') {
+                foreach ($rule in @(Get-IslPropertyValue -InputObject $app -Name 'requirementRules')) {
+                    $ruleType = "$(Get-IslPropertyValue -InputObject $rule -Name '@odata.type')"
+                    if ($ruleType -ne '#microsoft.graph.win32LobAppPowerShellScriptRequirement') {
                         continue
                     }
+                    $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
                     $requirementSplat = @{
-                        PolicyKind = 'Win32App'; Policy = $app; Role = 'requirement'
-                        ScriptType = 'Win32Requirement'; Content = $rule.scriptContent
-                        RunAsAccount = $rule.runAsAccount; RunAs32Bit = $rule.runAs32Bit
-                        EnforceSignatureCheck = $rule.enforceSignatureCheck
+                        PolicyKind = 'Win32App'
+                        Policy = $app
+                        Role = 'requirement'
+                        ScriptType = 'Win32Requirement'
+                        Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                        RunAsAccount = Get-IslPropertyValue -InputObject $rule -Name 'runAsAccount'
+                        RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                        EnforceSignatureCheck = $signatureCheck
                     }
                     Test-PolicyScript @requirementSplat
                 }
-                if ("$($app.installExperience.runAsAccount)" -eq 'user') {
-                    $deviceGroups = foreach ($assignment in @($app.assignments)) {
-                        $target = $assignment.target
-                        $type = "$($target.'@odata.type')"
+                $installExperience = Get-IslPropertyValue -InputObject $app -Name 'installExperience'
+                $installContext = "$(Get-IslPropertyValue -InputObject $installExperience -Name 'runAsAccount')"
+                if ($installContext -eq 'user') {
+                    $appAssignments = @(Get-IslPropertyValue -InputObject $app -Name 'assignments')
+                    $deviceGroups = foreach ($assignment in $appAssignments) {
+                        $target = Get-IslPropertyValue -InputObject $assignment -Name 'target'
+                        $type = "$(Get-IslPropertyValue -InputObject $target -Name '@odata.type')"
                         if ($type -eq '#microsoft.graph.allDevicesAssignmentTarget') { 'all devices'; continue }
                         if ($type -ne '#microsoft.graph.groupAssignmentTarget') { continue }
-                        if (Test-DeviceGroup -GroupId "$($target.groupId)") { "$($target.groupId)" }
+                        $groupId = "$(Get-IslPropertyValue -InputObject $target -Name 'groupId')"
+                        if (Test-DeviceGroup -GroupId $groupId) { $groupId }
                     }
                     if ($deviceGroups) {
                         $assignmentSplat = @{

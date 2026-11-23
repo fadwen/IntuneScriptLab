@@ -28,15 +28,15 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
         # Detection passes only once the remediation has left its marker
         Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
             if (Test-Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker')) {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'present'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'present'; StdErr = '' }
             }
             else {
-                [pscustomobject]@{ ExitCode = 1; TimedOut = $false; StdOut = 'missing'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 1; TimedOut = $false; StdOut = 'missing'; StdErr = '' }
             }
         }
         Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
             $null = New-Item -ItemType File -Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker') -Force
-            [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'created'; StdErr = '' }
+            ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'created'; StdErr = '' }
         }
     }
 
@@ -99,7 +99,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'reports Recurred when the remediation exits 0 but detection still fails' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'did nothing'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'did nothing'; StdErr = '' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'Recurred'
@@ -111,7 +111,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
             # exit code: RemediationStatus 3, Graph scriptError, no post-detection (REM-STDERR-EXIT0)
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
                 $null = New-Item -ItemType File -Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker') -Force
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'turned off'
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'turned off'
                     StdErr = "Set-ItemProperty : Cannot find path 'HKCU:\x' because it does not exist." }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
@@ -124,7 +124,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'does not take whitespace on the remediation stderr for an error' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'did nothing'; StdErr = "`r`n" }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; StdOut = 'did nothing'; StdErr = "`r`n" }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'Recurred'
@@ -133,7 +133,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'reports Failed and skips the post-detection when the remediation exits non-zero' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
-                [pscustomobject]@{ ExitCode = 1; TimedOut = $false; StdOut = ''; StdErr = 'nope' }
+                ConvertTo-FakeRunResult @{ ExitCode = 1; TimedOut = $false; StdOut = ''; StdErr = 'nope' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'Failed'
@@ -142,7 +142,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'treats any non-zero detection exit as an issue, and warns when it is not 1' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
-                [pscustomobject]@{ ExitCode = 2; TimedOut = $false; StdOut = 'still broken'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 2; TimedOut = $false; StdOut = 'still broken'; StdErr = '' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'Recurred'
@@ -153,7 +153,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
     Context 'Output warnings' {
         It 'keeps the last stdout line and the last 2,048 characters, and warns about both' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = "one`r`ntwo`r`n" + ('x' * 3000); StdErr = ''
                 }
             }
@@ -165,7 +165,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'warns when stderr is written but the detection still exits 0' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'fine'; StdErr = 'careful' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'fine'; StdErr = 'careful' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect
             $result.Status | Should-Be 'Without issues'
@@ -175,8 +175,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'warns about non-ASCII output, which Intune reports through the OEM code page' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'Gr' + [char]0xFC + [char]0xDF + 'e'
-                    StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; StdOut = 'Gr' + [char]0xFC + [char]0xDF + 'e' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect
             $result.Warnings -join ' ' | Should-BeLikeString '*Non-ASCII*OEM code page*'
@@ -186,7 +185,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
     Context 'Error Handling' {
         It 'reports TimedOut when the detection is killed' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
-                [pscustomobject]@{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'TimedOut'
@@ -195,7 +194,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
 
         It 'reports TimedOut when the remediation is killed' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
-                [pscustomobject]@{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'TimedOut'

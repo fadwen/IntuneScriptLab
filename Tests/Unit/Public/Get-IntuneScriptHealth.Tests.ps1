@@ -90,14 +90,14 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
                 '^/beta/deviceManagement/deviceHealthScripts/([^?/]+)/runSummary' {
                     $tenant.runSummaries[$Matches[1]]
                 }
-                '^/beta/deviceManagement/deviceHealthScripts/([^?/]+)' {
+                '^/beta/deviceManagement/deviceHealthScripts/([^?/]+)(\?|$)' {
                     $tenant.remediations | Where-Object id -eq $Matches[1]
                 }
                 '^/beta/deviceManagement/deviceManagementScripts\?' { & $summary $tenant.platformScripts }
                 '^/beta/deviceManagement/deviceManagementScripts/([^?/]+)/runSummary' {
                     $tenant.runSummaries[$Matches[1]]
                 }
-                '^/beta/deviceManagement/deviceManagementScripts/([^?/]+)' {
+                '^/beta/deviceManagement/deviceManagementScripts/([^?/]+)(\?|$)' {
                     $tenant.platformScripts | Where-Object id -eq $Matches[1]
                 }
                 '^/beta/deviceAppManagement/mobileApps\?' { & $summary $tenant.apps }

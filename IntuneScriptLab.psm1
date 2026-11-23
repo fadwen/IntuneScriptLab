@@ -5,23 +5,30 @@
 # detection/remediation scripts, platform scripts and Win32 app detection/requirement scripts.
 # Every rule is backed by an observation in ..\Validation\Findings.md rather than by the docs.
 
-$ModuleRoot = $PSScriptRoot
-Write-Verbose "Initializing IntuneScriptLab module from: $ModuleRoot"
+Set-StrictMode -Version Latest
 
-# Import Private functions (helpers first, then the rules that use them)
-foreach ($folder in 'Private', 'Private\Rules') {
-    $functions = Get-ChildItem -Path "$ModuleRoot\$folder\*.ps1" -ErrorAction SilentlyContinue
-    foreach ($function in $functions) {
-        Write-Verbose "Loading private function: $($function.Name)"
-        . $function.FullName
+# Private helpers first, then the rules that use them, then the public functions. A folder that
+# is missing or a file that fails to load fails the import: without that the module would import
+# with commands missing.
+$privateFolder = Join-Path -Path $PSScriptRoot -ChildPath 'Private'
+$functionFolders = @(
+    $privateFolder
+    (Join-Path -Path $privateFolder -ChildPath 'Rules')
+    (Join-Path -Path $PSScriptRoot -ChildPath 'Public')
+)
+foreach ($functionFolder in $functionFolders) {
+    if (-not (Test-Path -LiteralPath $functionFolder -PathType Container)) {
+        throw "The module folder '$functionFolder' is missing."
     }
-}
 
-# Import Public functions
-$publicFunctions = Get-ChildItem -Path "$ModuleRoot\Public\*.ps1" -ErrorAction SilentlyContinue
-foreach ($function in $publicFunctions) {
-    Write-Verbose "Loading public function: $($function.Name)"
-    . $function.FullName
+    foreach ($functionFile in Get-ChildItem -LiteralPath $functionFolder -Filter '*.ps1' -File) {
+        try {
+            Write-Verbose "Loading $($functionFile.FullName)"
+            . $functionFile.FullName
+        } catch {
+            throw
+        }
+    }
 }
 
 # Rule registry: every Find-* function in Private\Rules is a rule. Test-IntuneScript runs them

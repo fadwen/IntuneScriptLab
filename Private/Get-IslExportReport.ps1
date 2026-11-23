@@ -46,22 +46,27 @@ function Get-IslExportReport {
     if ($Select) { $body.select = $Select }
     $jobs = '/beta/deviceManagement/reports/exportJobs'
     $job = Invoke-IslGraphRequest -Uri $jobs -Method POST -Body $body
+    $jobStatus = "$(Get-IslPropertyValue -InputObject $job -Name 'status')"
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-    while ("$($job.status)" -in 'notStarted', 'inProgress') {
+    while ($jobStatus -in 'notStarted', 'inProgress') {
         if ((Get-Date) -gt $deadline) {
             throw "The $ReportName export job did not complete within $TimeoutSeconds seconds"
         }
         Start-Sleep -Seconds 5
-        $job = Invoke-IslGraphRequest -Uri "$jobs/$($job.id)"
+        $jobId = Get-IslPropertyValue -InputObject $job -Name 'id'
+        $job = Invoke-IslGraphRequest -Uri "$jobs/$jobId"
+        $jobStatus = "$(Get-IslPropertyValue -InputObject $job -Name 'status')"
     }
-    if ("$($job.status)" -ne 'completed' -or -not $job.url) {
-        throw "The $ReportName export job ended with status '$($job.status)'"
+    # The download address is there only once the job has completed
+    $jobUrl = Get-IslPropertyValue -InputObject $job -Name 'url'
+    if ($jobStatus -ne 'completed' -or -not $jobUrl) {
+        throw "The $ReportName export job ended with status '$jobStatus'"
     }
 
     $zipName = "IntuneScriptLab-$([guid]::NewGuid().ToString('N')).zip"
     $zip = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $zipName
     try {
-        Invoke-WebRequest -Uri $job.url -OutFile $zip -UseBasicParsing
+        Invoke-WebRequest -Uri $jobUrl -OutFile $zip -UseBasicParsing
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
         try {

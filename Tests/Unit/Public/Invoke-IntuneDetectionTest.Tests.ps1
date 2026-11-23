@@ -33,7 +33,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
         It 'takes script paths from the pipeline, as Get-ChildItem gives them' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 # The result's ScriptPath comes from the launch, which is mocked here
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path
                 }
             }
@@ -53,7 +53,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
     Context 'Core Functionality' {
         It 'is detected with exit 0, stdout and no stderr' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "installed`r`n"; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = "installed`r`n"; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect
             $result.Detected | Should-BeTrue
@@ -63,7 +63,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'is not detected with exit 0 and nothing on stdout' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect
             $result.Detected | Should-BeFalse
@@ -72,7 +72,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'is not detected when anything reaches stderr, even with stdout and exit 0' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'installed'; StdErr = 'oops' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'installed'; StdErr = 'oops' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect
             $result.Detected | Should-BeFalse
@@ -81,7 +81,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'is not detected on a non-zero exit and names the code' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 1; TimedOut = $false; StdOut = 'installed'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 1; TimedOut = $false; StdOut = 'installed'; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect
             $result.Detected | Should-BeFalse
@@ -90,7 +90,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'passes the architecture, context, phase and timeout through to the launch' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'x'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'x'; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect -Architecture x86 -TimeoutSeconds 7
             Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
@@ -103,7 +103,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'defaults to the 64-bit host this device has, the one the agent uses for Win32 detection' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'x'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'x'; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect
             Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
@@ -116,7 +116,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
     Context 'Enforced signature check (W32-DET-SIGCHECK)' {
         BeforeEach {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'installed'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'installed'; StdErr = '' }
             }
             $script:Unsigned = New-TestScript 'Detect-Unsigned.ps1' 'Write-Output installed; exit 0'
         }
@@ -148,7 +148,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
     Context 'Error Handling' {
         It 'reports a timeout as not detected with the 60-minute rule as the reason' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntuneDetectionTest -Path $script:Detect -TimeoutSeconds 3
             $result.Detected | Should-BeFalse
@@ -158,7 +158,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
 
         It 'combines every reason when several apply' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 2; TimedOut = $false; StdOut = ''; StdErr = 'err' }
+                ConvertTo-FakeRunResult @{ ExitCode = 2; TimedOut = $false; StdOut = ''; StdErr = 'err' }
             }
             $reason = (Invoke-IntuneDetectionTest -Path $script:Detect).Reason
             $reason | Should-BeLikeString '*Exit code 2*Nothing on stdout*stderr*'
@@ -168,7 +168,7 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
     Context 'Another account' {
         It 'passes -Credential to the launcher and refuses it with Context System' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = "installed`r`n"; StdErr = ''
                     RunAs = 'LAB\isl-user (Password)'
                 }
