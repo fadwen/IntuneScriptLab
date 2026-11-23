@@ -219,7 +219,7 @@ $shipFolders = @(
 )
 
 if (-not $StagingPath) {
-    $StagingPath = Join-Path $ModuleRoot 'out'
+    $StagingPath = Join-Path -Path $ModuleRoot -ChildPath 'out'
 }
 
 # --- 0. Resolve the API key -------------------------------------------------------
@@ -272,8 +272,9 @@ if (-not $WhatIfPreference -and -not $plainApiKey) {
 if (-not $SkipHelpBuild) {
     $priorWhatIf = $WhatIfPreference
     $WhatIfPreference = $false
+    $helpBuild = Join-Path -Path $PSScriptRoot -ChildPath 'Build-Help.ps1'
     try {
-        & (Join-Path $PSScriptRoot 'Build-Help.ps1') -ModuleRoot $ModuleRoot -SkipUpdate | Out-Null
+        & $helpBuild -ModuleRoot $ModuleRoot -SkipUpdate | Out-Null
     } finally {
         $WhatIfPreference = $priorWhatIf
     }
@@ -281,7 +282,7 @@ if (-not $SkipHelpBuild) {
 }
 
 # --- 2. Manifest ------------------------------------------------------------------
-$manifestPath = Join-Path $ModuleRoot "$moduleName.psd1"
+$manifestPath = Join-Path -Path $ModuleRoot -ChildPath "$moduleName.psd1"
 $manifest = Test-ModuleManifest -Path $manifestPath
 $version = $manifest.Version
 
@@ -356,11 +357,11 @@ if (-not $WhatIfPreference) {
 if (Test-Path -LiteralPath $StagingPath) {
     Remove-Item -LiteralPath $StagingPath -Recurse -Force -WhatIf:$false
 }
-$stageModule = Join-Path $StagingPath $moduleName
+$stageModule = Join-Path -Path $StagingPath -ChildPath $moduleName
 New-Item -Path $stageModule -ItemType Directory -Force -WhatIf:$false | Out-Null
 
 foreach ($file in $shipFiles) {
-    $source = Join-Path $ModuleRoot $file
+    $source = Join-Path -Path $ModuleRoot -ChildPath $file
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Shipping file '$file' is missing from the repository root."
     }
@@ -368,7 +369,7 @@ foreach ($file in $shipFiles) {
 }
 
 foreach ($folder in $shipFolders) {
-    $source = Join-Path $ModuleRoot $folder
+    $source = Join-Path -Path $ModuleRoot -ChildPath $folder
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Shipping folder '$folder' is missing from the repository root."
     }
@@ -392,7 +393,7 @@ $staged |
 # fall back on, so a missing or misnamed IntuneScriptLab-Help.xml shows up as a command with
 # no description. The analysis is exercised too, on a detection script with the return-before-
 # exit mistake, because a module that imports can still be missing the rule that does the work.
-$stagedManifest = Join-Path $stageModule "$moduleName.psd1"
+$stagedManifest = Join-Path -Path $stageModule -ChildPath "$moduleName.psd1"
 
 # The exported names are compared with FunctionsToExport of the staged manifest, name by name: a
 # count that matches can hide one command missing and another exported by mistake.
@@ -406,9 +407,11 @@ if (`$difference.Count -gt 0) {
     `$names = (`$difference | ForEach-Object { "`$(`$_.InputObject) (`$(`$_.SideIndicator))" }) -join ', '
     throw "Staged module's exports differ from the manifest's FunctionsToExport: `$names"
 }
-`$sample = Join-Path ([System.IO.Path]::GetTempPath()) "isl-staged-`$([guid]::NewGuid().ToString('N'))"
-`$null = New-Item -ItemType Directory -Path (Join-Path `$sample 'Remediations\Widget') -Force
-`$detect = Join-Path `$sample 'Remediations\Widget\Detect.ps1'
+`$sampleName = "isl-staged-`$([guid]::NewGuid().ToString('N'))"
+`$sample = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath `$sampleName
+`$widget = Join-Path -Path `$sample -ChildPath 'Remediations\Widget'
+`$null = New-Item -ItemType Directory -Path `$widget -Force
+`$detect = Join-Path -Path `$widget -ChildPath 'Detect.ps1'
 Set-Content -Path `$detect -Value "if (Test-Path C:\x) { return 'issue' }`r`nexit 1" -Encoding UTF8
 `$findings = @(Test-IntuneScript -Path `$detect)
 Remove-Item -Path `$sample -Recurse -Force
