@@ -86,6 +86,20 @@ Describe 'Get-IslPropertyValue' -Tag 'Unit', 'Private' {
             }
         }
 
+        It 'reads a generic dictionary, whose Contains method PowerShell does not find by name' {
+            InModuleScope IntuneScriptLab {
+                # Dictionary[string, object] implements IDictionary.Contains explicitly, so a plain
+                # call of that method on it fails with "Cannot find an overload"
+                $generic = [System.Collections.Generic.Dictionary[string, object]]::new()
+                $generic['id'] = 'rem-a'
+                $generic['deviceCount'] = 0
+                Get-IslPropertyValue -InputObject $generic -Name 'id' -ErrorAction Stop | Should-Be 'rem-a'
+                Get-IslPropertyValue -InputObject $generic -Name 'deviceCount' -ErrorAction Stop | Should-Be 0
+                @(Get-IslPropertyValue -InputObject $generic -Name 'runSchedule' -ErrorAction Stop).Count |
+                    Should-Be 0
+            }
+        }
+
         It 'hands a list back as its elements, and an empty or missing list as nothing' {
             InModuleScope IntuneScriptLab {
                 $page = @{ value = @(@{ id = 'a' }, @{ id = 'b' }); empty = @() }
