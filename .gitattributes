@@ -1,0 +1,12 @@
+# Text files are stored and checked out with LF on every platform, so that a Windows runner,
+# a Linux runner and a developer test the same bytes (CIC-11 of the PowerShell standards).
+* text=auto eol=lf
+
+# The three scripts whose text the validation kit joins with CRLF, uploads to Intune, or hashes
+# on the lab device are checked out with CRLF on every platform, as a Windows checkout had them
+# before this file existed, so that a round sends the same bytes wherever it is started from.
+# The kit's other scripts that are delivered to a device, such as New-IslHarnessUser.ps1, are LF
+# like the rest: they are sent as they are, and nothing depends on their line endings.
+Validation/Fixtures.ps1 text eol=crlf
+Validation/Probe.ps1 text eol=crlf
+Validation/Win32Install.ps1 text eol=crlf

@@ -199,7 +199,36 @@ if ($null -eq $built) {
     throw "Export-MamlCommandHelp produced no IntuneScriptLab-Help.xml under $maml"
 }
 $null = New-Item -ItemType Directory -Path $culture -Force
-Copy-Item -LiteralPath $built.FullName -Destination $shipped -Force
+
+# Export-MamlCommandHelp writes the line endings of the platform, CRLF on Windows. The committed
+# file is stored and checked out with LF and CI compares a new build with it byte for byte, so
+# the carriage return of every CRLF pair is dropped and the file is the same wherever it is
+# built. Bytes, not text: the byte order mark and everything else stay exactly as PlatyPS wrote
+# them.
+$builtBytes = [System.IO.File]::ReadAllBytes($built.FullName)
+$shippedStream = [System.IO.MemoryStream]::new($builtBytes.Length)
+try {
+    # The bytes between one CRLF pair and the next are copied as a block. A carriage return that
+    # no line feed follows is not part of a pair and stays where it is.
+    $copyFrom = 0
+    $searchFrom = 0
+    while ($searchFrom -lt $builtBytes.Length) {
+        $carriageReturn = [Array]::IndexOf($builtBytes, [byte]13, $searchFrom)
+        if ($carriageReturn -lt 0) {
+            break
+        }
+
+        $searchFrom = $carriageReturn + 1
+        if ($searchFrom -lt $builtBytes.Length -and $builtBytes[$searchFrom] -eq 10) {
+            $shippedStream.Write($builtBytes, $copyFrom, $carriageReturn - $copyFrom)
+            $copyFrom = $searchFrom
+        }
+    }
+    $shippedStream.Write($builtBytes, $copyFrom, $builtBytes.Length - $copyFrom)
+    [System.IO.File]::WriteAllBytes($shipped, $shippedStream.ToArray())
+} finally {
+    $shippedStream.Dispose()
+}
 Remove-Item -LiteralPath $maml -Recurse -Force
 
 # Backups from Update-MarkdownCommandHelp; git holds the previous version
