@@ -7,6 +7,13 @@
     afterwards; the 32-bit registry view is read from a Windows value that differs between views.
 #>
 
+BeforeDiscovery {
+    # Pester evaluates -Skip during discovery, before any BeforeAll runs, so the condition of the
+    # file-version test is decided here. BeforeAll looks again, because a variable set during
+    # discovery does not reach the run
+    $script:HasVersioned = Test-Path -LiteralPath (Join-Path $env:WINDIR 'System32\notepad.exe')
+}
+
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
