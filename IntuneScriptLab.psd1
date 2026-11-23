@@ -4,7 +4,6 @@
     ModuleVersion = '0.34.0'
     GUID = '3f6b2c9e-7d41-4a8f-9c2b-5e0d8a1f4b76'
     Author = 'Jeffrey Stuhr'
-    CompanyName = ''
     Copyright = '(c) 2026 Jeffrey Stuhr. All rights reserved.'
     # Two lines, within the repository's 115-character limit; the README carries the long form
     Description = @'

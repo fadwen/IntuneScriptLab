@@ -29,28 +29,17 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
     It 'keeps the Gallery metadata within the limits the Gallery enforces: <Field>' -ForEach @(
         @{ Field = 'ReleaseNotes'; Limit = 10600 }
         @{ Field = 'Description'; Limit = 4000 }
-        @{ Field = 'Tags'; Limit = 4000 }
     ) {
         # The Gallery refused 0.27.0's first upload: "A package's ReleaseNotes property extracted from
-        # the PowerShell manifest may not be more than 10600 characters long". Description and Tags
-        # carry NuGet's 4,000. The tags it measures include the ones the publish adds, PSModule, a
-        # PSEdition_ tag per edition, PSFunction_ and PSCommand_ per exported function and
-        # PSIncludes_Function: the list the Gallery shows for 0.27.0. Build/Publish-Module.ps1 checks
-        # the same three; this fails the pull request instead of the tag-driven release.
+        # the PowerShell manifest may not be more than 10600 characters long". Description carries
+        # NuGet's 4,000. A line break is counted as two characters, the larger of the two possible
+        # counts, because the publish writes the notes with the line endings of the system that
+        # publishes. Build/Publish-Module.ps1 makes the same two measurements; this fails the pull
+        # request instead of the tag-driven release. The tags are not measured: the list the Gallery
+        # shows, with a tag for every exported function, has no 4,000-character limit.
         $manifest = Test-ModuleManifest -Path $script:ManifestPath
-        $text = switch ($Field) {
-            'ReleaseNotes' { "$($manifest.ReleaseNotes)" }
-            'Description' { "$($manifest.Description)" }
-            'Tags' {
-                $tags = @($manifest.Tags) + 'PSModule'
-                $tags += @($manifest.CompatiblePSEditions | ForEach-Object { "PSEdition_$_" })
-                foreach ($name in @($manifest.ExportedFunctions.Keys | Sort-Object)) {
-                    $tags += "PSFunction_$name", "PSCommand_$name"
-                }
-                ($tags + 'PSIncludes_Function') -join ' '
-            }
-        }
-        $text.Length | Should-BeLessThanOrEqual $Limit
+        $text = if ($Field -eq 'ReleaseNotes') { "$($manifest.ReleaseNotes)" } else { "$($manifest.Description)" }
+        $text.Replace("`r`n", "`n").Replace("`n", "`r`n").Length | Should-BeLessThanOrEqual $Limit
     }
 
     It 'has a format view for every output type an exported command declares' {

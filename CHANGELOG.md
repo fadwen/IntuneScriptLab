@@ -33,6 +33,23 @@ entries are carried over from the manifest's release notes.
   ARM64 stays a host survey until a Pro or Enterprise ARM64 device is available. The LAPS
   settings-catalog policy failed on every node with `0x86000011` on Home, as the CSP's edition list
   says.
+- `Build/Publish-Module.ps1` requires PowerShell 7.6, since 7.4 left support on 10 November 2026. It
+  reads the Gallery API key from one vault, the default one or the one the new `-VaultName`
+  parameter names, where it searched every registered vault, and it keeps the key a `SecureString`
+  until the publish call. The staged module's exported commands are compared with the manifest's
+  `FunctionsToExport` by name, where only the counts were compared.
+- The release script and the contract test count a line break in the manifest's `ReleaseNotes` and
+  `Description` as two characters, the larger of the two counts the Gallery could apply.
+- `Build/Build-Help.ps1` and `Build/Build-RuleReference.ps1` run under strict mode, and the help
+  build refuses any placeholder in double braces, where it looked for `{{ Fill` only.
+- The manifest no longer sets `CompanyName` to an empty string. The package's metadata is the same
+  without the key.
+
+### Removed
+
+- The 4,000-character limit on the package's tags, from the release script and the contract test.
+  The PowerShell Gallery has no such limit on the list it shows, which carries two tags for every
+  exported command, so the check could only ever refuse a release the Gallery would accept.
 
 ## [0.34.0] - 2026-10-15
 

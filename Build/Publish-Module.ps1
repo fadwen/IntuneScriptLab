@@ -1,4 +1,4 @@
-#Requires -Version 7.4
+#Requires -Version 7.6
 #Requires -Modules @{ ModuleName = 'Microsoft.PowerShell.PSResourceGet'; ModuleVersion = '1.0.0' }
 
 <#
@@ -10,7 +10,7 @@
     Publish-PSResource packages the whole directory that contains the manifest. This
     repository IS the module root, so publishing from here directly would ship the entire
     working tree - the tests, the validation kit with its tenant-derived findings, the docs
-    source, Build, .github, the mirrored standards, and every object under .git.
+    source, Build, .github, the installed standards, and every object under .git.
 
     That matters more than package size. A Gallery version can never be deleted, only
     unlisted, and the .nupkg stays downloadable at its direct URL after unlisting. Anything
@@ -39,6 +39,10 @@
     'PSGallery-ApiKey'. Store it once with:
 
         Set-Secret -Name PSGallery-ApiKey -Secret '<key>'
+
+.PARAMETER VaultName
+    The SecretManagement vault that holds the secret. Left out, the default vault is read,
+    the one Get-SecretVault reports as IsDefault. No other vault is searched.
 
 .PARAMETER Repository
     Target repository name. Defaults to PSGallery.
@@ -78,6 +82,12 @@
     OUTPUT: A .nupkg in the local repository folder
     USE CASE: Inspecting the real package contents without consuming a Gallery version
 
+.INPUTS
+    None.
+
+.OUTPUTS
+    None. Progress is written to the information stream, and a failure is a terminating error.
+
 .NOTES
     Author: Jeffrey Stuhr
     Blog: https://www.techbyjeff.net
@@ -91,6 +101,10 @@ param(
     [Parameter()]
     [ValidateNotNullOrEmpty()]
     [string]$SecretName = 'PSGallery-ApiKey',
+
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string]$VaultName,
 
     [Parameter()]
     [ValidateNotNullOrEmpty()]
@@ -108,8 +122,82 @@ param(
     [switch]$SkipHelpBuild
 )
 
-$ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+
+function Get-VaultApiKey {
+    <#
+    .SYNOPSIS
+    Gets the Gallery API key from a SecretManagement vault as a SecureString.
+
+    .DESCRIPTION
+    Reads one secret from one named vault. When no vault is named, the default vault is read
+    and no other. The secret is returned as a SecureString and is never converted to text
+    here. A secret that is missing, a vault that cannot be read, and a missing default vault
+    each write a warning and return nothing, so that the caller can report every way a key
+    can be supplied.
+
+    .PARAMETER SecretName
+    Name of the secret that holds the API key.
+
+    .PARAMETER VaultName
+    Name of the vault to read. Left out, the vault that Get-SecretVault reports as the
+    default is read.
+
+    .EXAMPLE
+    $key = Get-VaultApiKey -SecretName 'PSGallery-ApiKey'
+
+    Reads the key from the default vault. $key is $null when the vault has no such secret.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    System.Security.SecureString. The API key, or nothing when it could not be read.
+    #>
+    [CmdletBinding()]
+    [OutputType([securestring])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$SecretName,
+
+        [Parameter()]
+        [string]$VaultName
+    )
+
+    $vault = $VaultName
+    if (-not $vault) {
+        $defaultVaults = @(Get-SecretVault | Where-Object -Property IsDefault -EQ -Value $true)
+        if ($defaultVaults.Count -eq 0) {
+            Write-Warning 'No default secret vault is registered. Name the vault with -VaultName.'
+            return
+        }
+        $vault = $defaultVaults[0].Name
+    }
+
+    # try/catch, not -ErrorAction SilentlyContinue. A locked SecretStore throws from the vault
+    # extension and SilentlyContinue does not suppress it.
+    try {
+        $secret = Get-Secret -Name $SecretName -Vault $vault -ErrorAction Stop
+    } catch {
+        Write-Warning ("The secret '$SecretName' could not be read from the vault '$vault': " +
+            "$($_.Exception.Message) If the key is stored there, run Unlock-SecretStore and try again.")
+        return
+    }
+
+    if ($secret -is [System.Management.Automation.PSCredential]) {
+        return $secret.Password
+    }
+    if ($secret -isnot [securestring]) {
+        Write-Warning ("The secret '$SecretName' in the vault '$vault' is not text. Store the key with " +
+            "Set-Secret -Name $SecretName -Secret '<key>'.")
+        return
+    }
+
+    $secret
+}
+
 
 $moduleName = 'IntuneScriptLab'
 
@@ -131,7 +219,7 @@ $shipFolders = @(
 )
 
 if (-not $StagingPath) {
-    $StagingPath = Join-Path $ModuleRoot 'out'
+    $StagingPath = Join-Path -Path $ModuleRoot -ChildPath 'out'
 }
 
 # --- 0. Resolve the API key -------------------------------------------------------
@@ -141,64 +229,36 @@ if (-not $StagingPath) {
 # The key is never stored in this repository, and is kept off the command line where
 # possible: the environment variable first (what the release workflow sets), then the
 # SecretManagement vault, then the parameter as the override.
-if (-not $WhatIfPreference -and -not $ApiKey) {
-    $vaultError = $null
-
+#
+# A key that arrives as text, from the parameter or the environment variable, stays in
+# $plainApiKey. A key from the vault stays a SecureString in $vaultApiKey until the publish
+# call converts it for that one call.
+$plainApiKey = $ApiKey
+$vaultApiKey = $null
+if (-not $WhatIfPreference -and -not $plainApiKey) {
     if ($env:PSGALLERY_API_KEY) {
-        $ApiKey = $env:PSGALLERY_API_KEY
+        $plainApiKey = $env:PSGALLERY_API_KEY
         Write-Information 'API key: $env:PSGALLERY_API_KEY.' -InformationAction Continue
-    }
-    elseif (Get-Module -ListAvailable Microsoft.PowerShell.SecretManagement) {
-        Import-Module Microsoft.PowerShell.SecretManagement
+    } elseif (Get-Module -ListAvailable -Name Microsoft.PowerShell.SecretManagement) {
+        Import-Module -Name Microsoft.PowerShell.SecretManagement
 
-        # try/catch, not -ErrorAction SilentlyContinue. A locked SecretStore throws from
-        # the vault extension and SilentlyContinue does not suppress it.
-        try {
-            $stored = Get-Secret -Name $SecretName -AsPlainText -ErrorAction Stop
-        }
-        catch {
-            $vaultError = $_.Exception.Message
-            $stored = $null
-        }
-
-        if ($stored) {
-            $ApiKey = $stored
+        $vaultApiKey = Get-VaultApiKey -SecretName $SecretName -VaultName $VaultName
+        if ($null -ne $vaultApiKey) {
             Write-Information "API key: the '$SecretName' secret." -InformationAction Continue
         }
     }
 
-    if (-not $ApiKey) {
-        $lines = @(
+    if (-not $plainApiKey -and $null -eq $vaultApiKey) {
+        $keyHelp = @(
             'No PowerShell Gallery API key found.'
+            'Create a key at https://www.powershellgallery.com/account/apikeys, then supply it by any of:'
+            "  Set-Secret -Name $SecretName -Secret '<key>'   (stored once, recommended)"
+            '  $env:PSGALLERY_API_KEY = ''<key>''            (this session only)'
+            "  ./Build/Publish-Module.ps1 -ApiKey '<key>'    (one-off)"
         )
-        if ($vaultError) {
-            $lines += "The secret vault could not be read: $vaultError"
-            $lines += 'If the key is already stored there, run Unlock-SecretStore and try again.'
-            $lines += ''
-        }
-        $lines += 'Create a key at https://www.powershellgallery.com/account/apikeys, then supply it by any of:'
-        $lines += "  Set-Secret -Name $SecretName -Secret '<key>'   (stored once, recommended)"
-        $lines += '  $env:PSGALLERY_API_KEY = ''<key>''            (this session only)'
-        $lines += "  ./Build/Publish-Module.ps1 -ApiKey '<key>'    (one-off)"
 
-        throw ($lines -join [Environment]::NewLine)
+        throw ($keyHelp -join [Environment]::NewLine)
     }
-}
-
-# The tags the Gallery lists for a published module: the manifest's, then the ones the publish
-# adds for the package kind, the editions and every exported function.
-function Get-PublishedTag {
-    param([Parameter(Mandatory)]$Manifest)
-    $tags = [System.Collections.Generic.List[string]]::new()
-    foreach ($tag in @($Manifest.Tags)) { $tags.Add($tag) }
-    $tags.Add('PSModule')
-    foreach ($edition in @($Manifest.CompatiblePSEditions)) { $tags.Add("PSEdition_$edition") }
-    foreach ($name in @($Manifest.ExportedFunctions.Keys | Sort-Object)) {
-        $tags.Add("PSFunction_$name")
-        $tags.Add("PSCommand_$name")
-    }
-    if ($Manifest.ExportedFunctions.Count) { $tags.Add('PSIncludes_Function') }
-    $tags
 }
 
 # --- 1. Help gates ----------------------------------------------------------------
@@ -212,17 +272,17 @@ function Get-PublishedTag {
 if (-not $SkipHelpBuild) {
     $priorWhatIf = $WhatIfPreference
     $WhatIfPreference = $false
+    $helpBuild = Join-Path -Path $PSScriptRoot -ChildPath 'Build-Help.ps1'
     try {
-        & (Join-Path $PSScriptRoot 'Build-Help.ps1') -ModuleRoot $ModuleRoot -SkipUpdate | Out-Null
-    }
-    finally {
+        & $helpBuild -ModuleRoot $ModuleRoot -SkipUpdate | Out-Null
+    } finally {
         $WhatIfPreference = $priorWhatIf
     }
     Write-Information 'Help gates passed and MAML rebuilt.' -InformationAction Continue
 }
 
 # --- 2. Manifest ------------------------------------------------------------------
-$manifestPath = Join-Path $ModuleRoot "$moduleName.psd1"
+$manifestPath = Join-Path -Path $ModuleRoot -ChildPath "$moduleName.psd1"
 $manifest = Test-ModuleManifest -Path $manifestPath
 $version = $manifest.Version
 
@@ -242,50 +302,45 @@ if (-not $manifest.Description) {
 if (-not $manifest.Tags) {
     throw 'The manifest needs Tags for the module to be discoverable.'
 }
-# The Gallery refuses the upload with a 400 when the notes pass this length (v0.27.0, the first
-# attempt: 11,319 characters, every version since 0.1.0). Keep the newest few in the manifest;
-# CHANGELOG.md ships in the package and holds the rest.
-$releaseNotesLimit = 10600
-$releaseNotesLength = "$($manifest.ReleaseNotes)".Length
-if ($releaseNotesLength -gt $releaseNotesLimit) {
-    throw ("The manifest's ReleaseNotes is $releaseNotesLength characters; the Gallery accepts at most " +
-        "$releaseNotesLimit. Move the older versions out, CHANGELOG.md has them.")
+# The Gallery refuses the upload with a 400 when the release notes pass 10,600 characters
+# (v0.27.0, the first attempt: 11,319 characters, every version since 0.1.0). Keep the newest
+# few in the manifest; CHANGELOG.md ships in the package and holds the rest. The description
+# carries NuGet's limit of 4,000, which the Gallery applies.
+#
+# A line break is counted as two characters, the larger of the two possible counts: the publish
+# writes the release notes into the package with the line endings of the system that publishes,
+# whatever the manifest has.
+#
+# The tags are not measured. The publish writes only the manifest's own tags and PSModule; the
+# Gallery adds the PSEdition_, PSFunction_, PSCommand_ and PSIncludes_ tags it lists, and that
+# list has no 4,000-character limit.
+$measurements = @(
+    @{ Field = 'Description'; Text = $manifest.Description; Limit = 4000 }
+    @{ Field = 'ReleaseNotes'; Text = $manifest.ReleaseNotes; Limit = 10600 }
+)
+$measured = foreach ($measurement in $measurements) {
+    $length = ([string]$measurement.Text).Replace("`r`n", "`n").Replace("`n", "`r`n").Length
+    if ($length -gt $measurement.Limit) {
+        $problem = "The manifest's $($measurement.Field) is $length characters."
+        $advice = if ($measurement.Field -eq 'ReleaseNotes') {
+            ' Move the older versions out, CHANGELOG.md has them.'
+        } else {
+            ''
+        }
+        throw "$problem The PowerShell Gallery accepts at most $($measurement.Limit).$advice"
+    }
+    "$($measurement.Field) $length/$($measurement.Limit)"
 }
-
-# NuGet's limit on a package description, which the Gallery applies.
-$descriptionLimit = 4000
-$descriptionLength = "$($manifest.Description)".Length
-if ($descriptionLength -gt $descriptionLimit) {
-    throw ("The manifest's Description is $descriptionLength characters; the Gallery accepts at most " +
-        "$descriptionLimit.")
-}
-
-# The Gallery refuses a package whose tags pass 4,000 characters ("A nuget package's Tags property
-# may not be more than 4000 characters long"), and the tags it measures are not the manifest's
-# alone: the publish adds PSModule, one PSEdition_ tag per compatible edition, PSFunction_ and
-# PSCommand_ for every exported function, and PSIncludes_Function. That is the list the Gallery
-# shows for 0.27.0 (61 tags, 1,935 characters for 27 commands), so every new command costs about
-# twice its name. Measured here the way the Gallery sees it.
-$tagsLimit = 4000
-$publishedTags = Get-PublishedTag -Manifest $manifest
-$tagsLength = ($publishedTags -join ' ').Length
-if ($tagsLength -gt $tagsLimit) {
-    throw ("The package's tags come to $tagsLength characters once the publish adds its own for " +
-        "$($manifest.ExportedFunctions.Count) commands; the Gallery accepts at most $tagsLimit. Drop " +
-        'manifest tags, or fewer commands.')
-}
-$metadataSummary = ("Gallery metadata: Description $descriptionLength/$descriptionLimit, Tags " +
-    "$tagsLength/$tagsLimit, ReleaseNotes $releaseNotesLength/$releaseNotesLimit characters.")
-Write-Information $metadataSummary -InformationAction Continue
+Write-Information "Gallery metadata: $($measured -join ', ') characters." -InformationAction Continue
 
 # --- 3. Already published? --------------------------------------------------------
 # A version number is consumed forever on first publish. Learning that from a rejected
 # upload is worse than a check costing one request.
 if (-not $WhatIfPreference) {
     $findSplat = @{
-        Name        = $moduleName
-        Repository  = $Repository
-        Version     = "$version"
+        Name = $moduleName
+        Repository = $Repository
+        Version = "$version"
         ErrorAction = 'SilentlyContinue'
     }
     if (Find-PSResource @findSplat) {
@@ -299,14 +354,14 @@ if (-not $WhatIfPreference) {
 # propagates $WhatIfPreference to each of them, so an unpinned -WhatIf run would copy
 # nothing and then fail on the empty folder. Staging is not the destructive step and always
 # runs for real; only the publish at the end is gated by ShouldProcess.
-if (Test-Path $StagingPath) {
+if (Test-Path -LiteralPath $StagingPath) {
     Remove-Item -LiteralPath $StagingPath -Recurse -Force -WhatIf:$false
 }
-$stageModule = Join-Path $StagingPath $moduleName
+$stageModule = Join-Path -Path $StagingPath -ChildPath $moduleName
 New-Item -Path $stageModule -ItemType Directory -Force -WhatIf:$false | Out-Null
 
 foreach ($file in $shipFiles) {
-    $source = Join-Path $ModuleRoot $file
+    $source = Join-Path -Path $ModuleRoot -ChildPath $file
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Shipping file '$file' is missing from the repository root."
     }
@@ -314,7 +369,7 @@ foreach ($file in $shipFiles) {
 }
 
 foreach ($folder in $shipFolders) {
-    $source = Join-Path $ModuleRoot $folder
+    $source = Join-Path -Path $ModuleRoot -ChildPath $folder
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Shipping folder '$folder' is missing from the repository root."
     }
@@ -338,19 +393,25 @@ $staged |
 # fall back on, so a missing or misnamed IntuneScriptLab-Help.xml shows up as a command with
 # no description. The analysis is exercised too, on a detection script with the return-before-
 # exit mistake, because a module that imports can still be missing the rule that does the work.
-$stagedManifest = Join-Path $stageModule "$moduleName.psd1"
-$expectedCount = @($manifest.ExportedFunctions.Keys).Count
+$stagedManifest = Join-Path -Path $stageModule -ChildPath "$moduleName.psd1"
 
+# The exported names are compared with FunctionsToExport of the staged manifest, name by name: a
+# count that matches can hide one command missing and another exported by mistake.
 $check = @"
 `$ErrorActionPreference = 'Stop'
 Import-Module '$stagedManifest' -Force
-`$commands = @((Get-Module $moduleName).ExportedFunctions.Keys) | Sort-Object
-if (`$commands.Count -ne $expectedCount) {
-    throw "Staged module exported `$(`$commands.Count) command(s); the manifest declares $expectedCount."
+`$commands = @((Get-Module $moduleName).ExportedFunctions.Keys | Sort-Object)
+`$declared = @((Import-PowerShellDataFile -LiteralPath '$stagedManifest').FunctionsToExport | Sort-Object)
+`$difference = @(Compare-Object -ReferenceObject `$declared -DifferenceObject `$commands)
+if (`$difference.Count -gt 0) {
+    `$names = (`$difference | ForEach-Object { "`$(`$_.InputObject) (`$(`$_.SideIndicator))" }) -join ', '
+    throw "Staged module's exports differ from the manifest's FunctionsToExport: `$names"
 }
-`$sample = Join-Path ([System.IO.Path]::GetTempPath()) "isl-staged-`$([guid]::NewGuid().ToString('N'))"
-`$null = New-Item -ItemType Directory -Path (Join-Path `$sample 'Remediations\Widget') -Force
-`$detect = Join-Path `$sample 'Remediations\Widget\Detect.ps1'
+`$sampleName = "isl-staged-`$([guid]::NewGuid().ToString('N'))"
+`$sample = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath `$sampleName
+`$widget = Join-Path -Path `$sample -ChildPath 'Remediations\Widget'
+`$null = New-Item -ItemType Directory -Path `$widget -Force
+`$detect = Join-Path -Path `$widget -ChildPath 'Detect.ps1'
 Set-Content -Path `$detect -Value "if (Test-Path C:\x) { return 'issue' }`r`nexit 1" -Encoding UTF8
 `$findings = @(Test-IntuneScript -Path `$detect)
 Remove-Item -Path `$sample -Recurse -Force
@@ -386,7 +447,19 @@ if (-not $PSCmdlet.ShouldProcess("$moduleName $version -> $Repository", 'Publish
     return
 }
 
-Publish-PSResource -Path $stageModule -Repository $Repository -ApiKey $ApiKey -SkipDependenciesCheck
+$publishParameters = @{
+    Path = $stageModule
+    Repository = $Repository
+    SkipDependenciesCheck = $true
+}
+if ($null -ne $vaultApiKey) {
+    # Publish-PSResource takes the key as text. The vault's SecureString is converted here, for
+    # this call only, and the text is kept in no variable.
+    $keyHolder = [System.Net.NetworkCredential]::new('', $vaultApiKey)
+    Publish-PSResource @publishParameters -ApiKey $keyHolder.Password
+} else {
+    Publish-PSResource @publishParameters -ApiKey $plainApiKey
+}
 
 Write-Information "Published $moduleName $version to $Repository." -InformationAction Continue
 $next = "Indexing takes a few minutes, then: Install-PSResource -Name $moduleName"

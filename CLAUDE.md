@@ -152,7 +152,8 @@ section must exist and must not be empty, or the job fails; a dry run checks it 
 already exists for the tag is left as written.
 The API key is the `PSGALLERY_API_KEY` repository secret, passed as an environment variable.
 Locally the script resolves `-ApiKey`, then `$env:PSGALLERY_API_KEY`, then a SecretManagement
-secret named `PSGallery-ApiKey`.
+secret named `PSGallery-ApiKey` in the default vault, or in the vault `-VaultName` names. No other
+vault is searched, and the secret stays a `SecureString` until the publish call.
 
 ## Checks
 
