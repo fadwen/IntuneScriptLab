@@ -4,7 +4,7 @@ function Get-IntuneScriptHealth {
     .SYNOPSIS
         One line per deployed script policy: findings, drift, assignment and what the devices report.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.HealthReport')]
     param(
         [ValidateSet('Remediation', 'PlatformScript', 'Win32App')]
@@ -82,8 +82,12 @@ function Get-IntuneScriptHealth {
         }
     }
 
+    # The install counts come from an export job, and creating one is a write to the tenant:
+    # -WhatIf leaves it out, and the apps' device columns stay empty
     $appInstall = @{}
-    if (-not $SkipRunState -and 'Win32App' -in $Kind) {
+    $wantsExport = -not $SkipRunState -and 'Win32App' -in $Kind
+    $exportAction = 'Create a report export job for the app install counts'
+    if ($wantsExport -and $PSCmdlet.ShouldProcess('Microsoft Graph', $exportAction)) {
         try {
             foreach ($row in @(Get-IslExportReport -ReportName 'AppInstallStatusAggregate')) {
                 $appInstall["$(Get-IslPropertyValue -InputObject $row -Name 'ApplicationId')"] = $row
@@ -302,7 +306,14 @@ function Get-IntuneScriptHealth {
         }
     }
 
+    # The reports are read from the tenant and are returned in any case. The file is the one
+    # thing this command writes, and -WhatIf leaves it unwritten
+    $markdownFile = $null
     if ($MarkdownPath) {
+        # Resolved against the PowerShell location: .NET's current directory is not $PWD
+        $markdownFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($MarkdownPath)
+    }
+    if ($markdownFile -and $PSCmdlet.ShouldProcess($markdownFile, 'Write the Markdown report')) {
         $rank = @{ Broken = 0; Attention = 1; Healthy = 2 }
         $lines = [System.Collections.Generic.List[string]]::new()
         $lines.Add('# Intune script health')
@@ -324,8 +335,6 @@ function Get-IntuneScriptHealth {
             }
             $lines.Add('')
         }
-        # Resolved against the PowerShell location: .NET's current directory is not $PWD
-        $markdownFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($MarkdownPath)
         [System.IO.File]::WriteAllLines($markdownFile, $lines, [System.Text.UTF8Encoding]::new($false))
         Write-Verbose "Markdown report written to $MarkdownPath"
     }

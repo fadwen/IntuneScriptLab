@@ -4,7 +4,7 @@ function Export-IntuneFindingSarif {
     .SYNOPSIS
         Writes IntuneScriptLab findings as a SARIF 2.1.0 log for code scanning.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType([System.IO.FileInfo])]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -168,6 +168,9 @@ function Export-IntuneFindingSarif {
 
         # Resolved against the PowerShell location: .NET's current directory is not $PWD
         $outFile = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+        if (-not $PSCmdlet.ShouldProcess($outFile, "Write the SARIF log of $($all.Count) result(s)")) {
+            return
+        }
         $folder = Split-Path -Path $outFile -Parent
         if ($folder) { $null = New-Item -ItemType Directory -Path $folder -Force }
         $json = $log | ConvertTo-Json -Depth 12

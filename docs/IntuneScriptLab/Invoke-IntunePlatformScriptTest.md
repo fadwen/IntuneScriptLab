@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntunePlatformScriptTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/06/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntunePlatformScriptTest
 ---
@@ -21,7 +21,7 @@ Runs a platform (device) script the way Intune does and reports its run state.
 
 ```
 Invoke-IntunePlatformScriptTest [-Path] <string> [-Architecture <string>] [-Context <string>]
- [-Credential <pscredential>] [-TimeoutSeconds <int>] [<CommonParameters>]
+ [-Credential <pscredential>] [-TimeoutSeconds <int>] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -72,6 +72,28 @@ Type: System.String
 DefaultValue: x86
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
 ParameterSets:
 - Name: (All)
   Position: Named
@@ -164,6 +186,28 @@ Type: System.Int32
 DefaultValue: 300
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which script would be run as a platform script, in which context and architecture, and runs nothing. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
 ParameterSets:
 - Name: (All)
   Position: Named

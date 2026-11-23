@@ -192,6 +192,10 @@ Intune does. `-Context User` (the default) runs it as whoever is running the har
 user-context scripts as the signed-in user, which the harness cannot impersonate, so treat that
 mode as "the launch shape and the output rules" and `-Context System` as exact.
 
+Each harness command runs somebody's script for real. `-WhatIf` says which script it would run, in
+which context and architecture, runs nothing and returns nothing; `-Confirm` asks first. A
+`$WhatIfPreference` that a deployment script has set does the same.
+
 ```powershell
 # Detect -> remediate if the detection exits non-zero -> detect again
 Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 -Architecture x86

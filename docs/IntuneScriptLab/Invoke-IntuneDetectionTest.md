@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneDetectionTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/06/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneDetectionTest
 ---
@@ -21,7 +21,7 @@ Runs a Win32 custom detection script like Intune and returns the verdict.
 
 ```
 Invoke-IntuneDetectionTest [-Path] <string> [-Architecture <string>] [-Context <string>]
- [-Credential <pscredential>] [-TimeoutSeconds <int>] [-EnforceSignatureCheck] [<CommonParameters>]
+ [-Credential <pscredential>] [-TimeoutSeconds <int>] [-EnforceSignatureCheck] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -77,6 +77,28 @@ Type: System.String
 DefaultValue: ''
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
 ParameterSets:
 - Name: (All)
   Position: Named
@@ -191,6 +213,28 @@ Type: System.Int32
 DefaultValue: 300
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which script would be run as a Win32 detection script, in which context and architecture, and runs nothing. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
 ParameterSets:
 - Name: (All)
   Position: Named

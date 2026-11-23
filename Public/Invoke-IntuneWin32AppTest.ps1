@@ -4,7 +4,7 @@ function Invoke-IntuneWin32AppTest {
     .SYNOPSIS
         Runs a Win32 app's detect, install or uninstall, detect flow the way the Intune agent does.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.Win32AppResult')]
     param(
         [string]$DetectionPath,
@@ -105,6 +105,15 @@ function Invoke-IntuneWin32AppTest {
         }
         $detectionSplat.Credential = $Credential
     }
+    # The command line and the detection script are somebody's code and are about to run: -WhatIf
+    # names them and runs nothing. The detections below are part of this one run, so they do not
+    # ask again
+    $action = "Run the Win32 app flow for intent $Intent ($Context context, $Architecture): $command"
+    if (-not $PSCmdlet.ShouldProcess($ContentPath, $action)) {
+        return
+    }
+    $detectionSplat['Confirm'] = $false
+
     $runAs = if ($Credential) { $Credential.UserName }
     elseif ($Context -eq 'System') { 'NT AUTHORITY\SYSTEM' }
     elseif ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" }
@@ -170,8 +179,9 @@ function Invoke-IntuneWin32AppTest {
             Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
         }
         $copy = Join-Path -Path $cache -ChildPath 'content'
-        $null = New-Item -ItemType Directory -Path $copy -Force
-        Copy-Item -Path (Join-Path -Path $source -ChildPath '*') -Destination $copy -Recurse -Force
+        $null = New-Item -ItemType Directory -Path $copy -Force -WhatIf:$false
+        $contentItems = Join-Path -Path $source -ChildPath '*'
+        Copy-Item -Path $contentItems -Destination $copy -Recurse -Force -WhatIf:$false
         if ($Credential) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
         try {
             $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
@@ -189,7 +199,7 @@ function Invoke-IntuneWin32AppTest {
             $run = Invoke-IslProcess @processSplat
         }
         finally {
-            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue -WhatIf:$false
         }
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.RunResult'

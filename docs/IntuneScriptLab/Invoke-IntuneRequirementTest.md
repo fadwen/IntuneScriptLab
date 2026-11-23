@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRequirementTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/06/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneRequirementTest
 ---
@@ -22,7 +22,7 @@ Runs a Win32 requirement script like Intune and applies the rule to its output.
 ```
 Invoke-IntuneRequirementTest [-Path] <string> -OutputType <string> -Value <string>
  [-Operator <string>] [-Architecture <string>] [-Context <string>] [-Credential <pscredential>]
- [-TimeoutSeconds <int>]
+ [-TimeoutSeconds <int>] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -79,6 +79,28 @@ Type: System.String
 DefaultValue: ''
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
 ParameterSets:
 - Name: (All)
   Position: Named
@@ -239,6 +261,28 @@ ParameterSets:
 - Name: (All)
   Position: Named
   IsRequired: true
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which script would be run as a Win32 requirement script, in which context and architecture, and runs nothing. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
   ValueFromPipeline: false
   ValueFromPipelineByPropertyName: false
   ValueFromRemainingArguments: false

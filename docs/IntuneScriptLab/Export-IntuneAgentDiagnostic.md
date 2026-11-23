@@ -4,7 +4,7 @@ external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Export-IntuneAgentDiagnostic.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 09/28/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Export-IntuneAgentDiagnostic
 ---
@@ -21,7 +21,7 @@ Packs the agent's logs, its registry state and the parsed timelines into one zip
 
 ```
 Export-IntuneAgentDiagnostic [-Path] <string> [-LogPath <string>] [-SkipRegistry] [-SkipTimeline]
- [-Force] [<CommonParameters>]
+ [-Force] [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -71,6 +71,28 @@ machine, so it is left out. The Device section still describes this machine, not
 logs came from.
 
 ## PARAMETERS
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
 
 ### -Force
 
@@ -168,6 +190,28 @@ Type: System.Management.Automation.SwitchParameter
 DefaultValue: False
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which package would be written, and writes nothing. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
 ParameterSets:
 - Name: (All)
   Position: Named

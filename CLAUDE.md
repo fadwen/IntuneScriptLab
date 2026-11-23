@@ -178,6 +178,22 @@ script, checks the PSScriptAnalyzer rules module is present and that every comma
 topic serve their help, before anything is uploaded. `Examples/` and `PSScriptAnalyzer/` ship;
 `Validation/`, `Tests/`, `docs/` and `Build/` do not.
 
+### A command that runs a script or writes a report asks `ShouldProcess`; nothing else does
+
+`-WhatIf` sets `$WhatIfPreference` for everything a command calls, and a caller's own preference
+reaches the module the same way. The cmdlets inside the harness used to obey it: `Copy-Item`
+skipped the copy of the script, the host was started on a file that was not there, and its
+complaint came back as the script's result (#88). So the rule has two halves. The five
+`Invoke-Intune*Test` commands, the two `Export-` commands and `Get-IntuneScriptHealth` declare
+`SupportsShouldProcess` and ask once, before anything runs or is written, and return nothing when
+the answer is no. Every internal operation - the run folder, the copy, a work folder, the removal
+of a scheduled task - passes `-WhatIf:$false`, and a call from one gated command to another passes
+`-Confirm:$false`, so that one run asks once. `Tests/Unit/Module.WhatIf.Tests.ps1` checks the
+preview on the disk, with scripts that leave a marker file when they run.
+
+Of the scheduled-task cmdlets only `Unregister-ScheduledTask` has `-WhatIf`. Under a preference
+the task was registered and started, and then left behind.
+
 ### `$WhatIfPreference` is inherited by child scopes
 
 Under `Publish-Module.ps1 -WhatIf`, the preference reaches the staging cmdlets and `Build-Help.ps1`.

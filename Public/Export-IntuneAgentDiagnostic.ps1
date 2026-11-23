@@ -4,7 +4,7 @@ function Export-IntuneAgentDiagnostic {
     .SYNOPSIS
         Packs the agent's logs, its registry state and the parsed timelines into one zip for a ticket.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.Diagnostic')]
     param(
         [Parameter(Mandatory, Position = 0)]
@@ -31,6 +31,9 @@ function Export-IntuneAgentDiagnostic {
             ExceptionType = [System.IO.IOException]
         }
         $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+    }
+    if (-not $PSCmdlet.ShouldProcess($zip, 'Write the diagnostic package')) {
+        return
     }
     if (-not $LogPath) {
         $programData = if ($env:ProgramData) { $env:ProgramData } else { 'C:\ProgramData' }

@@ -4,7 +4,7 @@ function Invoke-IntunePlatformScriptTest {
     .SYNOPSIS
         Runs a platform (device) script the way Intune does and reports its run state.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.PlatformScriptResult')]
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -44,6 +44,12 @@ function Invoke-IntunePlatformScriptTest {
             }
             $scriptRunSplat.Credential = $Credential
         }
+        # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
+        $action = "Run as a platform script ($Context context, $Architecture)"
+        if (-not $PSCmdlet.ShouldProcess($Path, $action)) {
+            return
+        }
+
         $run = Invoke-IslScriptRun @scriptRunSplat
         $runState = if ($run.TimedOut) { 'TimedOut' } elseif ($run.ExitCode -eq 0) { 'Success' } else { 'Failed' }
 

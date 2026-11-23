@@ -11,6 +11,13 @@ entries are carried over from the manifest's release notes.
 
 ### Added
 
+- `-WhatIf` and `-Confirm` on the commands that start a script or write a report. The five
+  `Invoke-Intune*Test` commands say which script or command line they would run, in which context
+  and architecture, run nothing and return nothing. `Export-IntuneAgentDiagnostic` and
+  `Export-IntuneFindingSarif` say which file they would write and write nothing.
+  `Get-IntuneScriptHealth` still reads the tenant and returns its reports under `-WhatIf`, but
+  creates no report export job, so the device columns of the apps stay empty, and does not write
+  the file of `-MarkdownPath`.
 - A Gallery downloads badge in the README that sums the per-version download counts, because the
   Gallery's own total is broken (PowerShell/PowerShellGallery#347 and #350: 0 for this module, stuck
   or wrong for others). `.github/workflows/gallery-downloads.yml` reads every version from the v2
@@ -95,6 +102,12 @@ entries are carried over from the manifest's release notes.
 
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
+- With `$WhatIfPreference` set in the caller's session, the runtime harness did neither a preview
+  nor a run: it skipped copying the script, started the host on the file that was not there, and
+  returned the host's complaint as the result of the script, with exit code -196608. A run through
+  a scheduled task, as SYSTEM or as another account, left its `IntuneScriptLab-*` task registered.
+  The harness now previews, as it does for `-WhatIf`, and the commands that only read, such as
+  `Test-IntuneDeployedScript`, work the same with the preference as without it.
 - On Windows PowerShell 5.1, a run that timed out could end with an error instead of a result
   whose run state is `TimedOut`, when the caller's `$ErrorActionPreference` was `Stop`, as it is
   in a CI step. The cleanup ends the processes of the run with `taskkill.exe`, which reports a

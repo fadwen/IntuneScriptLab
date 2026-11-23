@@ -1,10 +1,10 @@
----
+﻿---
 document type: cmdlet
 external help file: IntuneScriptLab-Help.xml
 HelpUri: https://github.com/fadwen/IntuneScriptLab/blob/main/docs/IntuneScriptLab/Invoke-IntuneRemediationTest.md
 Locale: en-US
 Module Name: IntuneScriptLab
-ms.date: 10/05/2026
+ms.date: 11/23/2026
 PlatyPS schema version: 2024-05-01
 title: Invoke-IntuneRemediationTest
 ---
@@ -22,7 +22,7 @@ Runs a detection/remediation pair like Intune and reports the portal status.
 ```
 Invoke-IntuneRemediationTest [-DetectionPath] <string> [[-RemediationPath] <string>]
  [-Architecture <string>] [-Context <string>] [-Credential <pscredential>] [-TimeoutSeconds <int>]
- [<CommonParameters>]
+ [-WhatIf] [-Confirm]
 ```
 
 ## ALIASES
@@ -96,6 +96,28 @@ Type: System.String
 DefaultValue: x86
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -Confirm
+
+Prompts you for confirmation before running the cmdlet.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- cf
 ParameterSets:
 - Name: (All)
   Position: Named
@@ -208,6 +230,28 @@ Type: System.Int32
 DefaultValue: 300
 SupportsWildcards: false
 Aliases: []
+ParameterSets:
+- Name: (All)
+  Position: Named
+  IsRequired: false
+  ValueFromPipeline: false
+  ValueFromPipelineByPropertyName: false
+  ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ''
+```
+
+### -WhatIf
+
+Says which detection script would be run, and which remediation script after it, and runs neither. The command returns nothing.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: ''
+SupportsWildcards: false
+Aliases:
+- wi
 ParameterSets:
 - Name: (All)
   Position: Named

@@ -149,6 +149,25 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1
         }
 
+        It 'removes the task although the caller''s WhatIf preference is on' {
+            # Of the task cmdlets only Unregister-ScheduledTask has -WhatIf. Under a preference the
+            # task was registered and started, and then left on the computer
+            $parameters = @{
+                FilePath = 'C:\host\powershell.exe'; Arguments = '-File "x.ps1"'
+                WorkingDirectory = 'C:\Windows\System32'
+                WorkFolder = $script:WorkFolder; Context = 'System'; TimeoutSeconds = 30
+            }
+            $result = InModuleScope IntuneScriptLab -Parameters @{ Parameters = $parameters } {
+                $WhatIfPreference = $true
+                Invoke-IslProcess @Parameters
+            }
+
+            $result.ExitCode | Should-Be 5
+            Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
+                $PesterBoundParameters.ContainsKey('WhatIf') -and -not $WhatIf
+            }
+        }
+
         It 'uses the 32-bit cmd.exe when asked, so bare powershell.exe resolves to SysWOW64' {
             $null = Invoke-Process @{
                 FilePath = 'powershell.exe'; WorkingDirectory = 'C:\'; WorkFolder = $script:WorkFolder
