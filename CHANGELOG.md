@@ -29,7 +29,9 @@ entries are carried over from the manifest's release notes.
   Windows runner, a Linux runner and a developer test the same bytes. The three scripts the
   validation kit uploads or runs on the lab devices keep CRLF everywhere. `Build/Build-Help.ps1`
   writes the compiled help with LF wherever it runs, so a build on Windows gives the committed
-  file byte for byte.
+  file byte for byte. A release is staged from a checkout on a Windows runner, so the scripts of
+  a package published from now on have LF line endings where that checkout gave them CRLF, and
+  their file hashes differ from those of an earlier version for that reason alone.
 
 ### Changed
 
