@@ -126,6 +126,24 @@ Describe 'Stop-IslProcessTree' -Tag 'Unit', 'Private' {
             }
         }
 
+        It 'ends a timed-out run although the caller''s WhatIf preference is on' {
+            # A module function sees a global $WhatIfPreference. If the cleanup obeyed it, the process
+            # would go on, and the run would wait for it: here for the half minute that ping takes
+            $parameters = @{
+                FilePath = Join-Path -Path $env:WINDIR -ChildPath 'System32\cmd.exe'
+                Arguments = '/d /c ping.exe -n 30 127.0.0.1 > nul'
+                WorkingDirectory = $TestDrive
+                WorkFolder = $TestDrive
+                TimeoutSeconds = 2
+            }
+            InModuleScope IntuneScriptLab -Parameters @{ Parameters = $parameters } {
+                $WhatIfPreference = $true
+                $result = Invoke-IslProcess @Parameters
+                $result.TimedOut | Should-BeTrue
+                $result.Duration.TotalSeconds | Should-BeLessThan 15
+            }
+        }
+
         It 'lets a timed-out run end with its result under an error preference of Stop' {
             $parameters = @{
                 FilePath = Join-Path -Path $env:WINDIR -ChildPath 'System32\cmd.exe'
