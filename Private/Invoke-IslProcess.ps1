@@ -98,7 +98,7 @@
         $stderrTask = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
             $timedOut = $true
-            & taskkill.exe /PID $process.Id /T /F 2>&1 | Out-Null
+            Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false
             $process.WaitForExit()
         }
         $stopwatch.Stop()
@@ -236,9 +236,11 @@
                     Filter      = "CommandLine LIKE '%$runId%'"
                     ErrorAction = 'SilentlyContinue'
                 }
+                # Stopping the task has usually ended some of them, and ending one ends its
+                # children, so a later id in the list is often gone already
                 Get-CimInstance @cimInstanceSplat |
                     Where-Object { $_.ProcessId -ne $PID } |
-                    ForEach-Object { & taskkill.exe /PID $_.ProcessId /T /F 2>&1 | Out-Null }
+                    ForEach-Object { Stop-IslProcessTree -ProcessId $_.ProcessId -Confirm:$false }
             }
             else {
                 # cmd writes the exit file before its own redirections are flushed; give it a moment
