@@ -24,7 +24,7 @@ entries are carried over from the manifest's release notes.
   not shuffled.
 - A `rehearsal` job in `quality-gates.yml` that runs `Build/Publish-Module.ps1 -WhatIf` on every
   pull request, so that a release which would fail at the tag fails before the merge. The same
-  workflow now also runs every night, and checks PSScriptAnalyzer's `ScriptSecurity` rules.
+  workflow now also runs every night.
 
 ### Changed
 
