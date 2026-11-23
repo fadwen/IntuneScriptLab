@@ -52,7 +52,9 @@ function Get-IslPropertyValue {
     }
 
     if ($InputObject -is [System.Collections.IDictionary]) {
-        if ($InputObject.Contains($Name)) {
+        # Called through the interface: a generic dictionary implements this method explicitly,
+        # and PowerShell does not find it on the object itself
+        if (([System.Collections.IDictionary]$InputObject).Contains($Name)) {
             return $InputObject[$Name]
         }
         return

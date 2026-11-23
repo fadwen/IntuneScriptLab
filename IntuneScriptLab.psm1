@@ -26,6 +26,8 @@ foreach ($functionFolder in $functionFolders) {
             Write-Verbose "Loading $($functionFile.FullName)"
             . $functionFile.FullName
         } catch {
+            # Not dead code: an error in a dot-sourced file, such as one that does not parse, ends
+            # only that statement. Rethrown here it ends the root module, and so the import.
             throw
         }
     }
