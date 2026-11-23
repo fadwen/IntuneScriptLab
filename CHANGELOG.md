@@ -62,6 +62,13 @@ entries are carried over from the manifest's release notes.
   without the key.
 - CI installs Pester 6.2.0 and PSScriptAnalyzer 1.25.0 exactly, where it took any Pester 6 from
   6.2.0 on and the newest PSScriptAnalyzer.
+- `Get-IntuneAgentLog`, `Get-IntuneAgentTimeline` and `Export-IntuneAgentDiagnostic` end on a
+  failure with a terminating error raised the way a compiled cmdlet raises one, where they used
+  `throw`. Each failure has an ID of its own in `FullyQualifiedErrorId`: `UnknownAgentLogEvent`,
+  `CmTraceTimestampInvalid`, `DiagnosticPackageExists`. **A script that calls one of them without
+  `try` and without `$ErrorActionPreference = 'Stop'` now goes on at its next statement after the
+  failure, where it used to end.** In return, `-ErrorAction SilentlyContinue` on the call no longer
+  lets the command carry on past its own failure. The other commands still use `throw`.
 - The module's functions run under strict mode, set once in the root module. A read of a variable
   that was never assigned, or of a member that is not there, is an error where it was a silent
   `$null`. Graph replies, export rows and the other data with optional members are read through one

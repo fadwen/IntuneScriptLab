@@ -121,7 +121,8 @@ Describe 'ConvertFrom-IslCmTraceLog' -Tag 'Unit', 'Private' {
                 ConvertFrom-IslCmTraceLog -Path $Path
             })
         $entries.Count | Should-Be 0
-        { InModuleScope IntuneScriptLab { ConvertFrom-IslCmTraceLog -Path 'C:\nowhere\none.log' } } | Should-Throw
+        { InModuleScope IntuneScriptLab { ConvertFrom-IslCmTraceLog -Path 'C:\nowhere\none.log' } } |
+            Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
     }
 }
 
@@ -146,6 +147,6 @@ Describe 'ConvertTo-IslCmTraceTime' -Tag 'Unit', 'Private' {
         { InModuleScope IntuneScriptLab { ConvertTo-IslCmTraceTime -Time 'noon' -Date '9-25-2026' } } |
             Should-Throw -ExceptionMessage '*Not a CMTrace timestamp*'
         { InModuleScope IntuneScriptLab { ConvertTo-IslCmTraceTime -Time '09:00:00' -Date '2026-09-25' } } |
-            Should-Throw
+            Should-Throw -FullyQualifiedErrorId 'CmTraceTimestampInvalid,ConvertTo-IslCmTraceTime'
     }
 }

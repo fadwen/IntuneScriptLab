@@ -57,7 +57,14 @@ function Get-IntuneAgentLog {
     $knownEvents = @($script:IslAgentLogEvents | ForEach-Object { $_.Event })
     foreach ($name in $EventName) {
         if ($name -notin $knownEvents) {
-            throw "Unknown event '$name'. Get-IntuneAgentLog -ListEvent shows the names"
+            $recordSplat = @{
+                Message = "Unknown event '$name'. Get-IntuneAgentLog -ListEvent shows the names"
+                ErrorId = 'UnknownAgentLogEvent'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                TargetObject = $name
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
     }
 
@@ -72,14 +79,21 @@ function Get-IntuneAgentLog {
         AgentExecutor = 'AgentExecutor*.log'
         All           = '*.log'
     }
-    $files = foreach ($item in $Path) {
-        $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
-        if (Test-Path -LiteralPath $resolved -PathType Container) {
-            foreach ($name in $Log) {
-                Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File | ForEach-Object { $_.FullName }
+    # A path that does not exist ends the command here. Without the catch, the error of a function
+    # this one calls would end only the statement that made the call, and the command would go on
+    try {
+        $files = foreach ($item in $Path) {
+            $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
+            if (Test-Path -LiteralPath $resolved -PathType Container) {
+                foreach ($name in $Log) {
+                    Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File |
+                        ForEach-Object { $_.FullName }
+                }
             }
+            else { $resolved }
         }
-        else { $resolved }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
     $files = @($files | Sort-Object -Unique)
     if (-not $files) {
@@ -110,7 +124,11 @@ function Get-IntuneAgentLog {
             continue
         }
         Write-Verbose "Reading $file"
-        $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
+        try {
+            $kept = @(ConvertFrom-IslCmTraceLog -Path $file @parseSplat)
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
         if (-not $kept.Count) { continue }
         $classified = @(Get-IslAgentLogEvent -Message @($kept | ForEach-Object { $_.Message }))
         for ($index = 0; $index -lt $kept.Count; $index++) {

@@ -182,3 +182,93 @@ function ConvertTo-FakeRunResult {
     }
     [pscustomobject]$result
 }
+
+
+function Invoke-CallerScript {
+    <#
+    .SYNOPSIS
+        Runs statements as a script in a new process that has no try and the default error preference.
+
+    .DESCRIPTION
+        A command that ends with a terminating error ends only itself for such a caller, and the test
+        wants to know what the command did before it ended: did it stop where it failed, or did it go
+        on with nothing where a result should be? Should-Throw cannot tell. It runs the call inside
+        a try, and with a try anywhere above it every error travels all the way up.
+
+        The script imports the module, runs the statements, and then writes the IDs of every error
+        the session recorded, oldest first. A command that stopped where it failed leaves the IDs of
+        that one failure. One that went on leaves the errors of the statements after it as well.
+
+    .PARAMETER Statement
+        The statements of the script, one to a line, after the import of the module.
+
+    .PARAMETER Manifest
+        The module manifest to import. The default is the one of this repository.
+
+    .EXAMPLE
+        Invoke-CallerScript -Statement "Get-IntuneAgentTimeline -Path 'C:\nowhere'"
+
+        Runs the command against a folder that is not there and returns what the script wrote, the
+        IDs of the errors and whether the script reached its end.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject. Output, ErrorId, ReachedEnd and ExitCode.
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.PSCustomObject])]
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Statement,
+
+        [Parameter()]
+        [string]$Manifest
+    )
+
+    if (-not $Manifest) {
+        $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+        $Manifest = Join-Path $repositoryRoot 'IntuneScriptLab.psd1'
+    }
+    $folder = Join-Path $TestDrive "caller-$([guid]::NewGuid().ToString('N'))"
+    $null = New-Item -ItemType Directory -Path $folder -Force
+    $script = Join-Path $folder 'caller.ps1'
+    $marker = 'CALLER-SCRIPT-'
+    $lines = @(
+        "Import-Module '$Manifest'"
+        $Statement
+        # Oldest first; the session lists its errors newest first
+        "`$ids = @(`$Error | ForEach-Object { `$_.FullyQualifiedErrorId }); [array]::Reverse(`$ids)"
+        "'${marker}ERRORS:' + (`$ids -join '|')"
+        "'${marker}END'"
+    )
+    [System.IO.File]::WriteAllLines($script, [string[]]$lines, [System.Text.UTF8Encoding]::new($true))
+
+    # Files, not the pipeline: Windows PowerShell turns what a native command writes to a redirected
+    # error stream into error records, and under a CI step's error preference those end the test
+    $outFile = Join-Path $folder 'out.txt'
+    $errFile = Join-Path $folder 'err.txt'
+    $startParameters = @{
+        FilePath = (Get-Process -Id $PID).Path
+        ArgumentList = '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', "`"$script`""
+        RedirectStandardOutput = $outFile
+        RedirectStandardError = $errFile
+        WindowStyle = 'Hidden'
+        Wait = $true
+        PassThru = $true
+    }
+    $process = Start-Process @startParameters
+    $written = @([System.IO.File]::ReadAllLines($outFile))
+    $errorLine = @($written | Where-Object { $_.StartsWith("${marker}ERRORS:") }) | Select-Object -Last 1
+    $errorIds = @()
+    if ($errorLine) {
+        $errorIds = @($errorLine.Substring("${marker}ERRORS:".Length) -split '\|' | Where-Object { $_ })
+    }
+    [pscustomobject]@{
+        Output = @($written | Where-Object { -not $_.StartsWith($marker) })
+        ErrorId = $errorIds
+        ReachedEnd = $written -contains "${marker}END"
+        ExitCode = $process.ExitCode
+    }
+}

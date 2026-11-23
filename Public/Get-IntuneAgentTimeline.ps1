@@ -26,7 +26,13 @@ function Get-IntuneAgentTimeline {
     if ($Id) { $logSplat.Id = $Id }
     if ($PSBoundParameters.ContainsKey('After')) { $logSplat.After = $After }
     if ($PSBoundParameters.ContainsKey('Before')) { $logSplat.Before = $Before }
-    $entries = @(Get-IntuneAgentLog @logSplat)
+    # A failure of the read ends this command too: without the catch it would end only this
+    # statement, and the timelines would be built from nothing
+    try {
+        $entries = @(Get-IntuneAgentLog @logSplat)
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 
     # App names travel in the policy list the agent logs; nothing else names a policy
     $names = @{}

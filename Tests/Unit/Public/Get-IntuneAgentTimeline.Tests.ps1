@@ -9,6 +9,7 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
         param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
@@ -178,6 +179,34 @@ Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
             $empty = Join-Path $TestDrive 'Empty'
             Write-TestLog $empty 'HealthScripts.log' @(New-CmTraceLine -Message 'noise' -Time '01:00:00.0000000')
             @(Get-IntuneAgentTimeline -Path $empty).Count | Should-Be 0
+        }
+    }
+
+    Context 'Error Handling' {
+        It 'ends with the error of the read when the logs cannot be read' {
+            { Get-IntuneAgentTimeline -Path (Join-Path $TestDrive 'nowhere') } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'stops at a failed read and builds no timeline from nothing, for a script without try' {
+            $corrupt = Join-Path $TestDrive 'CorruptLog'
+            $null = Write-TestLog $corrupt 'HealthScripts.log' @(
+                New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
+                New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
+            )
+            $run = Invoke-CallerScript -Statement @(
+                "`$missing = @(Get-IntuneAgentTimeline -Path '$TestDrive\nowhere'); 'missing: ' + `$missing.Count"
+                "`$corrupt = @(Get-IntuneAgentTimeline -Path '$corrupt'); 'corrupt: ' + `$corrupt.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection -Count 2
+            $run.Output[0] | Should-Be 'missing: 0'
+            $run.Output[1] | Should-Be 'corrupt: 0'
+            # The errors of the two reads, and none from statements after them in the command
+            $run.ErrorId | Should-BeCollection -Count 2
+            $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
+            $run.ErrorId[1] | Should-Be 'CmTraceTimestampInvalid,ConvertFrom-IslCmTraceLog'
         }
     }
 }

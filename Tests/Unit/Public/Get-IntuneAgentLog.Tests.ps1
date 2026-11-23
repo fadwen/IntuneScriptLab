@@ -8,6 +8,7 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
         param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
@@ -80,10 +81,13 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
         It 'rejects an event name that is not in the table, naming the way to list them' {
             { Get-IntuneAgentLog -Path $script:Logs -EventName Nope } |
                 Should-Throw -ExceptionMessage "*Unknown event 'Nope'*-ListEvent*"
+            { Get-IntuneAgentLog -Path $script:Logs -EventName Nope } |
+                Should-Throw -FullyQualifiedErrorId 'UnknownAgentLogEvent,Get-IntuneAgentLog'
         }
 
         It 'fails for a path that does not exist and warns for a folder with no logs' {
-            { Get-IntuneAgentLog -Path (Join-Path $TestDrive 'nowhere') } | Should-Throw
+            { Get-IntuneAgentLog -Path (Join-Path $TestDrive 'nowhere') } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
             $emptyFolder = Join-Path $TestDrive 'empty'
             $null = New-Item -ItemType Directory -Path $emptyFolder -Force
             $warnings = @()
@@ -197,6 +201,38 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
             finally {
                 $env:ProgramData = $programData
             }
+        }
+    }
+
+    Context 'Error Handling' {
+        It 'stops where it fails and lets a script without try go on, for each failure' {
+            # Should-Throw cannot show this: it calls inside a try, where every error travels all
+            # the way up. The script here has none, as a caller's script may not
+            $corrupt = Join-Path $TestDrive 'CorruptLog'
+            $null = Write-TestLog $corrupt 'HealthScripts.log' @(
+                New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
+                New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
+            )
+            $logs = $script:Logs
+            $run = Invoke-CallerScript -Statement @(
+                "`$unknown = @(Get-IntuneAgentLog -Path '$logs' -EventName Nope)"
+                "'unknown: ' + `$unknown.Count"
+                "`$missing = @(Get-IntuneAgentLog -Path '$TestDrive\nowhere')"
+                "'missing: ' + `$missing.Count"
+                "`$corrupt = @(Get-IntuneAgentLog -Path '$corrupt')"
+                "'corrupt: ' + `$corrupt.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection -Count 3
+            $run.Output[0] | Should-Be 'unknown: 0'
+            $run.Output[1] | Should-Be 'missing: 0'
+            $run.Output[2] | Should-Be 'corrupt: 0'
+            # One error for each failure and nothing after it: the command did not go on
+            $run.ErrorId | Should-BeCollection -Count 3
+            $run.ErrorId[0] | Should-Be 'UnknownAgentLogEvent,Get-IntuneAgentLog'
+            $run.ErrorId[1] | Should-BeLikeString 'PathNotFound,*'
+            $run.ErrorId[2] | Should-Be 'CmTraceTimestampInvalid,ConvertFrom-IslCmTraceLog'
         }
     }
 }

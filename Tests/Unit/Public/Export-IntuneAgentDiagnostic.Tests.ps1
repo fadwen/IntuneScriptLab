@@ -9,6 +9,7 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
     function script:New-CmTraceLine {
@@ -113,6 +114,8 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             $null = Export-IntuneAgentDiagnostic -Path $zip -LogPath $script:Logs -SkipRegistry -SkipTimeline
             { Export-IntuneAgentDiagnostic -Path $zip -LogPath $script:Logs -SkipRegistry -SkipTimeline } |
                 Should-Throw -ExceptionMessage '*exists; use -Force*'
+            { Export-IntuneAgentDiagnostic -Path $zip -LogPath $script:Logs -SkipRegistry -SkipTimeline } |
+                Should-Throw -FullyQualifiedErrorId 'DiagnosticPackageExists,Export-IntuneAgentDiagnostic'
             $againSplat = @{ Path = $zip; LogPath = $script:Logs; SkipRegistry = $true; SkipTimeline = $true }
             $again = Export-IntuneAgentDiagnostic @againSplat -Force
             $again.Timeline | Should-BeFalse
@@ -139,6 +142,40 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             $result.Timeline | Should-BeFalse
             "$($warnings[0])" | Should-BeLikeString 'Log folder not found*'
             Get-ZipEntry -Zip $zip | Should-ContainCollection 'Manifest.txt'
+        }
+    }
+
+    Context 'Error Handling' {
+        It 'writes no package and returns nothing when a step fails, for a script without try' {
+            $corrupt = Join-Path $TestDrive 'CorruptLog'
+            $null = New-Item -ItemType Directory -Path $corrupt -Force
+            $lines = @(
+                New-CmTraceLine -Time '08:40:13.0000000' -Message 'a good entry'
+                New-CmTraceLine -Time 'noon' -Message 'an entry whose time is not one'
+            )
+            [System.IO.File]::WriteAllLines((Join-Path $corrupt 'HealthScripts.log'), [string[]]$lines)
+            $existing = Join-Path $TestDrive 'existing.zip'
+            [System.IO.File]::WriteAllText($existing, 'not a zip')
+            $new = Join-Path $TestDrive 'never.zip'
+            $run = Invoke-CallerScript -Statement @(
+                "`$first = Export-IntuneAgentDiagnostic -Path '$existing' -LogPath '$($script:Logs)' -SkipRegistry"
+                "'existing: ' + [bool]`$first"
+                "`$second = Export-IntuneAgentDiagnostic -Path '$new' -LogPath '$corrupt' -SkipRegistry"
+                "'corrupt: ' + [bool]`$second"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection -Count 2
+            $run.Output[0] | Should-Be 'existing: False'
+            $run.Output[1] | Should-Be 'corrupt: False'
+            Test-Path -LiteralPath $new | Should-BeFalse
+            [System.IO.File]::ReadAllText($existing) | Should-Be 'not a zip'
+            # A service or a command that is not on this computer is asked for quietly and still
+            # leaves a record in the session; those are not failures of the command
+            $failures = @($run.ErrorId | Where-Object { $_ -notlike '*,Microsoft.PowerShell.Commands.*' })
+            $failures | Should-BeCollection -Count 2
+            $failures[0] | Should-Be 'DiagnosticPackageExists,Export-IntuneAgentDiagnostic'
+            $failures[1] | Should-Be 'CmTraceTimestampInvalid,ConvertFrom-IslCmTraceLog'
         }
     }
 }
