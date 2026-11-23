@@ -16,6 +16,15 @@ entries are carried over from the manifest's release notes.
   or wrong for others). `.github/workflows/gallery-downloads.yml` reads every version from the v2
   feed daily and publishes a shields.io endpoint file on the `badges` branch when the number moves;
   it is reusable from another module's repository through `workflow_call` with the package name.
+- `Tests/Invoke-Tests.ps1`, the one script that runs the suites, on a developer's computer and in
+  every CI job. It shuffles the order, puts the seed in its failure message and takes it back with
+  `-ShuffleSeed`, and fails when Pester's result is not `Passed` or when no test passed or failed,
+  as when a filter leaves every test out. The CI jobs checked the failed tests and the failed
+  files only, so a failed `BeforeAll` passed, and the Windows PowerShell 5.1 and ARM64 jobs were
+  not shuffled.
+- A `rehearsal` job in `quality-gates.yml` that runs `Build/Publish-Module.ps1 -WhatIf` on every
+  pull request, so that a release which would fail at the tag fails before the merge. The same
+  workflow now also runs every night.
 
 ### Changed
 
@@ -44,6 +53,8 @@ entries are carried over from the manifest's release notes.
   build refuses any placeholder in double braces, where it looked for `{{ Fill` only.
 - The manifest no longer sets `CompanyName` to an empty string. The package's metadata is the same
   without the key.
+- CI installs Pester 6.2.0 and PSScriptAnalyzer 1.25.0 exactly, where it took any Pester 6 from
+  6.2.0 on and the newest PSScriptAnalyzer.
 
 ### Removed
 

@@ -696,10 +696,14 @@ tests skipped unless elevated. On Pester 5, assert on the result properties dire
 ## Tests
 
 ```powershell
-Invoke-Pester .\Tests\Unit                       # fast: mocked launches, static analysis
-Invoke-Pester .\Tests -Output Detailed           # everything, including the real-process suites
-Invoke-Pester .\Tests -ExcludeTagFilter Elevated # skip the SYSTEM-context tests explicitly
+.\Tests\Invoke-Tests.ps1 -TestType Unit        # mocked launches, static analysis
+.\Tests\Invoke-Tests.ps1 -Output Detailed      # everything, including the real-process suites
+.\Tests\Invoke-Tests.ps1 -ExcludeTag Elevated  # skip the SYSTEM-context tests explicitly
 ```
+
+`Tests\Invoke-Tests.ps1` runs the suites in shuffled order and fails unless every test, every
+setup block and every file passed. Its failure message carries the seed, and `-ShuffleSeed` runs
+that order again.
 
 | Folder | What it holds |
 |---|---|
@@ -710,10 +714,10 @@ Invoke-Pester .\Tests -ExcludeTagFilter Elevated # skip the SYSTEM-context tests
 
 Host coverage is split, not overlapping: the integration suites exercise the x64 runtime path on
 the x64 CI runner and the arm64 path on an ARM64 development machine (each refuses the other's
-64-bit host), and the x86 path on both. The Unit suites pass with PowerShell 7 and with Windows
-PowerShell 5.1 as the module host: CI runs the whole suite on PowerShell 7, shuffled and with an
-80% coverage gate, and the unit suites again on Windows PowerShell 5.1 and on the Windows on ARM
-runner.
+64-bit host), and the x86 path on both. The suites pass with PowerShell 7 and with Windows
+PowerShell 5.1 as the module host: CI runs the whole suite on PowerShell 7 with an 80% coverage
+gate, the whole suite again on Windows PowerShell 5.1, and the unit suites on the Windows on ARM
+runner, each through the same script and each shuffled.
 
 ## Help
 
