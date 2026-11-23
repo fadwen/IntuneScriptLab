@@ -82,6 +82,17 @@ entries are carried over from the manifest's release notes.
 
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
+- On Windows PowerShell 5.1, a run that timed out could end with an error instead of a result
+  whose run state is `TimedOut`, when the caller's `$ErrorActionPreference` was `Stop`, as it is
+  in a CI step. The cleanup ends the processes of the run with `taskkill.exe`, which reports a
+  process that is already gone on its error stream, and 5.1 made a terminating error of that
+  line. The process tree is now ended without that stream reaching PowerShell as errors, and a
+  warning is written when a process could not be ended.
+- Four tests were skipped on every run: the three of the SYSTEM-context integration suite, which
+  are the only ones that launch a script through a scheduled task as SYSTEM, and the file-version
+  test of `Test-IntuneWin32Rule`. Their skip condition read a variable that was set only after
+  Pester had evaluated the condition. It is decided during discovery now, so the SYSTEM-context
+  suite runs in an elevated session and is skipped in any other.
 
 ## [0.34.0] - 2026-10-15
 

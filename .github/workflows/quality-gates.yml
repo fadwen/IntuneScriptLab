@@ -5,10 +5,12 @@
 #   tests     Windows, PowerShell 7. PSScriptAnalyzer at Error and Warning over the module, the
 #             kit and the tests, the 115-character line limit, then the whole Pester suite (the
 #             module's unit and integration suites and the validation kit's unit suite) with an
-#             80% coverage gate over Public/ and Private/. Nothing here
-#             reaches a tenant: every Graph call in the suites goes through the mocked
-#             Invoke-IslGraphRequest seam, and the suites that need an elevated session, a lab
-#             account or a Graph connection skip themselves.
+#             80% coverage gate over Public/ and Private/. Nothing here reaches a tenant: every
+#             Graph call in the suites goes through the mocked Invoke-IslGraphRequest seam, and
+#             the suites that need a lab account or a Graph connection skip themselves. The
+#             hosted Windows runner is elevated, so the SYSTEM-context tests run: they register
+#             scheduled tasks named IntuneScriptLab-* as NT AUTHORITY\SYSTEM on the runner, run
+#             a script through each and remove them.
 #
 #   Every Pester run goes through Tests/Invoke-Tests.ps1, the script a developer runs as well. It
 #   shuffles the order, so a test that only passes because of what ran before it fails here
@@ -185,8 +187,9 @@ jobs:
           "Pester $((Get-Module Pester).Version) on PowerShell $($PSVersionTable.PSVersion)" | Write-Host
 
       # The integration suite as well: it launches the 5.1 hosts the harness uses on a device.
-      # The hosted runner's token is not elevated (IsInRole Administrator is false), so the
-      # SYSTEM-context tests skip here as they do under pwsh; they run on the lab devices
+      # The hosted runner is elevated, so the SYSTEM-context tests run here as they do under
+      # pwsh: they register and remove IntuneScriptLab-* scheduled tasks as SYSTEM on the runner.
+      # The user-context suite needs a lab account and skips itself.
       - name: Pester under Windows PowerShell 5.1
         shell: powershell
         run: |
