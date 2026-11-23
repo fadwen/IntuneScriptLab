@@ -206,16 +206,29 @@ $null = New-Item -ItemType Directory -Path $culture -Force
 # built. Bytes, not text: the byte order mark and everything else stay exactly as PlatyPS wrote
 # them.
 $builtBytes = [System.IO.File]::ReadAllBytes($built.FullName)
-$lastIndex = $builtBytes.Length - 1
-$shippedBytes = [System.Collections.Generic.List[byte]]::new($builtBytes.Length)
-for ($index = 0; $index -le $lastIndex; $index++) {
-    $isCarriageReturn = $builtBytes[$index] -eq 13 -and $index -lt $lastIndex
-    $isCarriageReturnOfPair = $isCarriageReturn -and $builtBytes[$index + 1] -eq 10
-    if (-not $isCarriageReturnOfPair) {
-        $shippedBytes.Add($builtBytes[$index])
+$shippedStream = [System.IO.MemoryStream]::new($builtBytes.Length)
+try {
+    # The bytes between one CRLF pair and the next are copied as a block. A carriage return that
+    # no line feed follows is not part of a pair and stays where it is.
+    $copyFrom = 0
+    $searchFrom = 0
+    while ($searchFrom -lt $builtBytes.Length) {
+        $carriageReturn = [Array]::IndexOf($builtBytes, [byte]13, $searchFrom)
+        if ($carriageReturn -lt 0) {
+            break
+        }
+
+        $searchFrom = $carriageReturn + 1
+        if ($searchFrom -lt $builtBytes.Length -and $builtBytes[$searchFrom] -eq 10) {
+            $shippedStream.Write($builtBytes, $copyFrom, $carriageReturn - $copyFrom)
+            $copyFrom = $searchFrom
+        }
     }
+    $shippedStream.Write($builtBytes, $copyFrom, $builtBytes.Length - $copyFrom)
+    [System.IO.File]::WriteAllBytes($shipped, $shippedStream.ToArray())
+} finally {
+    $shippedStream.Dispose()
 }
-[System.IO.File]::WriteAllBytes($shipped, $shippedBytes.ToArray())
 Remove-Item -LiteralPath $maml -Recurse -Force
 
 # Backups from Update-MarkdownCommandHelp; git holds the previous version
