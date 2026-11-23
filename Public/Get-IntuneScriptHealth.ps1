@@ -35,10 +35,11 @@ function Get-IntuneScriptHealth {
 
     function Test-Wanted {
         param($Policy)
-        $displayName = "$($Policy.displayName)"
+        $displayName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
         $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
-        $byId = $Id -and "$($Policy.id)" -in $Id
+        $byId = $Id -and $policyId -in $Id
         $byName -or $byId
     }
 
@@ -85,7 +86,7 @@ function Get-IntuneScriptHealth {
     if (-not $SkipRunState -and 'Win32App' -in $Kind) {
         try {
             foreach ($row in @(Get-IslExportReport -ReportName 'AppInstallStatusAggregate')) {
-                $appInstall["$($row.ApplicationId)"] = $row
+                $appInstall["$(Get-IslPropertyValue -InputObject $row -Name 'ApplicationId')"] = $row
             }
         }
         catch {
@@ -108,22 +109,26 @@ function Get-IntuneScriptHealth {
 
     function Get-AssignmentText {
         param($Policy)
-        $assignments = @($Policy.assignments | Where-Object { $_ })
+        $assignments = @(Get-IslPropertyValue -InputObject $Policy -Name 'assignments' | Where-Object { $_ })
         $includes = 0
         $exclusions = 0
         $filters = 0
         $broad = [System.Collections.Generic.List[string]]::new()
         foreach ($assignment in $assignments) {
-            $target = $assignment.target
-            $type = "$($target.'@odata.type')" -replace '^#microsoft\.graph\.', ''
+            $target = Get-IslPropertyValue -InputObject $assignment -Name 'target'
+            $targetType = "$(Get-IslPropertyValue -InputObject $target -Name '@odata.type')"
+            $type = $targetType -replace '^#microsoft\.graph\.', ''
             if ($type -eq 'exclusionGroupAssignmentTarget') { $exclusions++ }
             else {
                 $includes++
                 if ($type -eq 'allDevicesAssignmentTarget') { $broad.Add('all devices') }
                 if ($type -eq 'allLicensedUsersAssignmentTarget') { $broad.Add('all users') }
             }
-            $filterType = "$($target.deviceAndAppManagementAssignmentFilterType)"
-            if ($target.deviceAndAppManagementAssignmentFilterId -and $filterType -ne 'none') { $filters++ }
+            # An assignment without a filter carries neither key, or a type of none
+            $filterId = Get-IslPropertyValue -InputObject $target -Name 'deviceAndAppManagementAssignmentFilterId'
+            $filterTypeName = 'deviceAndAppManagementAssignmentFilterType'
+            $filterType = Get-IslPropertyValue -InputObject $target -Name $filterTypeName
+            if ($filterId -and "$filterType" -ne 'none') { $filters++ }
         }
         $text = "$includes include"
         if ($broad.Count) { $text += " ($($broad -join ', '))" }
@@ -137,7 +142,7 @@ function Get-IntuneScriptHealth {
             [string]$PolicyKind, $Policy, [string]$Context, [int]$Succeeded, [int]$Failed, [int]$Detected,
             [int]$Pending, $LastRun, [string[]]$DeviceNotes, [bool]$HasRunState
         )
-        $key = "$($Policy.id)"
+        $key = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         $findings = @(if ($findingsByPolicy.ContainsKey($key)) { $findingsByPolicy[$key] })
         $errors = @($findings | Where-Object Severity -eq 'Error').Count
         $warnings = @($findings | Where-Object Severity -eq 'Warning').Count
@@ -185,11 +190,11 @@ function Get-IntuneScriptHealth {
         [pscustomobject]@{
             PSTypeName   = 'IntuneScriptLab.HealthReport'
             Kind         = $PolicyKind
-            PolicyName   = "$($Policy.displayName)"
+            PolicyName   = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
             PolicyId     = $key
             Context      = $Context
             Assigned     = $assignment.Text
-            LastModified = $Policy.lastModifiedDateTime
+            LastModified = Get-IslPropertyValue -InputObject $Policy -Name 'lastModifiedDateTime'
             Errors       = $errors
             Warnings     = $warnings
             Findings     = $findings
@@ -210,20 +215,38 @@ function Get-IntuneScriptHealth {
         $remediations = '/beta/deviceManagement/deviceHealthScripts'
         $fields = 'id,displayName,runAsAccount,lastModifiedDateTime'
         foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
-            $policyUri = "$remediations/$($summary.id)?`$select=$fields&`$expand=assignments"
+            $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+            $policyUri = "$remediations/$summaryId`?`$select=$fields&`$expand=assignments"
             $policy = Invoke-IslGraphRequest -Uri $policyUri
-            $run = Get-RunSummary -Uri "$remediations/$($summary.id)/runSummary"
-            $scriptErrors = [int]$run.detectionScriptErrorDeviceCount + [int]$run.remediationScriptErrorDeviceCount
+            $run = Get-RunSummary -Uri "$remediations/$summaryId/runSummary"
+            # The summary is absent under -SkipRunState and when it could not be read, and a
+            # counter that is not in it counts as zero
+            $runCount = @{}
+            $counters = @(
+                'noIssueDetected'
+                'issueRemediated'
+                'issueDetected'
+                'issueReoccurred'
+                'detectionScriptError'
+                'remediationScriptError'
+                'detectionScriptPending'
+                'detectionScriptNotApplicable'
+            )
+            foreach ($counter in $counters) {
+                $runCount[$counter] = [int](Get-IslPropertyValue -InputObject $run -Name "${counter}DeviceCount")
+            }
+            $notApplicable = $runCount['detectionScriptNotApplicable']
             $reportSplat = @{
-                PolicyKind = 'Remediation'; Policy = $policy; Context = "$($policy.runAsAccount)"
-                Succeeded  = [int]$run.noIssueDetectedDeviceCount + [int]$run.issueRemediatedDeviceCount
-                Failed     = $scriptErrors
-                Detected   = [int]$run.issueDetectedDeviceCount + [int]$run.issueReoccurredDeviceCount
-                Pending    = [int]$run.detectionScriptPendingDeviceCount
-                LastRun    = $run.lastScriptRunDateTime
+                PolicyKind = 'Remediation'
+                Policy = $policy
+                Context = "$(Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount')"
+                Succeeded = $runCount['noIssueDetected'] + $runCount['issueRemediated']
+                Failed = $runCount['detectionScriptError'] + $runCount['remediationScriptError']
+                Detected = $runCount['issueDetected'] + $runCount['issueReoccurred']
+                Pending = $runCount['detectionScriptPending']
+                LastRun = Get-IslPropertyValue -InputObject $run -Name 'lastScriptRunDateTime'
                 HasRunState = [bool]$run
-                DeviceNotes = @(if ([int]$run.detectionScriptNotApplicableDeviceCount) {
-                        "$($run.detectionScriptNotApplicableDeviceCount) device(s) not applicable" })
+                DeviceNotes = @(if ($notApplicable) { "$notApplicable device(s) not applicable" })
             }
             $reports.Add((ConvertTo-Report @reportSplat))
         }
@@ -233,12 +256,20 @@ function Get-IntuneScriptHealth {
         $scripts = '/beta/deviceManagement/deviceManagementScripts'
         $fields = 'id,displayName,runAsAccount,lastModifiedDateTime'
         foreach ($summary in (Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")) {
-            $policy = Invoke-IslGraphRequest -Uri "$scripts/$($summary.id)?`$select=$fields&`$expand=assignments"
-            $run = Get-RunSummary -Uri "$scripts/$($summary.id)/runSummary"
+            $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+            $policy = Invoke-IslGraphRequest -Uri "$scripts/$summaryId`?`$select=$fields&`$expand=assignments"
+            $run = Get-RunSummary -Uri "$scripts/$summaryId/runSummary"
             $reportSplat = @{
-                PolicyKind = 'PlatformScript'; Policy = $policy; Context = "$($policy.runAsAccount)"
-                Succeeded  = [int]$run.successDeviceCount; Failed = [int]$run.errorDeviceCount
-                Detected   = 0; Pending = 0; LastRun = $null; HasRunState = [bool]$run; DeviceNotes = @()
+                PolicyKind = 'PlatformScript'
+                Policy = $policy
+                Context = "$(Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount')"
+                Succeeded = [int](Get-IslPropertyValue -InputObject $run -Name 'successDeviceCount')
+                Failed = [int](Get-IslPropertyValue -InputObject $run -Name 'errorDeviceCount')
+                Detected = 0
+                Pending = 0
+                LastRun = $null
+                HasRunState = [bool]$run
+                DeviceNotes = @()
             }
             $reports.Add((ConvertTo-Report @reportSplat))
         }
@@ -249,15 +280,23 @@ function Get-IntuneScriptHealth {
         $listUri = "$apps`?`$filter=isof('microsoft.graph.win32LobApp')&`$select=id,displayName"
         foreach ($summary in (Get-WantedPolicy -Uri $listUri)) {
             # installExperience belongs to the derived type, and $select on the base entity refuses it
-            $app = Invoke-IslGraphRequest -Uri "$apps/$($summary.id)?`$expand=assignments"
-            $row = $appInstall["$($app.id)"]
+            $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+            $app = Invoke-IslGraphRequest -Uri "$apps/$summaryId`?`$expand=assignments"
+            # An app that no device has reported on has no row in the export
+            $row = $appInstall["$(Get-IslPropertyValue -InputObject $app -Name 'id')"]
+            $installExperience = Get-IslPropertyValue -InputObject $app -Name 'installExperience'
+            $notApplicable = [int](Get-IslPropertyValue -InputObject $row -Name 'NotApplicableDeviceCount')
             $reportSplat = @{
-                PolicyKind = 'Win32App'; Policy = $app; Context = "$($app.installExperience.runAsAccount)"
-                Succeeded  = [int]$row.InstalledDeviceCount; Failed = [int]$row.FailedDeviceCount
-                Detected   = 0; Pending = [int]$row.PendingInstallDeviceCount; LastRun = $null
+                PolicyKind = 'Win32App'
+                Policy = $app
+                Context = "$(Get-IslPropertyValue -InputObject $installExperience -Name 'runAsAccount')"
+                Succeeded = [int](Get-IslPropertyValue -InputObject $row -Name 'InstalledDeviceCount')
+                Failed = [int](Get-IslPropertyValue -InputObject $row -Name 'FailedDeviceCount')
+                Detected = 0
+                Pending = [int](Get-IslPropertyValue -InputObject $row -Name 'PendingInstallDeviceCount')
+                LastRun = $null
                 HasRunState = [bool]$row
-                DeviceNotes = @(if ([int]$row.NotApplicableDeviceCount) {
-                        "$($row.NotApplicableDeviceCount) device(s) not applicable" })
+                DeviceNotes = @(if ($notApplicable) { "$notApplicable device(s) not applicable" })
             }
             $reports.Add((ConvertTo-Report @reportSplat))
         }

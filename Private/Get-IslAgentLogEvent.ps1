@@ -288,6 +288,10 @@ function Get-IslAgentLogEvent {
     }
 }
 
+# The event table, compiled by the first call of Get-IslAgentLogEvent. It is assigned here so
+# that the test for it in the function reads a variable that exists, which strict mode requires.
+$script:IslAgentLogEvents = $null
+
 $script:IslAgentLogGuidRegex = [regex]::new(
     '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
     [System.Text.RegularExpressions.RegexOptions]::Compiled)

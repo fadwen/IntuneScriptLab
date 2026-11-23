@@ -29,16 +29,19 @@ function Get-IslLogonSession {
     $shells = @(Get-CimInstance -ClassName Win32_Process -Filter $filter -ErrorAction SilentlyContinue)
     $seen = @{}
     foreach ($shell in ($shells | Sort-Object -Property SessionId, Name)) {
+        # Either call returns nothing for a process that ended or that this session may not ask about
         $owner = Invoke-CimMethod -InputObject $shell -MethodName GetOwner -ErrorAction SilentlyContinue
-        $sid = (Invoke-CimMethod -InputObject $shell -MethodName GetOwnerSid -ErrorAction SilentlyContinue).Sid
-        if (-not $sid -or -not $owner.User) { continue }
+        $ownerSid = Invoke-CimMethod -InputObject $shell -MethodName GetOwnerSid -ErrorAction SilentlyContinue
+        $sid = Get-IslPropertyValue -InputObject $ownerSid -Name 'Sid'
+        $userName = Get-IslPropertyValue -InputObject $owner -Name 'User'
+        if (-not $sid -or -not $userName) { continue }
         $key = "$($shell.SessionId)|$sid"
         if ($seen.ContainsKey($key)) { continue }
         $seen[$key] = $true
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.LogonSession'
-            UserName   = $owner.User
-            Domain     = $owner.Domain
+            UserName   = $userName
+            Domain     = Get-IslPropertyValue -InputObject $owner -Name 'Domain'
             Sid        = $sid
             Id         = [int]$shell.SessionId
         }

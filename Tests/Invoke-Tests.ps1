@@ -182,9 +182,9 @@ if ($CodeCoverage) {
 }
 
 # Pester runs the test files in scopes below this one, so they would inherit this script's strict
-# mode, and when the script is started with -File this scope is the global one, which the
-# module's functions see as well. The suites, the validation kit and the module are not yet
-# written for strict mode (#63, #70, #71), so it is off for the run and on again after it.
+# mode. The module sets its own in its root module and does not depend on this one, but the
+# suites and the validation kit are not yet written for strict mode (#70, #71), so it is off for
+# the run and on again after it.
 Set-StrictMode -Off
 try {
     $result = Invoke-Pester -Configuration $configuration

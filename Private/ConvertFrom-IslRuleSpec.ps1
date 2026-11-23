@@ -26,8 +26,8 @@ function ConvertFrom-IslRuleSpec {
         [hashtable]$Rule
     )
 
-    $kind = if ($Rule.Type) { "$($Rule.Type)" }
-    elseif ($Rule.'@odata.type' -match '(?i)win32LobApp(FileSystem|Registry|ProductCode|PowerShellScript)') {
+    $kind = if ($Rule['Type']) { "$($Rule['Type'])" }
+    elseif ($Rule['@odata.type'] -match '(?i)win32LobApp(FileSystem|Registry|ProductCode|PowerShellScript)') {
         switch ($Matches[1].ToLower()) {
             'filesystem' { 'File' }
             'registry' { 'Registry' }
@@ -38,32 +38,32 @@ function ConvertFrom-IslRuleSpec {
     else { '' }
 
     $splat = @{}
-    $operator = if ($Rule.Operator) { "$($Rule.Operator)" } else { '' }
-    $value = if ($null -ne $Rule.ComparisonValue) { "$($Rule.ComparisonValue)" }
-    elseif ($null -ne $Rule.Value) { "$($Rule.Value)" }
+    $operator = if ($Rule['Operator']) { "$($Rule['Operator'])" } else { '' }
+    $value = if ($null -ne $Rule['ComparisonValue']) { "$($Rule['ComparisonValue'])" }
+    elseif ($null -ne $Rule['Value']) { "$($Rule['Value'])" }
     else { $null }
 
     switch ($kind) {
         'File' {
-            $splat.Path = "$($Rule.Path)"
-            $splat.FileOrFolderName = "$($Rule.FileOrFolderName)"
-            $splat.FileOperation = if ($Rule.OperationType) { "$($Rule.OperationType)" }
-            else { "$($Rule.FileOperation)" }
-            $splat.Check32BitOn64System = [bool]$Rule.Check32BitOn64System
+            $splat.Path = "$($Rule['Path'])"
+            $splat.FileOrFolderName = "$($Rule['FileOrFolderName'])"
+            $splat.FileOperation = if ($Rule['OperationType']) { "$($Rule['OperationType'])" }
+            else { "$($Rule['FileOperation'])" }
+            $splat.Check32BitOn64System = [bool]$Rule['Check32BitOn64System']
         }
         'Registry' {
-            $splat.KeyPath = "$($Rule.KeyPath)"
-            if ($Rule.ValueName) { $splat.ValueName = "$($Rule.ValueName)" }
-            $splat.RegistryOperation = if ($Rule.OperationType) { "$($Rule.OperationType)" }
-            else { "$($Rule.RegistryOperation)" }
-            $splat.Check32BitOn64System = [bool]$Rule.Check32BitOn64System
+            $splat.KeyPath = "$($Rule['KeyPath'])"
+            if ($Rule['ValueName']) { $splat.ValueName = "$($Rule['ValueName'])" }
+            $splat.RegistryOperation = if ($Rule['OperationType']) { "$($Rule['OperationType'])" }
+            else { "$($Rule['RegistryOperation'])" }
+            $splat.Check32BitOn64System = [bool]$Rule['Check32BitOn64System']
         }
         'ProductCode' {
-            $splat.ProductCode = "$($Rule.ProductCode)"
-            if ($Rule.ProductVersionOperator -and "$($Rule.ProductVersionOperator)" -ne 'notConfigured') {
-                $operator = "$($Rule.ProductVersionOperator)"
+            $splat.ProductCode = "$($Rule['ProductCode'])"
+            if ($Rule['ProductVersionOperator'] -and "$($Rule['ProductVersionOperator'])" -ne 'notConfigured') {
+                $operator = "$($Rule['ProductVersionOperator'])"
             }
-            if ($null -ne $Rule.ProductVersion) { $value = "$($Rule.ProductVersion)" }
+            if ($null -ne $Rule['ProductVersion']) { $value = "$($Rule['ProductVersion'])" }
         }
         'Script' { throw 'A PowerShell script rule is run with Invoke-IntuneDetectionTest, not evaluated here' }
         default { throw "Rule needs a Type of File, Registry or ProductCode (or a win32LobApp*Rule @odata.type)" }

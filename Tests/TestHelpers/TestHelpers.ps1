@@ -130,3 +130,55 @@ function Set-Win32FixtureScript {
         [System.IO.File]::WriteAllText($Fixture.Detection, $DetectBody, $utf8Bom)
     }
 }
+
+
+function ConvertTo-FakeRunResult {
+    <#
+    .SYNOPSIS
+        Completes a partial run result with every member the real one has.
+
+    .DESCRIPTION
+        A mock of Invoke-IslScriptRun or Invoke-IslProcess names only the members its test is about.
+        The commands read the others too, and under strict mode a read of a member that is not there
+        is an error, so the fake gets the rest with the values of an uneventful run as SYSTEM.
+
+    .PARAMETER Member
+        The members the test sets, by name. Each replaces the default of that name.
+
+    .EXAMPLE
+        ConvertTo-FakeRunResult @{ ExitCode = 1; StdOut = 'missing' }
+
+        A run that exited 1 after writing one line, with every other member at its default.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject. The fake run result.
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.PSCustomObject])]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [hashtable]$Member
+    )
+    $result = [ordered]@{
+        Phase = 'detection'
+        ScriptPath = ''
+        Host = 'powershell.exe'
+        Architecture = 'x64'
+        Context = 'System'
+        RunAs = 'NT AUTHORITY\SYSTEM (Service)'
+        UserName = 'NT AUTHORITY\SYSTEM'
+        LogonType = 'Service'
+        ExitCode = 0
+        TimedOut = $false
+        StdOut = ''
+        StdErr = ''
+        Duration = [timespan]::Zero
+    }
+    foreach ($key in $Member.Keys) {
+        $result[$key] = $Member[$key]
+    }
+    [pscustomobject]$result
+}

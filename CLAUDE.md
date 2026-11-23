@@ -81,6 +81,28 @@ always false. Name locals so they cannot collide with a parameter, and capture w
 function needs from `$PSBoundParameters` into a plain variable before defining it. 0.26.0 fixed
 both, with tests.
 
+### The module runs under strict mode, and optional members are read through one accessor
+
+`IntuneScriptLab.psm1` sets `Set-StrictMode -Version Latest`, so in every function a read of a
+member that is not there is a terminating error: `$reply.runSchedule` on a Graph reply without a
+schedule, `$table.Severity` on a settings table without that key, `$result.Sid` on a CIM call that
+returned nothing. A hashtable the module's own caller wrote is read with an index
+(`$Rule['Operator']`), which gives `$null` for a missing key. Everything that comes from outside -
+a Graph reply, an export row, a CIM result, an object that has one of two shapes - is read with
+`Get-IslPropertyValue`, which returns nothing for a missing input, key or property and works for a
+dictionary and an object alike. `Invoke-MgGraphRequest` returns dictionaries and a recorded fixture
+read with `ConvertFrom-Json` returns objects, so member syntax that passes against one can fail
+against the other.
+
+Code inside `InModuleScope` runs under the module's strict mode too. A mock body does not: it
+stays in the test file's scope, where it can also call the helpers in `Tests/TestHelpers`. A fake
+of a run result goes through `ConvertTo-FakeRunResult`, so that it has every member the real one
+has.
+
+The loader fails the import when `Private`, `Private/Rules` or `Public` is missing or a file in
+them fails to load. A file that does not parse used to leave the module imported without its
+commands.
+
 ### A nested function returning `@()` hands the caller `$null`
 
 Several public commands use nested helper functions. PowerShell unrolls an empty array on the
@@ -175,5 +197,6 @@ under Windows PowerShell 5.1 as well before pushing:
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
 ```
 
-The script sets strict mode for itself and turns it off around the Pester run, because the suites,
-the validation kit and the module are not written for strict mode yet. Remove that when they are.
+The script sets strict mode for itself and turns it off around the Pester run, because the suites
+and the validation kit are not written for strict mode yet. Remove that when they are. The module
+does not depend on it: it sets its own strict mode in the root module.

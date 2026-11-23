@@ -85,13 +85,17 @@ function Export-IntuneFindingSarif {
                 if ($itemLevel -and $rank[$itemLevel] -gt $rank[$level]) { $level = $itemLevel }
             }
             if ($fixedRules.ContainsKey($name)) {
-                $summary = $fixedRules[$name].Summary
-                if ($fixedRules[$name].Level) { $level = $fixedRules[$name].Level }
+                $fixedRule = $fixedRules[$name]
+                $summary = $fixedRule['Summary']
+                # A rule that reports at several severities has no level of its own
+                if ($fixedRule['Level']) { $level = $fixedRule['Level'] }
             }
             elseif (Get-Command -Name "Find-$name" -ErrorAction SilentlyContinue) {
                 $help = Get-Help -Name "Find-$name" -ErrorAction SilentlyContinue
                 $summary = "$($help.Synopsis)".Trim()
-                $description = (@($help.Description | ForEach-Object { $_.Text }) -join ' ') -replace '\s+', ' '
+                # Help without a .DESCRIPTION has no description member
+                $paragraphs = @(Get-IslPropertyValue -InputObject $help -Name 'Description')
+                $description = (@($paragraphs | ForEach-Object { $_.Text }) -join ' ') -replace '\s+', ' '
             }
             if (-not $summary) { $summary = $name }
             $rule = [ordered]@{
@@ -117,7 +121,8 @@ function Export-IntuneFindingSarif {
             }
             # A policy check from Test-IntuneDeployedScript has no script behind it; SARIF allows a
             # result without a location, and the policy's name goes into the message instead
-            $scriptPath = "$($item.PSObject.Properties['ScriptPath'].Value)"
+            $scriptPath = "$(Get-IslPropertyValue -InputObject $item -Name 'ScriptPath')"
+            $policyName = Get-IslPropertyValue -InputObject $item -Name 'PolicyName'
             if ($scriptPath) {
                 $result.locations = @(
                     [ordered]@{
@@ -128,14 +133,15 @@ function Export-IntuneFindingSarif {
                     }
                 )
             }
-            elseif ($item.PSObject.Properties['PolicyName'] -and $item.PolicyName) {
-                $result.message.text = "$($item.Kind) '$($item.PolicyName)': $($item.Message)"
+            elseif ($policyName) {
+                $policyKind = Get-IslPropertyValue -InputObject $item -Name 'Kind'
+                $result.message.text = "$policyKind '$policyName': $($item.Message)"
             }
             $result.properties = [ordered]@{
                 scriptType = "$($item.ScriptType)"
                 evidence   = "$($item.Evidence)"
             }
-            if ($item.PSObject.Properties['Suppressed'] -and $item.Suppressed) {
+            if (Get-IslPropertyValue -InputObject $item -Name 'Suppressed') {
                 $result.suppressions = @([ordered]@{ kind = 'inSource' })
             }
             $result

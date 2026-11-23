@@ -91,10 +91,17 @@ function Get-IslScriptContext {
         '(?i)(^|[^a-z])(remediat\w*|fix)([^a-z]|$)' { 'Remediation'; break }
         default { 'PlatformScript' }
     }
+    # -Settings is optional, and a directive names only some of the four keys. An index reads a
+    # key the directive lacks as $null, and the accessor does the same for the settings object
+    $settingsType = Get-IslPropertyValue -InputObject $Settings -Name 'ScriptType'
+    $settingsContext = Get-IslPropertyValue -InputObject $Settings -Name 'Context'
+    $settingsArchitecture = Get-IslPropertyValue -InputObject $Settings -Name 'Architecture'
+    $settingsSignatureCheck = Get-IslPropertyValue -InputObject $Settings -Name 'EnforceSignatureCheck'
+
     $typeSource = 'parameter'
     if ($ScriptType -eq 'Auto') {
-        if ($directive.ScriptType) { $ScriptType = $directive.ScriptType; $typeSource = 'directive' }
-        elseif ($Settings.ScriptType) { $ScriptType = $Settings.ScriptType; $typeSource = 'settings' }
+        if ($directive['ScriptType']) { $ScriptType = $directive['ScriptType']; $typeSource = 'directive' }
+        elseif ($settingsType) { $ScriptType = $settingsType; $typeSource = 'settings' }
         else { $ScriptType = $inferredType; $typeSource = $inferredSource }
     }
 
@@ -102,23 +109,23 @@ function Get-IslScriptContext {
     # (Findings.md, "Graph API defaults"); these are the portal ones because that is what most
     # scripts get, and they are the more restrictive assumption for the rules.
     if ($Context -eq 'Auto') {
-        $Context = if ($directive.Context) { $directive.Context }
-        elseif ($Settings.Context) { $Settings.Context }
+        $Context = if ($directive['Context']) { $directive['Context'] }
+        elseif ($settingsContext) { $settingsContext }
         elseif ($ScriptType -eq 'PlatformScript') { 'User' }   # portal default for platform scripts
         else { 'System' }
     }
     if ($Architecture -eq 'Auto') {
-        $Architecture = if ($directive.Architecture) { $directive.Architecture }
-        elseif ($Settings.Architecture) { $Settings.Architecture }
+        $Architecture = if ($directive['Architecture']) { $directive['Architecture'] }
+        elseif ($settingsArchitecture) { $settingsArchitecture }
         elseif ($ScriptType -in 'Win32Detection', 'Win32Requirement') { 'x64' }  # 64-bit by default
         else { 'x86' }                                                          # scripts/remediations: 32-bit
     }
 
     $signatureCheck = if ($EnforceSignatureCheck -ne 'Auto') { $EnforceSignatureCheck -eq 'True' }
     elseif ($directive.ContainsKey('EnforceSignatureCheck')) {
-        "$($directive.EnforceSignatureCheck)" -in 'true', '1', 'yes'
+        "$($directive['EnforceSignatureCheck'])" -in 'true', '1', 'yes'
     }
-    elseif ($null -ne $Settings.EnforceSignatureCheck) { [bool]$Settings.EnforceSignatureCheck }
+    elseif ($null -ne $settingsSignatureCheck) { [bool]$settingsSignatureCheck }
     else { $false }
 
     [pscustomobject]@{

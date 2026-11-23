@@ -21,7 +21,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'takes script paths from the pipeline, one result each' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
             }
             $results = @('C:\lab\a.ps1', 'C:\lab\b.ps1' | Invoke-IntunePlatformScriptTest)
             $results.Count | Should-Be 2
@@ -30,7 +30,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
 
         It 'defaults to the 32-bit host and the current user, as the portal does' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntunePlatformScriptTest -Path $script:Script
             $result.Architecture | Should-Be 'x86'
@@ -44,7 +44,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
     Context 'Core Functionality' {
         It 'reports Success on exit 0 with stdout and stderr joined as the result message' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = "out-1`r`nhost-2`r`n"; StdErr = "warn`r`n"
                 }
             }
@@ -56,7 +56,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
 
         It 'reports Failed on any non-zero exit' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 5; TimedOut = $false; StdOut = ''; StdErr = 'deliberate' }
+                ConvertTo-FakeRunResult @{ ExitCode = 5; TimedOut = $false; StdOut = ''; StdErr = 'deliberate' }
             }
             $result = Invoke-IntunePlatformScriptTest -Path $script:Script
             $result.RunState | Should-Be 'Failed'
@@ -66,7 +66,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
 
         It 'warns what Intune does with a failure: three runs in total, at policy fetches (PS-FAIL)' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 1; TimedOut = $false; StdOut = ''; StdErr = 'deliberate' }
+                ConvertTo-FakeRunResult @{ ExitCode = 1; TimedOut = $false; StdOut = ''; StdErr = 'deliberate' }
             }
             $result = Invoke-IntunePlatformScriptTest -Path $script:Script
             @($result.Warnings).Count | Should-Be 1
@@ -76,7 +76,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
 
         It 'carries no warning on success' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
             }
             @((Invoke-IntunePlatformScriptTest -Path $script:Script).Warnings).Count | Should-Be 0
         }
@@ -85,7 +85,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
     Context 'Error Handling' {
         It 'reports TimedOut when the script is killed' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntunePlatformScriptTest -Path $script:Script -TimeoutSeconds 1
             $result.RunState | Should-Be 'TimedOut'
@@ -97,7 +97,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
     Context 'Another account' {
         It 'passes -Credential to the launcher, reports RunAs, and refuses it with Context System' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = ''; RunAs = 'LAB\isl-user (Interactive)'
                 }
             }

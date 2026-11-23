@@ -122,8 +122,10 @@ function Invoke-IslGraphRequest {
     while ($next) {
         $requestSplat.Uri = $next
         $page = Invoke-Once -Splat $requestSplat
-        if ($page.value) { $items.AddRange([object[]]$page.value) }
-        $next = $page.'@odata.nextLink'
+        # The last page has no next link, and an empty collection may come without a value
+        $pageItems = @(Get-IslPropertyValue -InputObject $page -Name 'value')
+        if ($pageItems.Count -gt 0) { $items.AddRange([object[]]$pageItems) }
+        $next = Get-IslPropertyValue -InputObject $page -Name '@odata.nextLink'
     }
     $items.ToArray()
 }

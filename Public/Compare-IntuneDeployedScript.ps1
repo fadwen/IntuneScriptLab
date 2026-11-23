@@ -45,10 +45,11 @@ function Compare-IntuneDeployedScript {
 
     function Test-Wanted {
         param($Policy)
-        $displayName = "$($Policy.displayName)"
+        $displayName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
         $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
-        $byId = $Id -and "$($Policy.id)" -in $Id
+        $byId = $Id -and $policyId -in $Id
         $byName -or $byId
     }
 
@@ -61,8 +62,10 @@ function Compare-IntuneDeployedScript {
     function Get-MapEntry {
         param($Policy)
         if (-not $Map) { return $null }
+        $policyName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
         foreach ($key in $Map.Keys) {
-            if ("$key" -eq "$($Policy.displayName)" -or "$key" -eq "$($Policy.id)") {
+            if ("$key" -eq $policyName -or "$key" -eq $policyId) {
                 $mapped["$key"] = $true
                 return $Map[$key]
             }
@@ -88,7 +91,7 @@ function Compare-IntuneDeployedScript {
             else { Join-Path -Path $root -ChildPath "$value" }
             return @([pscustomobject]@{ FullName = $full })
         }
-        $key = Get-NameKey -Value "$($Policy.displayName)"
+        $key = Get-NameKey -Value "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
         $named = @($folders | Where-Object { (Get-NameKey -Value $_.Name) -eq $key })
         $inside = @(foreach ($folder in $named) {
                 $files | Where-Object { $_.DirectoryName -eq $folder.FullName }
@@ -246,8 +249,8 @@ function Compare-IntuneDeployedScript {
         [pscustomobject]@{
             PSTypeName     = 'IntuneScriptLab.DriftResult'
             Kind           = $PolicyKind
-            PolicyName     = "$($Policy.displayName)"
-            PolicyId       = "$($Policy.id)"
+            PolicyName     = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
+            PolicyId       = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
             Role           = $Role
             State          = $State
             Differences    = @($Differences | Where-Object { $_ })
@@ -255,7 +258,7 @@ function Compare-IntuneDeployedScript {
             LocalPath      = $LocalPath
             LocalHash      = $LocalHash
             TenantHash     = $TenantHash
-            TenantModified = $Policy.lastModifiedDateTime
+            TenantModified = Get-IslPropertyValue -InputObject $Policy -Name 'lastModifiedDateTime'
         }
     }
 
@@ -280,8 +283,9 @@ function Compare-IntuneDeployedScript {
         $tenantHash = Get-Hash -Bytes $tenantBytes
         $tenantShort = $tenantHash.Substring(0, 12)
         if ($candidates.Count -eq 0) {
+            $policyName = Get-IslPropertyValue -InputObject $Policy -Name 'displayName'
             ConvertTo-Result @base -State 'Missing' -TenantHash $tenantShort -Detail (
-                "no local file for the $label of '$($Policy.displayName)' under $root")
+                "no local file for the $label of '$policyName' under $root")
             return
         }
         if ($candidates.Count -gt 1) {
@@ -341,20 +345,26 @@ function Compare-IntuneDeployedScript {
         if ('Remediation' -in $Kind) {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
-                $policy = Invoke-IslGraphRequest -Uri "$remediations/$($summary.id)"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $policy = Invoke-IslGraphRequest -Uri "$remediations/$summaryId"
                 $policySettings = @{
-                    RunAsAccount = $policy.runAsAccount; RunAs32Bit = $policy.runAs32Bit
-                    EnforceSignatureCheck = $policy.enforceSignatureCheck
+                    RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
+                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
                 }
                 $detectSplat = @{
-                    PolicyKind = 'Remediation'; Policy = $policy; Role = 'detection'
-                    Content    = $policy.detectionScriptContent
+                    PolicyKind = 'Remediation'
+                    Policy = $policy
+                    Role = 'detection'
+                    Content = Get-IslPropertyValue -InputObject $policy -Name 'detectionScriptContent'
                     Candidates = Find-LocalFile -Policy $policy -Role 'detection' -Pattern '^(?i)detect'
                 }
                 Compare-Role @detectSplat @policySettings
                 $remediateSplat = @{
-                    PolicyKind = 'Remediation'; Policy = $policy; Role = 'remediation'
-                    Content    = $policy.remediationScriptContent
+                    PolicyKind = 'Remediation'
+                    Policy = $policy
+                    Role = 'remediation'
+                    Content = Get-IslPropertyValue -InputObject $policy -Name 'remediationScriptContent'
                     Candidates = Find-LocalFile -Policy $policy -Role 'remediation' -Pattern '^(?i)remediat'
                 }
                 Compare-Role @remediateSplat @policySettings
@@ -364,11 +374,16 @@ function Compare-IntuneDeployedScript {
         if ('PlatformScript' -in $Kind) {
             $scripts = '/beta/deviceManagement/deviceManagementScripts'
             foreach ($summary in (Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")) {
-                $policy = Invoke-IslGraphRequest -Uri "$scripts/$($summary.id)"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $policy = Invoke-IslGraphRequest -Uri "$scripts/$summaryId"
                 $scriptSplat = @{
-                    PolicyKind = 'PlatformScript'; Policy = $policy; Role = 'script'
-                    Content    = $policy.scriptContent; RunAsAccount = $policy.runAsAccount
-                    RunAs32Bit = $policy.runAs32Bit; EnforceSignatureCheck = $policy.enforceSignatureCheck
+                    PolicyKind = 'PlatformScript'
+                    Policy = $policy
+                    Role = 'script'
+                    Content = Get-IslPropertyValue -InputObject $policy -Name 'scriptContent'
+                    RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
+                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
                     Candidates = Find-LocalFile -Policy $policy -Role 'script'
                 }
                 Compare-Role @scriptSplat
@@ -379,9 +394,13 @@ function Compare-IntuneDeployedScript {
             $apps = '/beta/deviceAppManagement/mobileApps'
             $listUri = "$apps`?`$filter=isof('microsoft.graph.win32LobApp')&`$select=id,displayName"
             foreach ($summary in (Get-WantedPolicy -Uri $listUri)) {
-                $app = Invoke-IslGraphRequest -Uri "$apps/$($summary.id)"
+                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                $app = Invoke-IslGraphRequest -Uri "$apps/$summaryId"
                 $scriptType = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
-                $detectionRules = @($app.detectionRules | Where-Object { "$($_.'@odata.type')" -eq $scriptType })
+                $detectionRules = @(
+                    Get-IslPropertyValue -InputObject $app -Name 'detectionRules' | Where-Object {
+                        "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $scriptType
+                    })
                 $detectionFiles = @(Find-LocalFile -Policy $app -Role 'detection' -Pattern '^(?i)detect')
                 for ($index = 0; $index -lt $detectionRules.Count; $index++) {
                     $candidateSplat = @{
@@ -389,10 +408,17 @@ function Compare-IntuneDeployedScript {
                     }
                     $candidates = Select-Candidate @candidateSplat
                     $rule = $detectionRules[$index]
+                    $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
                     $detectSplat = @{
-                        PolicyKind = 'Win32App'; Policy = $app; Role = 'detection'; Content = $rule.scriptContent
-                        Candidates = $candidates; RunAsAccount = 'system'; RunAs32Bit = $rule.runAs32Bit
-                        EnforceSignatureCheck = $rule.enforceSignatureCheck; HasContext = $false
+                        PolicyKind = 'Win32App'
+                        Policy = $app
+                        Role = 'detection'
+                        Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                        Candidates = $candidates
+                        RunAsAccount = 'system'
+                        RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                        EnforceSignatureCheck = $signatureCheck
+                        HasContext = $false
                     }
                     Compare-Role @detectSplat
                 }
@@ -404,8 +430,10 @@ function Compare-IntuneDeployedScript {
                     Compare-Role @noRuleSplat
                 }
                 $requirementType = '#microsoft.graph.win32LobAppPowerShellScriptRequirement'
-                $requirementRules = @($app.requirementRules |
-                        Where-Object { "$($_.'@odata.type')" -eq $requirementType })
+                $requirementRules = @(
+                    Get-IslPropertyValue -InputObject $app -Name 'requirementRules' | Where-Object {
+                        "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $requirementType
+                    })
                 $requirementFiles = @(Find-LocalFile -Policy $app -Role 'requirement' -Pattern '^(?i)requirement')
                 if ($requirementRules.Count -eq 0) {
                     $noRuleSplat = @{
@@ -420,10 +448,16 @@ function Compare-IntuneDeployedScript {
                     }
                     $candidates = Select-Candidate @candidateSplat
                     $rule = $requirementRules[$index]
+                    $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
                     $requirementSplat = @{
-                        PolicyKind = 'Win32App'; Policy = $app; Role = 'requirement'; Content = $rule.scriptContent
-                        Candidates = $candidates; RunAsAccount = $rule.runAsAccount; RunAs32Bit = $rule.runAs32Bit
-                        EnforceSignatureCheck = $rule.enforceSignatureCheck
+                        PolicyKind = 'Win32App'
+                        Policy = $app
+                        Role = 'requirement'
+                        Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                        Candidates = $candidates
+                        RunAsAccount = Get-IslPropertyValue -InputObject $rule -Name 'runAsAccount'
+                        RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                        EnforceSignatureCheck = $signatureCheck
                     }
                     Compare-Role @requirementSplat
                 }

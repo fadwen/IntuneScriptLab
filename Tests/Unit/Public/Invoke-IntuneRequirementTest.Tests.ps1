@@ -34,7 +34,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
 
         It 'takes script paths from the pipeline, with the rule given once' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
             }
             $results = @('C:\lab\a.ps1', 'C:\lab\b.ps1' |
                     Invoke-IntuneRequirementTest -OutputType String -Operator Equal -Value ok)
@@ -44,7 +44,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
 
         It 'defaults to the 64-bit host this device has, as the portal does for requirement rules' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "ok`r`n"; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = "ok`r`n"; StdErr = '' }
             }
             $result = Invoke-IntuneRequirementTest -Path $script:Script -OutputType String -Value 'ok'
             $result.Architecture | Should-Be $script:Native
@@ -59,7 +59,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
     Context 'Core Functionality' {
         It 'reports Applicable with the compared output when the rule is met' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "2.10.0`r`n"; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = "2.10.0`r`n"; StdErr = '' }
             }
             $intuneRequirementTestSplat = @{
                 Path       = $script:Script
@@ -76,7 +76,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
 
         It 'reports not applicable with the reason when the rule fails' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = 0; TimedOut = $false; StdOut = "first`r`nok`r`n"; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = 0; StdOut = "first`r`nok`r`n" }
             }
             $result = Invoke-IntuneRequirementTest -Path $script:Script -OutputType String -Value 'ok'
             $result.Applicable | Should-BeFalse
@@ -86,7 +86,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
 
         It 'carries the rule and the run details on the result' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{
+                ConvertTo-FakeRunResult @{
                     ExitCode = 0; TimedOut = $false; StdOut = "5`r`n"; StdErr = ''; Host = 'h'; ScriptPath = 's'
                     Duration = [timespan]::FromSeconds(2)
                 }
@@ -113,7 +113,7 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
     Context 'Error Handling' {
         It 'reports a timeout as not applicable' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
-                [pscustomobject]@{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
+                ConvertTo-FakeRunResult @{ ExitCode = $null; TimedOut = $true; StdOut = ''; StdErr = '' }
             }
             $result = Invoke-IntuneRequirementTest -Path $script:Script -OutputType String -Value 'ok'
             $result.Applicable | Should-BeFalse
