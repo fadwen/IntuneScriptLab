@@ -10,8 +10,9 @@ The one way the suites are run, on a developer's computer and in every CI job, s
 the same answer. The run is shuffled, and the seed is printed and is part of the failure
 message, so that an order which fails can be run again. The script fails when Pester's result
 is not Passed, which also covers a failed BeforeAll or AfterAll and a file that failed
-discovery, when no tests ran, and, with -CodeCoverage, when coverage of Public and Private is
-below -MinimumCoverage.
+discovery, when no test passed or failed, and, with -CodeCoverage, when coverage of Public and
+Private is below -MinimumCoverage. A run in which a filter left every test out, or in which
+every test was skipped, has run nothing and fails for that reason.
 
 Suites that need an elevated session, a lab account or PSScriptAnalyzer skip themselves, so the
 script needs neither elevation nor a tenant. It runs on PowerShell 7 and on Windows PowerShell
@@ -191,8 +192,8 @@ try {
     Set-StrictMode -Version Latest
 }
 
-if ($null -eq $result -or $result.TotalCount -eq 0) {
-    throw "Pester ran no tests for '$TestType'."
+if ($null -eq $result) {
+    throw "Pester returned no result for '$TestType': it found no test files."
 }
 
 $seed = $result.Configuration.Run.ShuffleSeed.Value
@@ -218,6 +219,15 @@ if ($result.Result -ne 'Passed') {
     $failures = "Failed tests: $($result.FailedCount). Failed blocks: $($result.FailedBlocksCount)."
     $failures = "$failures Failed files: $($result.FailedContainersCount)."
     throw "Pester result is '$($result.Result)'. $failures Run the same order with -ShuffleSeed $seed."
+}
+
+# TotalCount also counts the tests that a filter left out and the tests that were skipped, and
+# Pester's result for a run of only those is Passed. The tests that ran are counted instead: a
+# run that executed nothing has proved nothing.
+$ranCount = $result.PassedCount + $result.FailedCount
+if ($ranCount -eq 0) {
+    $found = "$($result.TotalCount) found, $($result.SkippedCount) skipped"
+    throw "Pester ran no tests for '$TestType': $found, $($result.NotRunCount) left out by a filter."
 }
 
 if ($CodeCoverage -and $coverage -lt $MinimumCoverage) {

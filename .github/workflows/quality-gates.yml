@@ -3,9 +3,9 @@
 # Five jobs, because the module makes claims that can only fail on different hosts:
 #
 #   tests     Windows, PowerShell 7. PSScriptAnalyzer at Error and Warning over the module, the
-#             kit and the tests, its ScriptSecurity rules, the 115-character line limit, then the
-#             whole Pester suite (the module's unit and integration suites and the validation
-#             kit's unit suite) with an 80% coverage gate over Public/ and Private/. Nothing here
+#             kit and the tests, the 115-character line limit, then the whole Pester suite (the
+#             module's unit and integration suites and the validation kit's unit suite) with an
+#             80% coverage gate over Public/ and Private/. Nothing here
 #             reaches a tenant: every Graph call in the suites goes through the mocked
 #             Invoke-IslGraphRequest seam, and the suites that need an elevated session, a lab
 #             account or a Graph connection skip themselves.
@@ -93,7 +93,13 @@ jobs:
           Install-PSResource -Name PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository
           $PSVersionTable | ConvertTo-Json -Depth 3
 
-      # The module, the kit, the build scripts and the tests are what is gated.
+      # The module, the kit, the build scripts and the tests are what is gated. The default
+      # rules at Error and Warning include the five of PSScriptAnalyzer's ScriptSecurity preset
+      # (plain-text passwords, user name and password parameters, ConvertTo-SecureString
+      # -AsPlainText, hard-coded computer names and PSCredential parameters), so this step is
+      # also the static analysis of a security gate. There is no credential scan and no
+      # dependency scan in this workflow: the module has no dependency, secret scanning is a
+      # repository setting, and whether a scanner belongs here is an open decision (#74).
       - name: PSScriptAnalyzer and line length
         shell: pwsh
         run: |
@@ -118,24 +124,6 @@ jobs:
               throw "$(@($long).Count) line(s) exceed $env:MAX_LINE_LENGTH characters."
           }
           Write-Host "PSScriptAnalyzer clean, no line over $env:MAX_LINE_LENGTH characters, in $($files.Count) files."
-
-      # The static part of a security gate: plain-text passwords, user name and password
-      # parameters, ConvertTo-SecureString -AsPlainText and hard-coded computer names, at every
-      # severity. The module has no dependency to scan, and secret scanning is a repository
-      # setting rather than a step.
-      - name: PSScriptAnalyzer security rules
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $folders = 'Public', 'Private', 'PSScriptAnalyzer', 'Examples', 'Build', 'Tests', 'Validation'
-          $files = @(Get-ChildItem -Path $folders -Recurse -Include *.ps1, *.psm1, *.psd1 -File) +
-              @(Get-Item ./IntuneScriptLab.psd1, ./IntuneScriptLab.psm1)
-          $issues = @($files | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Settings ScriptSecurity })
-          if ($issues) {
-              $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
-              throw "The security rules reported $($issues.Count) issue(s)."
-          }
-          Write-Host "No security finding in $($files.Count) files."
 
       # Every suite, shuffled, with the 80% coverage gate. The reports are written before the
       # checks run, so a failed run still leaves both files to upload.

@@ -18,17 +18,20 @@ entries are carried over from the manifest's release notes.
   it is reusable from another module's repository through `workflow_call` with the package name.
 - `Tests/Invoke-Tests.ps1`, the one script that runs the suites, on a developer's computer and in
   every CI job. It shuffles the order, puts the seed in its failure message and takes it back with
-  `-ShuffleSeed`, and fails when Pester's result is not `Passed` or when no tests ran. The CI jobs
-  checked the failed tests and the failed files only, so a failed `BeforeAll` passed, and the
-  Windows PowerShell 5.1 and ARM64 jobs were not shuffled.
+  `-ShuffleSeed`, and fails when Pester's result is not `Passed` or when no test passed or failed,
+  as when a filter leaves every test out. The CI jobs checked the failed tests and the failed
+  files only, so a failed `BeforeAll` passed, and the Windows PowerShell 5.1 and ARM64 jobs were
+  not shuffled.
 - A `rehearsal` job in `quality-gates.yml` that runs `Build/Publish-Module.ps1 -WhatIf` on every
   pull request, so that a release which would fail at the tag fails before the merge. The same
-  workflow now also runs every night, and checks PSScriptAnalyzer's `ScriptSecurity` rules.
+  workflow now also runs every night.
 - A `.gitattributes` file that checks every text file out with LF on every platform, so that a
   Windows runner, a Linux runner and a developer test the same bytes. The three scripts the
   validation kit uploads or runs on the lab devices keep CRLF everywhere. `Build/Build-Help.ps1`
   writes the compiled help with LF wherever it runs, so a build on Windows gives the committed
-  file byte for byte.
+  file byte for byte. A release is staged from a checkout on a Windows runner, so the scripts of
+  a package published from now on have LF line endings where that checkout gave them CRLF, and
+  their file hashes differ from those of an earlier version for that reason alone.
 
 ### Changed
 
