@@ -254,9 +254,12 @@ function Invoke-CallerScript {
         ArgumentList = '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', "`"$script`""
         RedirectStandardOutput = $outFile
         RedirectStandardError = $errFile
-        WindowStyle = 'Hidden'
         Wait = $true
         PassThru = $true
+    }
+    # Start-Process has -WindowStyle on Windows only
+    if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
+        $startParameters['WindowStyle'] = 'Hidden'
     }
     $process = Start-Process @startParameters
     $written = @([System.IO.File]::ReadAllLines($outFile))
