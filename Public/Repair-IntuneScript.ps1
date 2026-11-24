@@ -31,8 +31,21 @@ function Repair-IntuneScript {
     )
 
     process {
-        # A path that is not there is reported, and the other paths are still repaired
+        # A path that is not there is reported, and the other paths are still repaired. It is tested
+        # first and reported once: an error that Resolve-Path raised and this command caught would
+        # also reach a caller's -ErrorVariable, three records for one path
         $files = foreach ($item in $Path) {
+            if (-not (Test-Path -Path $item)) {
+                $recordSplat = @{
+                    Message = "Cannot find path '$item' because it does not exist."
+                    ErrorId = 'PathNotFound'
+                    Category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                    TargetObject = $item
+                    ExceptionType = [System.Management.Automation.ItemNotFoundException]
+                }
+                $PSCmdlet.WriteError((New-IslErrorRecord @recordSplat))
+                continue
+            }
             try {
                 $resolvedItems = @(Resolve-Path -Path $item -ErrorAction Stop)
             } catch {

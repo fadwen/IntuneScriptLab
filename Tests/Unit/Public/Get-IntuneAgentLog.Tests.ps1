@@ -226,6 +226,15 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
             $script:Readable = @(Get-IntuneAgentLog -Path $script:Logs -Log $script:Others).Count
         }
 
+        It 'leaves one record in a caller''s -ErrorVariable for a path that does not exist' {
+            $missing = Join-Path $TestDrive 'no-such-logs'
+
+            $null = Get-IntuneAgentLog -Path $missing -ErrorVariable collected -ErrorAction SilentlyContinue
+
+            @($collected) | Should-BeCollection -Count 1
+            $collected[0].FullyQualifiedErrorId | Should-BeLikeString 'PathNotFound,Get-IntuneAgentLog'
+        }
+
         It 'reports a log it cannot parse and still returns the entries of the others' {
             $script:Readable | Should-BeGreaterThan 0
             $output = Get-IntuneAgentLog -Path $script:Mixed -ErrorAction Continue 2>&1

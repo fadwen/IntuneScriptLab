@@ -118,8 +118,10 @@ entries are carried over from the manifest's release notes.
   `-ErrorAction Stop`, or it passes on scripts that were never analyzed**, unless it runs in the
   global scope with `$ErrorActionPreference = 'Stop'`, as one started with `pwsh -File` does.
   `Examples/Invoke-IntuneScriptGate.ps1`, the PSScriptAnalyzer rule module and
-  `Should-PassIntuneAnalysis` pass it: the gate and the assertion fail on such a script. A
-  `-Settings` argument that is wrong still ends `Test-IntuneScript` before any script is analyzed.
+  `Should-PassIntuneAnalysis` pass it: the gate and the assertion fail on such a script, and the
+  help's example of a build gate shows it. A `-Settings` argument that is wrong still ends
+  `Test-IntuneScript` before any script is analyzed. A path that is not there leaves one record in
+  a caller's `-ErrorVariable`, here and in `Get-IntuneAgentLog`, where it left three or four.
 - `Test-IntuneWin32Rule`, `Test-IntuneWin32Requirement`, `Get-IntuneAnalyzerRulePath` and the
   `Should-` assertions end on a failure with a terminating error raised the way a compiled cmdlet
   raises one, where they used `throw`, with the IDs `RuleOperatorMissing`, `RuleValueMissing`,
