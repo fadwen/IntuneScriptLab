@@ -3,9 +3,37 @@
 # Should-* aliases (Set-Alias in the module file). Each fails with the diagnosis Intune would give.
 
 function Test-IslPesterAssertionSupport {
-    # New-ShouldAssertion arrived in Pester 6.2; without it these functions cannot report properly.
+    <#
+    .SYNOPSIS
+        Ends with an error when the Pester that is loaded cannot carry the assertions.
+
+    .DESCRIPTION
+        New-ShouldAssertion arrived in Pester 6.2; without it the Assert- functions of this file
+        cannot report a failure properly. Returns nothing when the command is there.
+
+    .EXAMPLE
+        Test-IslPesterAssertionSupport
+
+        Nothing with Pester 6.2 or later loaded, and a terminating error otherwise.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        None.
+    #>
+    [CmdletBinding()]
+    [OutputType([void])]
+    param()
+
     if (-not (Get-Command -Name New-ShouldAssertion -ErrorAction SilentlyContinue)) {
-        throw 'The IntuneScriptLab assertions need Pester 6.2 or later loaded (Import-Module Pester)'
+        $recordSplat = @{
+            Message = 'The IntuneScriptLab assertions need Pester 6.2 or later loaded (Import-Module Pester)'
+            ErrorId = 'PesterAssertionNotSupported'
+            Category = [System.Management.Automation.ErrorCategory]::NotInstalled
+            TargetObject = 'Pester'
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
 }
 
@@ -30,7 +58,11 @@ function Assert-HaveIntuneStatus {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 
@@ -67,7 +99,11 @@ function Assert-BeIntuneDetected {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 
@@ -95,7 +131,11 @@ function Assert-NotBeIntuneDetected {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 
@@ -127,7 +167,11 @@ function Assert-HaveIntuneRunState {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 
@@ -165,7 +209,11 @@ function Assert-PassIntuneAnalysis {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     # A file, a folder, or a pipeline of either: every script found is analyzed and the failure
     # names each file
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
@@ -174,8 +222,17 @@ function Assert-PassIntuneAnalysis {
             if ($item -is [System.IO.FileSystemInfo]) { $item.FullName } else { "$item" }
         })
 
-    $findings = @(Test-IntuneScript -Path $paths -ScriptType $ScriptType -MinimumSeverity $MinimumSeverity |
-            Where-Object { $_.RuleName -ne 'IslAssumedContext' })
+    # A path that cannot be analyzed fails the assertion with its error. Test-IntuneScript reports
+    # such a path and goes on, and with nothing analyzed there is no finding: the assertion
+    # would pass
+    $analysisSplat = @{
+        Path = $paths; ScriptType = $ScriptType; MinimumSeverity = $MinimumSeverity; ErrorAction = 'Stop'
+    }
+    try {
+        $findings = @(Test-IntuneScript @analysisSplat | Where-Object { $_.RuleName -ne 'IslAssumedContext' })
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     if ($findings.Count -eq 0) { return }
 
     $list = ($findings | ForEach-Object {
@@ -205,7 +262,11 @@ function Assert-BeIntuneApplicable {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 
@@ -233,7 +294,11 @@ function Assert-NotBeIntuneApplicable {
         [string]$Because
     )
 
-    Test-IslPesterAssertionSupport
+    try {
+        Test-IslPesterAssertionSupport
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
     $Actual = $assert.Actual()
 

@@ -118,6 +118,9 @@ function Test-IntuneDeployedScript {
             Architecture          = $architecture
             EnforceSignatureCheck = [bool]$EnforceSignatureCheck
             MinimumSeverity       = $MinimumSeverity
+            # The analysis reports a script it cannot read and goes on. Here that would leave a
+            # policy without findings, which reads as a policy without problems
+            ErrorAction = 'Stop'
         }
         if ($settingsGiven) { $testSplat.Settings = $Settings }
         if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }

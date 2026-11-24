@@ -70,6 +70,43 @@ Describe 'Invoke-IntuneScriptGate' -Tag 'Integration', 'Gate' {
         ($clean.Output -join "`n") | Should-BeLikeString '*0 finding(s) in 0 script(s)*'
     }
 
+    It 'fails, and says why, when a script cannot be analyzed' {
+        # The analysis reports such a script and goes on with the others; a gate that went on too
+        # would pass on scripts nobody looked at
+        $folder = Join-Path $TestDrive 'Unreadable'
+        $null = New-Item -ItemType Directory -Path $folder -Force
+        $utf8Bom = [System.Text.UTF8Encoding]::new($true)
+        [System.IO.File]::WriteAllText((Join-Path $folder 'Detect-Thing.ps1'),
+            "Write-Output 'checked'`r`nexit 0`r`n", $utf8Bom)
+        Set-Content -LiteralPath (Join-Path $folder 'IntuneScriptLab.settings.psd1') -Encoding ascii -Value (
+            "@{ MinimumSeverity = 'Fatal' }")
+
+        # Called from a command, as another script calls it, and not with -File: started with
+        # -File the gate runs in the global scope, where its own error preference reaches the
+        # module, and the test would pass without the gate asking the analysis to stop.
+        # The error stream goes to a file: read with 2>&1, Windows PowerShell 5.1 turns each line
+        # of it into an error record of this test
+        $outFile = Join-Path $TestDrive 'gate-out.txt'
+        $errFile = Join-Path $TestDrive 'gate-err.txt'
+        $call = "& '$($script:Gate)' -Path '$folder'"
+        $processSplat = @{
+            FilePath = $script:HostExe
+            ArgumentList = "-NoProfile -NonInteractive -Command `"$call`""
+            RedirectStandardOutput = $outFile
+            RedirectStandardError = $errFile
+            Wait = $true
+            PassThru = $true
+            WindowStyle = 'Hidden'
+        }
+        $gate = Start-Process @processSplat
+        $written = (Get-Content -LiteralPath $outFile, $errFile) -join ' '
+
+        $gate.ExitCode | Should-NotBe 0
+        # The host wraps the error to its own width, so only the name of the setting is looked for
+        $written | Should-BeLikeString '*MinimumSeverity*'
+        $written | Should-NotBeLikeString '*finding(s) in*'
+    }
+
     It 'fails on warnings when asked, and honours the rule filters' {
         $note = Invoke-GateFile -Arguments @('-Path', $script:Scripts, '-FailOn', 'Warning',
             '-IncludeRule', 'IslAssumedContext')

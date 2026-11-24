@@ -111,6 +111,22 @@ entries are carried over from the manifest's release notes.
   they can read is unchanged. `Get-IntuneScriptHealth` still returns its reports when only the
   file of `-MarkdownPath` could not be written, and reports that as an error which
   `-ErrorAction Stop` turns into the end of the command.
+- `Test-IntuneScript` and `Repair-IntuneScript` report a path that is not there, and a script
+  that cannot be analyzed or written, as an error for that one item and go on with the other
+  scripts, where the first such item ended the command. `-ErrorAction Stop` ends the command
+  there. **A script of your own that gates a build on `Test-IntuneScript` has to pass
+  `-ErrorAction Stop`, or it passes on scripts that were never analyzed**, unless it runs in the
+  global scope with `$ErrorActionPreference = 'Stop'`, as one started with `pwsh -File` does.
+  `Examples/Invoke-IntuneScriptGate.ps1`, the PSScriptAnalyzer rule module and
+  `Should-PassIntuneAnalysis` pass it: the gate and the assertion fail on such a script. A
+  `-Settings` argument that is wrong still ends `Test-IntuneScript` before any script is analyzed.
+- `Test-IntuneWin32Rule`, `Test-IntuneWin32Requirement`, `Get-IntuneAnalyzerRulePath` and the
+  `Should-` assertions end on a failure with a terminating error raised the way a compiled cmdlet
+  raises one, where they used `throw`, with the IDs `RuleOperatorMissing`, `RuleValueMissing`,
+  `RuleValueNameMissing`, `RegistryHiveUnknown`, `RuleIsScript`, `RuleTypeUnknown`,
+  `WindowsReleaseUnknown`, `AnalyzerRulesMissing` and `PesterAssertionNotSupported`. A settings
+  file with a value that is not allowed is `SettingsInvalid`. With this, no command of the module
+  ends with `throw` any more.
 - The module's functions run under strict mode, set once in the root module. A read of a variable
   that was never assigned, or of a member that is not there, is an error where it was a silent
   `$null`. Graph replies, export rows and the other data with optional members are read through one

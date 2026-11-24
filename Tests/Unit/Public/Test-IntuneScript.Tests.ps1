@@ -35,8 +35,68 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
             @($findings.ScriptPath | Sort-Object -Unique).Count | Should-Be 2
         }
 
-        It 'fails on a path that does not exist' {
-            { Test-IntuneScript -Path (Join-Path $TestDrive 'missing.ps1') } | Should-Throw
+        It 'reports a path that does not exist and still analyzes the others' {
+            $good = New-TestScript 'mix\Detect-Good.ps1' 'exit 2'
+            $missing = Join-Path $TestDrive 'missing.ps1'
+            $analysisSplat = @{
+                Path = $missing, $good; IncludeRule = 'IslExitCodeIssue'; ErrorAction = 'Continue'
+            }
+
+            $output = Test-IntuneScript @analysisSplat 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $findings = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'PathNotFound,*'
+            $findings.Count | Should-BeGreaterThan 0
+            @($findings.ScriptPath | Sort-Object -Unique) | Should-BeCollection @($good)
+        }
+
+        It 'ends at a path that does not exist when the caller asks it to stop' {
+            { Test-IntuneScript -Path (Join-Path $TestDrive 'missing.ps1') -ErrorAction Stop } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'reports a script whose settings file is wrong and still analyzes a script elsewhere' {
+            $broken = New-TestScript 'badsettings\Detect-One.ps1' 'exit 2'
+            $settingsFile = Join-Path (Split-Path $broken -Parent) 'IntuneScriptLab.settings.psd1'
+            Set-Content -LiteralPath $settingsFile -Value "@{ MinimumSeverity = 'Fatal' }" -Encoding ascii
+            $good = New-TestScript 'goodsettings\Detect-Two.ps1' 'exit 2'
+            $analysisSplat = @{ Path = $broken, $good; IncludeRule = 'IslExitCodeIssue'; ErrorAction = 'Continue' }
+
+            $output = Test-IntuneScript @analysisSplat 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $findings = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'SettingsInvalid*'
+            $errors[0].Exception.Message | Should-BeLikeString '*MinimumSeverity must be one of*'
+            @($findings.ScriptPath | Sort-Object -Unique) | Should-BeCollection @($good)
+        }
+
+        It 'ends before any script is analyzed when -Settings itself is wrong' {
+            $one = New-TestScript 'given\Detect-One.ps1' 'exit 2'
+            $two = New-TestScript 'given\Detect-Two.ps1' 'exit 2'
+            Mock Get-IslScriptContext -ModuleName IntuneScriptLab { }
+
+            { Test-IntuneScript -Path $one, $two -Settings @{ MinimumSeverity = 'Fatal' } } |
+                Should-Throw -FullyQualifiedErrorId 'SettingsInvalid*'
+            Should-Invoke Get-IslScriptContext -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
+        It 'leaves a calling script one error for a path that is not there, and the findings of the other' {
+            $good = New-TestScript 'caller\Detect-Good.ps1' 'exit 2'
+            $missing = Join-Path $TestDrive 'caller\missing.ps1'
+
+            $run = Invoke-CallerScript -Statement @(
+                "`$findings = @(Test-IntuneScript -Path '$missing', '$good' -IncludeRule IslExitCodeIssue)"
+                "'analyzed: ' + @(`$findings.ScriptPath | Sort-Object -Unique).Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection @('analyzed: 1')
+            $run.ErrorId | Should-BeCollection -Count 1
+            $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
         }
     }
 

@@ -37,7 +37,8 @@ Describe 'Get-IslWindowsReleaseBuild' -Tag 'Unit', 'Private' {
     }
 
     It 'refuses an unknown release' {
-        { InModuleScope IntuneScriptLab { Get-IslWindowsReleaseBuild -Release 'Windows12' } } |
+        $failure = { InModuleScope IntuneScriptLab { Get-IslWindowsReleaseBuild -Release 'Windows12' } } |
             Should-Throw -ExceptionMessage "*Unknown Windows release 'Windows12'*"
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'WindowsReleaseUnknown,*'
     }
 }

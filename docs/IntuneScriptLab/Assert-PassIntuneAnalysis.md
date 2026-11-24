@@ -32,6 +32,9 @@ Runs Test-IntuneScript on the path, folder or pipeline of files and fails with t
 findings, each with its file, line, severity, rule and message, so the test output is the fix
 list. The IslAssumedContext note is never counted.
 
+A path that is not there, or a script that cannot be analyzed, fails the assertion with the
+error of the analysis.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

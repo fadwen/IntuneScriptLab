@@ -109,8 +109,13 @@ Describe 'Get-IslSetting' -Tag 'Unit', 'Private' {
             Should-Throw -ExceptionMessage '*ScriptType must be one of*'
         { Get-Setting 'Other\Run.ps1' -Settings @{ Severity = @{ IslLongSleep = 'Loud' } } } |
             Should-Throw -ExceptionMessage '*Severity for IslLongSleep*'
-        { Get-Setting 'Other\Run.ps1' -Settings @{ Context = 'Admin' } } | Should-Throw
-        { Get-Setting 'Other\Run.ps1' -Settings @{ Architecture = 'ia64' } } | Should-Throw
+        { Get-Setting 'Other\Run.ps1' -Settings @{ Context = 'Admin' } } |
+            Should-Throw -FullyQualifiedErrorId 'SettingsInvalid*' -ExceptionMessage '*Context must be System*'
+        { Get-Setting 'Other\Run.ps1' -Settings @{ Architecture = 'ia64' } } |
+            Should-Throw -FullyQualifiedErrorId 'SettingsInvalid*' -ExceptionMessage '*Architecture must be*'
+        # The first value that is wrong is the one named
+        { Get-Setting 'Other\Run.ps1' -Settings @{ Context = 'Admin'; ScriptType = 'Script' } } |
+            Should-Throw -ExceptionMessage '*ScriptType must be one of*'
         $result = InModuleScope IntuneScriptLab -Parameters @{ Path = (Join-Path $script:Tree 'Other\Run.ps1') } {
             Get-IslSetting -Path $Path -Settings @{ Colour = 'blue' } -WarningVariable w 3>$null
             $w

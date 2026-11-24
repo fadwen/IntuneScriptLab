@@ -60,7 +60,8 @@ Describe 'ConvertFrom-IslRuleSpec' -Tag 'Unit', 'Private' {
 
     It 'refuses a script rule and an unknown shape' {
         { Convert-Spec @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptRule' } } |
-            Should-Throw -ExceptionMessage '*Invoke-IntuneDetectionTest*'
-        { Convert-Spec @{ Path = 'C:\x' } } | Should-Throw -ExceptionMessage '*Type of File, Registry*'
+            Should-Throw -FullyQualifiedErrorId 'RuleIsScript,*' -ExceptionMessage '*Invoke-IntuneDetectionTest*'
+        { Convert-Spec @{ Path = 'C:\x' } } |
+            Should-Throw -FullyQualifiedErrorId 'RuleTypeUnknown,*' -ExceptionMessage '*Type of File, Registry*'
     }
 }

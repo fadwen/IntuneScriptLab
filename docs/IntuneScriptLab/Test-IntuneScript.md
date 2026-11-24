@@ -66,6 +66,13 @@ And a file named IntuneScriptLab.settings.psd1 in the scripts' folder or any fol
 (the nearest wins) carries the exclusions, severity overrides and default type, context,
 architecture and signature check a team would otherwise repeat on every call; see -Settings.
 
+A path that is not there, and a script that cannot be analyzed, as when the settings file
+above it has a value that is not allowed, are each reported as an error for that one item, and
+the other scripts are still analyzed.
+-ErrorAction Stop ends the command at the first such error; a script that gates a build on the
+findings needs it, or it passes on scripts that were never analyzed.
+A -Settings argument that is wrong ends the command before any script is analyzed.
+
 ## EXAMPLES
 
 ### EXAMPLE 1
