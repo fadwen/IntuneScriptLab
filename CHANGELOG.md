@@ -118,6 +118,14 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- A test of `New-IslFinding` left out a mandatory parameter and expected an error. A host that can
+  prompt asks for the value instead, so the suites waited for an answer at a console and wherever
+  the standard input stayed open. The test reads the parameters from the command now, and a new
+  test, `Tests/Unit/Module.Prompt.Tests.ps1`, fails for any call in a test file that leaves out a
+  mandatory parameter of a function of the module.
+- A test of the confirm preference inside a run starts the 32-bit host, which is emulated on the
+  ARM64 runner, and the run there sometimes took longer than the test's timeout of 60 seconds.
+  The run has 300 seconds now, the default of the commands.
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
 - Under PowerShell 7, a run whose script could not be copied to its run folder went on: the host
