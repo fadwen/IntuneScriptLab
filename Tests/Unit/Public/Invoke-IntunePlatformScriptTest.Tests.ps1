@@ -92,6 +92,33 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
             $result.TimedOut | Should-BeTrue
             $result.ExitCode | Should-BeNull
         }
+
+        It 'reports a script that cannot be run and goes on with the next one from the pipeline' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'done'; StdErr = '' }
+            }
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Path -like '*broken*' } {
+                throw 'The host could not be started.'
+            }
+
+            $output = 'C:\lab\broken.ps1', $script:Script |
+                Invoke-IntunePlatformScriptTest -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $results = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].Exception.Message | Should-BeLikeString '*host could not be started*'
+            $results | Should-BeCollection -Count 1
+            $results[0].RunState | Should-Be 'Success'
+        }
+
+        It 'ends at the script that cannot be run when the caller asks it to stop' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab { throw 'The host could not be started.' }
+
+            { 'C:\lab\broken.ps1', $script:Script | Invoke-IntunePlatformScriptTest -ErrorAction Stop } |
+                Should-Throw -ExceptionMessage '*host could not be started*'
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 1 -Exactly
+        }
     }
 
     Context 'Another account' {
@@ -110,7 +137,7 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
                 $Credential.UserName -eq 'LAB\isl-user'
             }
             { Invoke-IntunePlatformScriptTest -Path $script:Script -Context System -Credential $credential } |
-                Should-Throw -ExceptionMessage '*-Credential applies to -Context User*'
+                Should-Throw -FullyQualifiedErrorId 'CredentialWithSystemContext,*'
         }
     }
 }

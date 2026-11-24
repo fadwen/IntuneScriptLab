@@ -55,7 +55,14 @@ function Invoke-IntuneRequirementTest {
         }
         if ($Credential) {
             if ($Context -eq 'System') {
-                throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                $recordSplat = @{
+                    Message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                    ErrorId = 'CredentialWithSystemContext'
+                    Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                    TargetObject = $Context
+                    ExceptionType = [System.ArgumentException]
+                }
+                $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
             }
             $scriptRunSplat.Credential = $Credential
         }
@@ -65,7 +72,14 @@ function Invoke-IntuneRequirementTest {
             return
         }
 
-        $run = Invoke-IslScriptRun @scriptRunSplat
+        # A script that cannot be run is reported, and the next one from the pipeline still runs
+        try {
+            $run = Invoke-IslScriptRun @scriptRunSplat
+        } catch {
+            $PSCmdlet.WriteError($_)
+            return
+        }
+
         $compareSplat = @{
             StdOut     = $run.StdOut
             StdErr     = $run.StdErr

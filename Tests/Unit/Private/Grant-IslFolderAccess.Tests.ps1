@@ -68,5 +68,6 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         $missing = "$env:COMPUTERNAME\no-such-account-for-isl"
         $failure = { Grant-Access $script:Folder $missing $Preference } | Should-Throw
         $failure.Exception.Message | Should-BeLikeString "Could not grant $missing access to *No mapping*"
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'FolderAccessNotGranted,*'
     }
 }

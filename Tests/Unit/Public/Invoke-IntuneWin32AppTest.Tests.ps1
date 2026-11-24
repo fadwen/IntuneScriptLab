@@ -61,13 +61,13 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             $command = Get-Command Invoke-IntuneWin32AppTest
             $command.Parameters['ContentPath'].Attributes.Mandatory | Should-ContainCollection $true
             { Invoke-IntuneWin32AppTest -ContentPath $script:Fixture.Content -InstallCommand 'setup.exe' } |
-                Should-Throw -ExceptionMessage '*-DetectionPath*-DetectionRule*'
+                Should-Throw -FullyQualifiedErrorId 'DetectionMissing,*' -ExceptionMessage '*-DetectionPath*-DetectionRule*'
             $intuneWin32AppTestSplat = @{
                 DetectionPath = $script:Fixture.Detection
                 ContentPath   = $script:Fixture.Content
             }
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
-                Should-Throw -ExceptionMessage '*-InstallCommand*'
+                Should-Throw -FullyQualifiedErrorId 'IntentCommandMissing,*' -ExceptionMessage '*-InstallCommand*'
             $intuneWin32AppTestSplat2 = @{
                 DetectionPath  = $script:Fixture.Detection
                 Intent         = 'Uninstall'
@@ -98,7 +98,24 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 ContentPath    = $missing
                 InstallCommand = 'setup.exe'
             }
-            { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } | Should-Throw
+            { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+            Should-Invoke Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
+        It 'refuses -Credential with Context System before anything runs' {
+            $secure = [securestring]::new()
+            foreach ($char in 'pw'.ToCharArray()) { $secure.AppendChar($char) }
+            $intuneWin32AppTestSplat = @{
+                DetectionPath  = $script:Fixture.Detection
+                ContentPath    = $script:Fixture.Content
+                InstallCommand = 'setup.exe'
+                Context        = 'System'
+                Credential     = [pscredential]::new('LAB\isl-user', $secure)
+            }
+            { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
+                Should-Throw -FullyQualifiedErrorId 'CredentialWithSystemContext,*'
+            Should-Invoke Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
     }
 
@@ -557,10 +574,10 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'rejects a related app without a Name or without a detection' {
             $noName = @{ DetectionPath = $script:Child.Detection }
             { Invoke-IntuneWin32AppTest @script:ParentSplat -DependsOn $noName } |
-                Should-Throw -ExceptionMessage '*needs a Name*'
+                Should-Throw -FullyQualifiedErrorId 'RelatedAppNameMissing,*' -ExceptionMessage '*needs a Name*'
             $noDetection = @{ Name = 'Old' }
             { Invoke-IntuneWin32AppTest @script:ParentSplat -Supersedes $noDetection } |
-                Should-Throw -ExceptionMessage '*Old needs a DetectionPath*'
+                Should-Throw -FullyQualifiedErrorId 'RelatedAppDetectionMissing,*'
         }
     }
 
@@ -595,6 +612,35 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
             $result.Status | Should-Be 'TimedOut'
             $result.Install | Should-BeNull
+        }
+
+        It 'ends without running the command when a detection cannot be run' {
+            # With nothing where the detection result should be, an uninstall read the app as
+            # detected and ran its command
+            Mock Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab { throw 'The host could not be started.' }
+            $intuneWin32AppTestSplat = @{
+                DetectionPath    = $script:Fixture.Detection
+                ContentPath      = $script:Fixture.Content
+                UninstallCommand = 'setup.exe /uninstall'
+                Intent           = 'Uninstall'
+            }
+
+            { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
+                Should-Throw -ExceptionMessage '*host could not be started*'
+            Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
+        It 'ends without the post-detection when the command cannot be started' {
+            Mock Invoke-IslProcess -ModuleName IntuneScriptLab { throw 'cmd.exe could not be started.' }
+            $intuneWin32AppTestSplat = @{
+                DetectionPath  = $script:Fixture.Detection
+                ContentPath    = $script:Fixture.Content
+                InstallCommand = 'setup.exe'
+            }
+
+            { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
+                Should-Throw -ExceptionMessage '*cmd.exe could not be started*'
+            Should-Invoke Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab -Times 1 -Exactly
         }
     }
 }

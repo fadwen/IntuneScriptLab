@@ -92,23 +92,43 @@
 
         $process = [System.Diagnostics.Process]::new()
         $process.StartInfo = $startInfo
-        $null = $process.Start()
-        $process.StandardInput.Close()
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
-        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            $timedOut = $true
-            # The cleanup is not the caller's to preview or confirm. A function of this module
-            # sees a global $WhatIfPreference, and under it the tree would stay and the wait
-            # below would not end
-            Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false -WhatIf:$false
-            $process.WaitForExit()
+        try {
+            $null = $process.Start()
+        } catch {
+            $process.Dispose()
+            $recordSplat = @{
+                Message = "Could not start '$FilePath': $($_.Exception.GetBaseException().Message)"
+                ErrorId = 'ProcessStartFailed'
+                Category = [System.Management.Automation.ErrorCategory]::ResourceUnavailable
+                TargetObject = $FilePath
+                InnerException = $_.Exception
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
-        $stopwatch.Stop()
-        $stdout = $stdoutTask.GetAwaiter().GetResult()
-        $stderr = $stderrTask.GetAwaiter().GetResult()
-        $exitCode = $process.ExitCode
-        $process.Dispose()
+
+        try {
+            $process.StandardInput.Close()
+            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+            $stderrTask = $process.StandardError.ReadToEndAsync()
+            if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+                $timedOut = $true
+                # The cleanup is not the caller's to preview or confirm. A function of this module
+                # sees a global $WhatIfPreference, and under it the tree would stay and the wait
+                # below would not end. A cleanup that could not be run ends the function with its
+                # error: the wait would not end either, and a TimedOut result would say that the
+                # tree is gone
+                Stop-IslProcessTree -ProcessId $process.Id -Confirm:$false -WhatIf:$false
+                $process.WaitForExit()
+            }
+            $stopwatch.Stop()
+            $stdout = $stdoutTask.GetAwaiter().GetResult()
+            $stderr = $stderrTask.GetAwaiter().GetResult()
+            $exitCode = $process.ExitCode
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        } finally {
+            $process.Dispose()
+        }
     }
     else {
         $runId = Split-Path -Path $WorkFolder -Leaf
@@ -182,7 +202,15 @@
             $null = Register-ScheduledTask @registerTaskSplat
         }
         catch {
-            throw "${refusal}: $($_.Exception.Message)"
+            $recordSplat = @{
+                Message = "${refusal}: $($_.Exception.Message)"
+                ErrorId = 'ScheduledTaskNotRegistered'
+                Category = [System.Management.Automation.ErrorCategory]::PermissionDenied
+                TargetObject = $userName
+                ExceptionType = [System.UnauthorizedAccessException]
+                InnerException = $_.Exception
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
         try {
             Start-ScheduledTask -TaskName $taskName
@@ -228,7 +256,13 @@
                     'account holds a session)'
                 }
                 else { '' }
-                throw "The scheduled task for $userName did not start: $code$hint"
+                $recordSplat = @{
+                    Message = "The scheduled task for $userName did not start: $code$hint"
+                    ErrorId = 'ScheduledTaskNotStarted'
+                    Category = [System.Management.Automation.ErrorCategory]::InvalidOperation
+                    TargetObject = $userName
+                }
+                $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
             }
             if (-not (Test-Path -LiteralPath $exitFile)) {
                 $timedOut = $true
@@ -256,6 +290,9 @@
                 }
                 while ($state -eq 'Running' -and (Get-Date) -lt $settleUntil)
             }
+        } catch {
+            # The task that did not start, and a cleanup after a timeout that could not be run
+            $PSCmdlet.ThrowTerminatingError($_)
         }
         finally {
             # Of the task cmdlets used here only this one has -WhatIf. Under a preference the

@@ -41,6 +41,11 @@ scheduled task (elevated session required); the default User is quicker and need
 no rights, but results that depend on the account (HKCU, user profile paths) differ, which
 Test-IntuneScript's IslContextIssue flags statically.
 
+A script that cannot be run, such as one that is not there or one asked to run in a host this
+device does not have, is reported as an error for that script, and the next script from the
+pipeline still runs.
+-ErrorAction Stop ends the command at that error.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

@@ -40,7 +40,14 @@ function Invoke-IntunePlatformScriptTest {
         }
         if ($Credential) {
             if ($Context -eq 'System') {
-                throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                $recordSplat = @{
+                    Message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                    ErrorId = 'CredentialWithSystemContext'
+                    Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                    TargetObject = $Context
+                    ExceptionType = [System.ArgumentException]
+                }
+                $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
             }
             $scriptRunSplat.Credential = $Credential
         }
@@ -50,7 +57,14 @@ function Invoke-IntunePlatformScriptTest {
             return
         }
 
-        $run = Invoke-IslScriptRun @scriptRunSplat
+        # A script that cannot be run is reported, and the next one from the pipeline still runs
+        try {
+            $run = Invoke-IslScriptRun @scriptRunSplat
+        } catch {
+            $PSCmdlet.WriteError($_)
+            return
+        }
+
         $runState = if ($run.TimedOut) { 'TimedOut' } elseif ($run.ExitCode -eq 0) { 'Success' } else { 'Failed' }
 
         # What happens next under Intune, from the PS-FAIL experiments: a failed script is fetched and

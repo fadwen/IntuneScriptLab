@@ -36,10 +36,23 @@ function Grant-IslFolderAccess {
     $trustee = if ($resolved) { "*$($resolved.Sid)" } else { $Account }
     # Windows PowerShell turns a native command's redirected stderr into error records, and under
     # a caller's -ErrorAction Stop the first one ends the function with icacls' bare line instead
-    # of the message below
-    $ErrorActionPreference = 'Continue'
-    $output = & icacls.exe $Path /grant "${trustee}:(OI)(CI)M" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not grant $Account access to ${Path}: $($output -join ' ')"
+    # of the message below. Invoke-IslNativeCommand reads the streams without that
+    $icacls = Join-Path -Path ([System.Environment]::SystemDirectory) -ChildPath 'icacls.exe'
+    $arguments = '"{0}" /grant "{1}:(OI)(CI)M"' -f $Path, $trustee
+    try {
+        $result = Invoke-IslNativeCommand -FilePath $icacls -Arguments $arguments
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+
+    if ($result.ExitCode -ne 0) {
+        $output = @($result.StdOut, $result.StdErr | Where-Object { $_ }) -join ' '
+        $recordSplat = @{
+            Message = "Could not grant $Account access to ${Path}: $output"
+            ErrorId = 'FolderAccessNotGranted'
+            Category = [System.Management.Automation.ErrorCategory]::PermissionDenied
+            TargetObject = $Path
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
 }

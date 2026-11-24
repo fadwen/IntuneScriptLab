@@ -33,7 +33,14 @@ function Invoke-IntuneDetectionTest {
 
     process {
         if ($Credential -and $Context -eq 'System') {
-            throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+            $recordSplat = @{
+                Message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                ErrorId = 'CredentialWithSystemContext'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                TargetObject = $Context
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
         Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
         # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
@@ -49,27 +56,40 @@ function Invoke-IntuneDetectionTest {
         $reasons = [System.Collections.Generic.List[string]]::new()
         $signatureStatus = ''
         $run = $null
-        if ($EnforceSignatureCheck) {
-            # With the check on, AgentExecutor returns exit 1 for an unsigned script without running it:
-            # no probe record, "EnforceSignatureCheck: 1 ... applicationDetected: False" (W32-DET-SIGCHECK)
-            $signature = Get-AuthenticodeSignature -FilePath (Resolve-Path -LiteralPath $Path).ProviderPath
-            $signatureStatus = "$($signature.Status)"
-            if ($signature.Status -ne 'Valid') {
-                $reasons.Add("Signature status ${signatureStatus}: with the signature check enforced the agent " +
-                    'does not run the script and reports not detected (exit 1 from AgentExecutor)')
+        $scriptPath = $null
+        # A script that cannot be run is reported, and the next one from the pipeline still runs
+        try {
+            if ($EnforceSignatureCheck) {
+                $scriptPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+                # With the check on, AgentExecutor returns exit 1 for an unsigned script without running
+                # it: no probe record, "EnforceSignatureCheck: 1 ... applicationDetected: False"
+                # (W32-DET-SIGCHECK)
+                $signature = Get-AuthenticodeSignature -FilePath $scriptPath -ErrorAction Stop
+                $signatureStatus = "$($signature.Status)"
+                if ($signature.Status -ne 'Valid') {
+                    $reasons.Add("Signature status ${signatureStatus}: with the signature check enforced " +
+                        'the agent does not run the script and reports not detected (exit 1 from ' +
+                        'AgentExecutor)')
+                }
             }
+
+            if ($reasons.Count -eq 0) {
+                $scriptRunSplat = @{
+                    Path           = $Path
+                    Architecture   = $Architecture
+                    Context        = $Context
+                    Phase          = 'detect'
+                    TimeoutSeconds = $TimeoutSeconds
+                }
+                if ($Credential) { $scriptRunSplat.Credential = $Credential }
+                $run = Invoke-IslScriptRun @scriptRunSplat
+            }
+        } catch {
+            $PSCmdlet.WriteError($_)
+            return
         }
 
-        if ($reasons.Count -eq 0) {
-            $scriptRunSplat = @{
-                Path           = $Path
-                Architecture   = $Architecture
-                Context        = $Context
-                Phase          = 'detect'
-                TimeoutSeconds = $TimeoutSeconds
-            }
-            if ($Credential) { $scriptRunSplat.Credential = $Credential }
-            $run = Invoke-IslScriptRun @scriptRunSplat
+        if ($null -ne $run) {
             $hasStdOut = -not [string]::IsNullOrWhiteSpace($run.StdOut)
             $hasStdErr = -not [string]::IsNullOrWhiteSpace($run.StdErr)
 
@@ -102,7 +122,7 @@ function Invoke-IntuneDetectionTest {
             Context         = $Context
             RunAs           = if ($run) { $run.RunAs } else { '' }
             Host            = if ($run) { $run.Host } else { '' }
-            ScriptPath      = if ($run) { $run.ScriptPath } else { (Resolve-Path -LiteralPath $Path).ProviderPath }
+            ScriptPath      = if ($run) { $run.ScriptPath } else { $scriptPath }
         }
     }
 }

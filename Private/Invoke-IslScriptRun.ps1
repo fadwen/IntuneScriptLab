@@ -51,8 +51,13 @@ function Invoke-IslScriptRun {
         [string]$WorkingDirectory = (Join-Path -Path $env:WINDIR -ChildPath 'System32')
     )
 
-    $hostInfo = Get-IslHostPath -Architecture $Architecture
-    $source = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    # No host for the architecture, or no script at the path: nothing has been started yet
+    try {
+        $hostInfo = Get-IslHostPath -Architecture $Architecture
+        $source = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 
     # Like IMECache: the script runs from a copy, so $PSScriptRoot is not the source folder
     $runId = [guid]::NewGuid().ToString('N')
@@ -65,12 +70,12 @@ function Invoke-IslScriptRun {
     # The run folder and the copy are this function's own bookkeeping. The command that asked for
     # the run has had its -WhatIf and its -Confirm answered before it called; with a preference
     # still in effect here, the copy would be skipped and the host started on a file that is not
-    # there
-    $null = New-Item -ItemType Directory -Path $cache -Force @script:IslInternal
+    # there. For the same reason a copy that fails ends the function here: the catch below sees
+    # it only with -ErrorAction Stop
     $scriptCopy = Join-Path -Path $cache -ChildPath "$Phase.ps1"
-    Copy-Item -LiteralPath $source -Destination $scriptCopy @script:IslInternal
-
     try {
+        $null = New-Item -ItemType Directory -Path $cache -Force -ErrorAction Stop @script:IslInternal
+        Copy-Item -LiteralPath $source -Destination $scriptCopy -ErrorAction Stop @script:IslInternal
         $processSplat = @{
             FilePath         = $hostInfo.Path
             Arguments        = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptCopy`""
@@ -85,8 +90,9 @@ function Invoke-IslScriptRun {
             $processSplat.LogonType = $LogonType
         }
         $run = Invoke-IslProcess @processSplat
-    }
-    finally {
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    } finally {
         Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
 

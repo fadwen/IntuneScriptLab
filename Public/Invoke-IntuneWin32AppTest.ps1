@@ -69,21 +69,44 @@ function Invoke-IntuneWin32AppTest {
     # host exists, and x64 elsewhere
     if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
 
+    $argumentError = @{
+        Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+        ExceptionType = [System.ArgumentException]
+    }
     if (-not $DetectionPath -and -not $DetectionRule) {
-        throw 'Give a detection script (-DetectionPath), detection rules (-DetectionRule), or both'
+        $message = 'Give a detection script (-DetectionPath), detection rules (-DetectionRule), or both'
+        $record = New-IslErrorRecord -Message $message -ErrorId 'DetectionMissing' @argumentError
+        $PSCmdlet.ThrowTerminatingError($record)
     }
     $command = if ($Intent -eq 'Install') { $InstallCommand } else { $UninstallCommand }
-    if (-not $command) { throw "Intent $Intent needs -${Intent}Command" }
-    $null = Resolve-Path -LiteralPath $ContentPath -ErrorAction Stop
+    if (-not $command) {
+        $message = "Intent $Intent needs -${Intent}Command"
+        $record = New-IslErrorRecord -Message $message -ErrorId 'IntentCommandMissing' @argumentError
+        $PSCmdlet.ThrowTerminatingError($record)
+    }
     foreach ($related in @($DependsOn) + @($Supersedes)) {
         if (-not $related) { continue }
-        if (-not $related['Name']) { throw 'Every -DependsOn and -Supersedes entry needs a Name' }
+        if (-not $related['Name']) {
+            $message = 'Every -DependsOn and -Supersedes entry needs a Name'
+            $record = New-IslErrorRecord -Message $message -ErrorId 'RelatedAppNameMissing' @argumentError
+            $PSCmdlet.ThrowTerminatingError($record)
+        }
         if (-not $related['DetectionPath'] -and -not $related['DetectionRule']) {
-            throw "$($related['Name']) needs a DetectionPath, DetectionRule entries, or both"
+            $message = "$($related['Name']) needs a DetectionPath, DetectionRule entries, or both"
+            $record = New-IslErrorRecord -Message $message -ErrorId 'RelatedAppDetectionMissing' @argumentError
+            $PSCmdlet.ThrowTerminatingError($record)
         }
-        if ($related['ContentPath']) {
-            $null = Resolve-Path -LiteralPath $related['ContentPath'] -ErrorAction Stop
+    }
+    # A content folder that is not there is found before anything runs
+    try {
+        $null = Resolve-Path -LiteralPath $ContentPath -ErrorAction Stop
+        foreach ($related in @($DependsOn) + @($Supersedes)) {
+            if ($related -and $related['ContentPath']) {
+                $null = Resolve-Path -LiteralPath $related['ContentPath'] -ErrorAction Stop
+            }
         }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 
     $warnings = [System.Collections.Generic.List[string]]::new()
@@ -101,7 +124,9 @@ function Invoke-IntuneWin32AppTest {
     }
     if ($Credential) {
         if ($Context -eq 'System') {
-            throw '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+            $message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+            $record = New-IslErrorRecord -Message $message -ErrorId 'CredentialWithSystemContext' @argumentError
+            $PSCmdlet.ThrowTerminatingError($record)
         }
         $detectionSplat.Credential = $Credential
     }
@@ -119,14 +144,20 @@ function Invoke-IntuneWin32AppTest {
     else { [Environment]::UserName }
 
     # One detection pass for this app or a related one: the script (if any) and every rule; all of
-    # them must say installed (W32-MULTI-ONEFALSE, W32-MULTI-BOTHTRUE)
+    # them must say installed (W32-MULTI-ONEFALSE, W32-MULTI-BOTHTRUE). A script that cannot be run
+    # or a rule that cannot be read ends the flow, through the try around every call of this
+    # function. The detection reports such a script without ending, so it is called with
+    # -ErrorAction Stop: with nothing returned, the app would read as detected below
     function Invoke-DetectionPass {
         param([string]$Phase, [string]$Path, [hashtable[]]$Rule, [string]$Label)
         $script = $null
         if ($Path) {
-            $script = Invoke-IntuneDetectionTest -Path $Path @detectionSplat @script:IslInternal
+            $detectionRun = @{ Path = $Path; ErrorAction = 'Stop' }
+            $script = Invoke-IntuneDetectionTest @detectionRun @detectionSplat @script:IslInternal
         }
-        $rules = @(foreach ($entry in $Rule) { Test-IntuneWin32Rule -Rule $entry -RuleType Detection })
+        $rules = @(foreach ($entry in $Rule) {
+                Test-IntuneWin32Rule -Rule $entry -RuleType Detection -ErrorAction Stop
+            })
         $unmet = @($rules | Where-Object { -not $_.Met })
         $detected = ($null -eq $script -or $script.Detected) -and $unmet.Count -eq 0
         $timedOut = $null -ne $script -and $script.TimedOut
@@ -146,10 +177,11 @@ function Invoke-IntuneWin32AppTest {
     }
 
     # Runs an install or uninstall command line from a copy of a content folder through the 32-bit
-    # cmd.exe, as the agent's own 32-bit process does
+    # cmd.exe, as the agent's own 32-bit process does. A copy or a launch that fails ends the flow,
+    # through the try around every call of this function
     function Invoke-ContentCommand {
         param([string]$Phase, [string]$Content, [string]$CommandLine)
-        $source = (Resolve-Path -LiteralPath $Content).ProviderPath
+        $source = (Resolve-Path -LiteralPath $Content -ErrorAction Stop).ProviderPath
         $hostPattern = '(?i)(^|[\s"])powershell(\.exe)?([\s"]|$)'
         if ($CommandLine -match $hostPattern) {
             $warnings.Add("powershell.exe in the $Phase command runs the 32-bit host (the agent is a 32-bit " +
@@ -181,11 +213,12 @@ function Invoke-IntuneWin32AppTest {
             Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
         }
         $copy = Join-Path -Path $cache -ChildPath 'content'
-        $null = New-Item -ItemType Directory -Path $copy -Force @script:IslInternal
-        $contentItems = Join-Path -Path $source -ChildPath '*'
-        Copy-Item -Path $contentItems -Destination $copy -Recurse -Force @script:IslInternal
-        if ($Credential) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
         try {
+            $null = New-Item -ItemType Directory -Path $copy -Force -ErrorAction Stop @script:IslInternal
+            $contentItems = Join-Path -Path $source -ChildPath '*'
+            $copySplat = @{ Path = $contentItems; Destination = $copy; Recurse = $true; Force = $true }
+            Copy-Item @copySplat -ErrorAction Stop @script:IslInternal
+            if ($Credential) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
             $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
             $cmd = Join-Path -Path (Join-Path -Path $env:WINDIR -ChildPath $cmdFolder) -ChildPath 'cmd.exe'
             $processSplat = @{
@@ -238,154 +271,162 @@ function Invoke-IntuneWin32AppTest {
         }
     }
 
-    $pre = Invoke-DetectionPass -Phase 'Pre' -Path $DetectionPath -Rule $DetectionRule -Label ''
-    $execution = $null
-    $post = $null
-    $dependencies = [System.Collections.Generic.List[object]]::new()
-    $superseded = [System.Collections.Generic.List[object]]::new()
-    $status = $null
+    # The whole flow is one transaction. A step that could not be run ends it with that step's
+    # error; the two nested functions above have no catch of their own and depend on this one
+    try {
+        $pre = Invoke-DetectionPass -Phase 'Pre' -Path $DetectionPath -Rule $DetectionRule -Label ''
+        $execution = $null
+        $post = $null
+        $dependencies = [System.Collections.Generic.List[object]]::new()
+        $superseded = [System.Collections.Generic.List[object]]::new()
+        $status = $null
 
-    if ($pre.TimedOut) { $status = 'TimedOut' }
-    elseif ($Intent -eq 'Install' -and $pre.Detected) { $status = 'Installed' }
-    elseif ($Intent -eq 'Uninstall' -and -not $pre.Detected) { $status = 'Not installed' }
+        if ($pre.TimedOut) { $status = 'TimedOut' }
+        elseif ($Intent -eq 'Install' -and $pre.Detected) { $status = 'Installed' }
+        elseif ($Intent -eq 'Uninstall' -and -not $pre.Detected) { $status = 'Not installed' }
 
-    # Dependencies come after this app's first detection: the child's detection, install and
-    # detection, then this app again (W32-DEP-PARENT). A detect-only dependency that is absent stops
-    # the parent with "1 or more dependent apps are configured to not automatically install."
-    # (W32-DEPD-PARENT)
-    if (-not $status -and $Intent -eq 'Install') {
-        foreach ($dependency in @($DependsOn | Where-Object { $_ })) {
-            $type = if ($dependency['Type']) { "$($dependency['Type'])" } else { 'autoInstall' }
-            $name = "$($dependency['Name'])"
-            $detect = @{
-                Path = $dependency['DetectionPath']
-                Rule = $dependency['DetectionRule']
-                Label = " for dependency $name"
-            }
-            $childPre = Invoke-DetectionPass -Phase 'Pre' @detect
-            $childInstall = $null
-            $childPost = $null
-            $childStatus = if ($childPre.TimedOut) { 'TimedOut' }
-            elseif ($childPre.Detected) { 'Installed' }
-            elseif ($type -ne 'autoInstall') { 'Not detected (detect-only dependency)' }
-            elseif (-not $dependency['InstallCommand'] -or -not $dependency['ContentPath']) {
-                'Not detected (no InstallCommand or ContentPath)'
-            }
-            else {
-                $childRun = @{
-                    Phase = 'install'
-                    Content = $dependency['ContentPath']
-                    CommandLine = $dependency['InstallCommand']
+        # Dependencies come after this app's first detection: the child's detection, install and
+        # detection, then this app again (W32-DEP-PARENT). A detect-only dependency that is absent stops
+        # the parent with "1 or more dependent apps are configured to not automatically install."
+        # (W32-DEPD-PARENT)
+        if (-not $status -and $Intent -eq 'Install') {
+            foreach ($dependency in @($DependsOn | Where-Object { $_ })) {
+                $type = if ($dependency['Type']) { "$($dependency['Type'])" } else { 'autoInstall' }
+                $name = "$($dependency['Name'])"
+                $detect = @{
+                    Path = $dependency['DetectionPath']
+                    Rule = $dependency['DetectionRule']
+                    Label = " for dependency $name"
                 }
-                $childInstall = Invoke-ContentCommand @childRun
-                switch (Get-Outcome -Run $childInstall) {
-                    'timedOut' { 'TimedOut' }
-                    'retry' { 'Retry' }
-                    'failed' { "Install failed (exit $($childInstall.ExitCode))" }
-                    default {
-                        $childPost = Invoke-DetectionPass -Phase 'Post' @detect
-                        if ($childPost.Detected) { 'Installed after install' }
-                        else { 'Not detected after install' }
-                    }
-                }
-            }
-            $relatedSplat = @{
-                Name = $name; Relationship = "dependency ($type)"; Status = $childStatus
-                Pre = $childPre; Install = $childInstall; Uninstall = $null; Post = $childPost
-            }
-            $dependencies.Add((ConvertTo-RelatedResult @relatedSplat))
-            if ($childStatus -notin 'Installed', 'Installed after install') {
-                $status = 'Not installed (dependency)'
-                $warnings.Add("Dependency $name ($type): $childStatus. The agent does not run this app's " +
-                    'install; an absent detect-only dependency reports Not installed with "1 or more ' +
-                    'dependent apps are configured to not automatically install." (W32-DEPD-PARENT)')
-                break
-            }
-        }
-    }
-
-    # Superseded apps are detected before this app installs; a replace target that is present is
-    # uninstalled first (W32-SUP-OLD-B: old uninstall, then new install), an update target stays
-    # installed (W32-SUP-OLD-A)
-    if (-not $status -and $Intent -eq 'Install') {
-        foreach ($old in @($Supersedes | Where-Object { $_ })) {
-            $type = if ($old['Type']) { "$($old['Type'])" } else { 'update' }
-            $name = "$($old['Name'])"
-            $detect = @{
-                Path = $old['DetectionPath']
-                Rule = $old['DetectionRule']
-                Label = " for superseded app $name"
-            }
-            $oldPre = Invoke-DetectionPass -Phase 'Pre' @detect
-            $oldUninstall = $null
-            $oldPost = $null
-            $oldStatus = if ($oldPre.TimedOut) { 'TimedOut' }
-            elseif (-not $oldPre.Detected) { 'Not installed' }
-            elseif ($type -ne 'replace') { 'Installed (left in place by update)' }
-            elseif (-not $old['UninstallCommand'] -or -not $old['ContentPath']) {
-                'Installed (no UninstallCommand or ContentPath)'
-            }
-            else {
-                $oldRun = @{
-                    Phase = 'uninstall'
-                    Content = $old['ContentPath']
-                    CommandLine = $old['UninstallCommand']
-                }
-                $oldUninstall = Invoke-ContentCommand @oldRun
-                switch (Get-Outcome -Run $oldUninstall) {
-                    'timedOut' { 'TimedOut' }
-                    'retry' { 'Retry' }
-                    'failed' { "Uninstall failed (exit $($oldUninstall.ExitCode))" }
-                    default {
-                        $oldPost = Invoke-DetectionPass -Phase 'Post' @detect
-                        if ($oldPost.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
-                    }
-                }
-            }
-            $relatedSplat = @{
-                Name = $name; Relationship = "supersedence ($type)"; Status = $oldStatus
-                Pre = $oldPre; Install = $null; Uninstall = $oldUninstall; Post = $oldPost
-            }
-            $superseded.Add((ConvertTo-RelatedResult @relatedSplat))
-            if ($type -eq 'replace' -and $oldStatus -notin 'Uninstalled', 'Not installed') {
-                $warnings.Add("Superseded app $name (replace): $oldStatus. The agent removes a replace target " +
-                    'before it installs the new app (W32-SUP-OLD-B), so the old app would still be present')
-            }
-        }
-    }
-
-    if (-not $status) {
-        $execution = Invoke-ContentCommand -Phase $Intent.ToLower() -Content $ContentPath -CommandLine $command
-        $outcome = Get-Outcome -Run $execution
-        switch ($outcome) {
-            'timedOut' { $status = 'TimedOut' }
-            'retry' { $status = 'Retry' }
-            'failed' { $status = "$Intent failed (exit $($execution.ExitCode))" }
-            default {
-                if ($outcome -in 'softReboot', 'hardReboot') {
-                    $warnings.Add("$Intent returned $($execution.ExitCode): Intune records a $outcome as pending")
-                }
-                $post = Invoke-DetectionPass -Phase 'Post' -Path $DetectionPath -Rule $DetectionRule -Label ''
-                if ($post.TimedOut) { $status = 'TimedOut' }
-                elseif ($Intent -eq 'Install') {
-                    $status = if ($post.Detected) { 'Installed after install' }
-                    else { 'Not detected after install' }
-                    if (-not $post.Detected) {
-                        $warnings.Add("Post-install detection: $($post.Reason). Intune reports 0x87D1041C " +
-                            'and retries the install at the next check-in')
-                    }
+                $childPre = Invoke-DetectionPass -Phase 'Pre' @detect
+                $childInstall = $null
+                $childPost = $null
+                $childStatus = if ($childPre.TimedOut) { 'TimedOut' }
+                elseif ($childPre.Detected) { 'Installed' }
+                elseif ($type -ne 'autoInstall') { 'Not detected (detect-only dependency)' }
+                elseif (-not $dependency['InstallCommand'] -or -not $dependency['ContentPath']) {
+                    'Not detected (no InstallCommand or ContentPath)'
                 }
                 else {
-                    # Observed flow (W32-UNINSTALL): detected, uninstall command, detected again, and
-                    # "Not installed" once the detection stops saying installed
-                    $status = if ($post.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
-                    if ($post.Detected) {
-                        $warnings.Add('Post-uninstall detection still reports installed: Intune keeps ' +
-                            'the app as installed and retries the uninstall at the next check-in')
+                    $childRun = @{
+                        Phase = 'install'
+                        Content = $dependency['ContentPath']
+                        CommandLine = $dependency['InstallCommand']
+                    }
+                    $childInstall = Invoke-ContentCommand @childRun
+                    switch (Get-Outcome -Run $childInstall) {
+                        'timedOut' { 'TimedOut' }
+                        'retry' { 'Retry' }
+                        'failed' { "Install failed (exit $($childInstall.ExitCode))" }
+                        default {
+                            $childPost = Invoke-DetectionPass -Phase 'Post' @detect
+                            if ($childPost.Detected) { 'Installed after install' }
+                            else { 'Not detected after install' }
+                        }
+                    }
+                }
+                $relatedSplat = @{
+                    Name = $name; Relationship = "dependency ($type)"; Status = $childStatus
+                    Pre = $childPre; Install = $childInstall; Uninstall = $null; Post = $childPost
+                }
+                $dependencies.Add((ConvertTo-RelatedResult @relatedSplat))
+                if ($childStatus -notin 'Installed', 'Installed after install') {
+                    $status = 'Not installed (dependency)'
+                    $warnings.Add("Dependency $name ($type): $childStatus. The agent does not run this app's " +
+                        'install; an absent detect-only dependency reports Not installed with "1 or more ' +
+                        'dependent apps are configured to not automatically install." (W32-DEPD-PARENT)')
+                    break
+                }
+            }
+        }
+
+        # Superseded apps are detected before this app installs; a replace target that is present is
+        # uninstalled first (W32-SUP-OLD-B: old uninstall, then new install), an update target stays
+        # installed (W32-SUP-OLD-A)
+        if (-not $status -and $Intent -eq 'Install') {
+            foreach ($old in @($Supersedes | Where-Object { $_ })) {
+                $type = if ($old['Type']) { "$($old['Type'])" } else { 'update' }
+                $name = "$($old['Name'])"
+                $detect = @{
+                    Path = $old['DetectionPath']
+                    Rule = $old['DetectionRule']
+                    Label = " for superseded app $name"
+                }
+                $oldPre = Invoke-DetectionPass -Phase 'Pre' @detect
+                $oldUninstall = $null
+                $oldPost = $null
+                $oldStatus = if ($oldPre.TimedOut) { 'TimedOut' }
+                elseif (-not $oldPre.Detected) { 'Not installed' }
+                elseif ($type -ne 'replace') { 'Installed (left in place by update)' }
+                elseif (-not $old['UninstallCommand'] -or -not $old['ContentPath']) {
+                    'Installed (no UninstallCommand or ContentPath)'
+                }
+                else {
+                    $oldRun = @{
+                        Phase = 'uninstall'
+                        Content = $old['ContentPath']
+                        CommandLine = $old['UninstallCommand']
+                    }
+                    $oldUninstall = Invoke-ContentCommand @oldRun
+                    switch (Get-Outcome -Run $oldUninstall) {
+                        'timedOut' { 'TimedOut' }
+                        'retry' { 'Retry' }
+                        'failed' { "Uninstall failed (exit $($oldUninstall.ExitCode))" }
+                        default {
+                            $oldPost = Invoke-DetectionPass -Phase 'Post' @detect
+                            if ($oldPost.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
+                        }
+                    }
+                }
+                $relatedSplat = @{
+                    Name = $name; Relationship = "supersedence ($type)"; Status = $oldStatus
+                    Pre = $oldPre; Install = $null; Uninstall = $oldUninstall; Post = $oldPost
+                }
+                $superseded.Add((ConvertTo-RelatedResult @relatedSplat))
+                if ($type -eq 'replace' -and $oldStatus -notin 'Uninstalled', 'Not installed') {
+                    $warnings.Add("Superseded app $name (replace): $oldStatus. The agent removes a replace " +
+                        'target before it installs the new app (W32-SUP-OLD-B), so the old app would still ' +
+                        'be present')
+                }
+            }
+        }
+
+        if (-not $status) {
+            $execution = Invoke-ContentCommand -Phase $Intent.ToLower() -Content $ContentPath -CommandLine $command
+            $outcome = Get-Outcome -Run $execution
+            switch ($outcome) {
+                'timedOut' { $status = 'TimedOut' }
+                'retry' { $status = 'Retry' }
+                'failed' { $status = "$Intent failed (exit $($execution.ExitCode))" }
+                default {
+                    if ($outcome -in 'softReboot', 'hardReboot') {
+                        $warnings.Add("$Intent returned $($execution.ExitCode): Intune records a $outcome " +
+                            'as pending')
+                    }
+                    $post = Invoke-DetectionPass -Phase 'Post' -Path $DetectionPath -Rule $DetectionRule -Label ''
+                    if ($post.TimedOut) { $status = 'TimedOut' }
+                    elseif ($Intent -eq 'Install') {
+                        $status = if ($post.Detected) { 'Installed after install' }
+                        else { 'Not detected after install' }
+                        if (-not $post.Detected) {
+                            $warnings.Add("Post-install detection: $($post.Reason). Intune reports 0x87D1041C " +
+                                'and retries the install at the next check-in')
+                        }
+                    }
+                    else {
+                        # Observed flow (W32-UNINSTALL): detected, uninstall command, detected again, and
+                        # "Not installed" once the detection stops saying installed
+                        $status = if ($post.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
+                        if ($post.Detected) {
+                            $warnings.Add('Post-uninstall detection still reports installed: Intune keeps ' +
+                                'the app as installed and retries the uninstall at the next check-in')
+                        }
                     }
                 }
             }
         }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
 
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"

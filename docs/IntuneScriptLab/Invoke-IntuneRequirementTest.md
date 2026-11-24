@@ -42,6 +42,11 @@ does not parse fails the rule.
 Under Intune the requirement runs before the install and after the detection has said
 "not installed"; a rule that fails leaves the app "Not applicable".
 
+A script that cannot be run, such as one that is not there or one asked to run in a host this
+device does not have, is reported as an error for that script, and the next script from the
+pipeline still runs.
+-ErrorAction Stop ends the command at that error.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

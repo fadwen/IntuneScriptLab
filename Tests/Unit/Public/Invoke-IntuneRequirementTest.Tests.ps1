@@ -120,5 +120,47 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
             $result.TimedOut | Should-BeTrue
             $result.Reason | Should-BeLikeString 'Timed out*'
         }
+
+        It 'reports a script that cannot be run and goes on with the next one from the pipeline' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+            }
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Path -like '*broken*' } {
+                throw 'The host could not be started.'
+            }
+
+            $output = 'C:\lab\broken.ps1', $script:Script |
+                Invoke-IntuneRequirementTest -OutputType String -Value 'ok' -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $results = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].Exception.Message | Should-BeLikeString '*host could not be started*'
+            $results | Should-BeCollection -Count 1
+            $results[0].Applicable | Should-BeTrue
+        }
+
+        It 'ends at the script that cannot be run when the caller asks it to stop' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab { throw 'The host could not be started.' }
+            $requirementSplat = @{ OutputType = 'String'; Value = 'ok'; ErrorAction = 'Stop' }
+
+            { 'C:\lab\broken.ps1', $script:Script | Invoke-IntuneRequirementTest @requirementSplat } |
+                Should-Throw -ExceptionMessage '*host could not be started*'
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 1 -Exactly
+        }
+
+        It 'refuses -Credential with Context System before anything runs' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab { }
+            $secure = [securestring]::new()
+            foreach ($char in 'pw'.ToCharArray()) { $secure.AppendChar($char) }
+            $requirementSplat = @{
+                Path = $script:Script; OutputType = 'String'; Value = 'ok'; Context = 'System'
+                Credential = [pscredential]::new('LAB\isl-user', $secure)
+            }
+
+            { Invoke-IntuneRequirementTest @requirementSplat } |
+                Should-Throw -FullyQualifiedErrorId 'CredentialWithSystemContext,*'
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
     }
 }

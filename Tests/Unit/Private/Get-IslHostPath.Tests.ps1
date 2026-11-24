@@ -58,6 +58,15 @@ Describe 'Get-IslHostPath' -Tag 'Unit', 'Private' {
                 Get-IslHostPath -Architecture $Missing
             } } | Should-Throw
             $failure.Exception.Message | Should-BeLikeString "*-Architecture $($script:Native)*"
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'HostArchitectureUnavailable,*'
+        }
+
+        It 'says which host is missing when the file is not where Windows keeps it' {
+            Mock Test-Path -ModuleName IntuneScriptLab { $false }
+
+            $failure = { InModuleScope IntuneScriptLab { Get-IslHostPath -Architecture x86 } } | Should-Throw
+            $failure.Exception.Message | Should-BeLikeString 'PowerShell host not found: *powershell.exe'
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'HostNotFound,*'
         }
     }
 }

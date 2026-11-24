@@ -59,7 +59,8 @@ Describe 'Runtime harness launch' -Tag 'Integration', 'Runtime' {
 
     It 'refuses the 64-bit host that does not exist on this CPU' {
         $path = New-TestScript 'noop.ps1' 'exit 0' -Bom
-        { Invoke-IntunePlatformScriptTest -Path $path -Architecture $script:Missing } | Should-Throw
+        $refused = { Invoke-IntunePlatformScriptTest -Path $path -Architecture $script:Missing -ErrorAction Stop }
+        $refused | Should-Throw -FullyQualifiedErrorId 'HostArchitectureUnavailable,*'
     }
 
     It 'kills a script at the timeout and reports TimedOut' {
@@ -91,6 +92,66 @@ Describe 'Runtime harness launch' -Tag 'Integration', 'Runtime' {
         $bad = Invoke-IntunePlatformScriptTest @intunePlatformScriptTestSplat2
         $bad.RunState | Should-Be 'Failed'
         $bad.ResultMessage | Should-BeLikeString '*deliberate*'
+    }
+}
+
+Describe 'A run that cannot be started, for a script that has no try' -Tag 'Integration', 'Runtime' {
+
+    It 'reports a script that is not there and still runs the next one from the pipeline' {
+        $good = New-TestScript 'good.ps1' "'ran'; exit 0" -Bom
+        $missing = Join-Path $TestDrive 'not-there.ps1'
+
+        $run = Invoke-CallerScript -Statement @(
+            "`$results = @('$missing', '$good' | Invoke-IntunePlatformScriptTest)"
+            "'results: ' + `$results.Count + ' ' + `$results[0].RunState"
+        )
+
+        $run.ReachedEnd | Should-BeTrue
+        $run.Output | Should-BeCollection -Count 1
+        $run.Output[0] | Should-Be 'results: 1 Success'
+        $run.ErrorId | Should-BeCollection -Count 1
+        $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
+    }
+
+    It 'ends a remediation at the detection that is not there, with one error and no result' {
+        $missing = Join-Path $TestDrive 'not-there.ps1'
+        $marker = Join-Path $TestDrive "remediated-$([guid]::NewGuid().ToString('N')).marker"
+        $remediate = New-TestScript 'remediate-marker.ps1' "Set-Content -LiteralPath '$marker' -Value ran" -Bom
+
+        $run = Invoke-CallerScript -Statement @(
+            "`$result = Invoke-IntuneRemediationTest -DetectionPath '$missing' -RemediationPath '$remediate'"
+            "'no result: ' + (`$null -eq `$result)"
+        )
+
+        $run.ReachedEnd | Should-BeTrue
+        $run.Output | Should-BeCollection -Count 1
+        $run.Output[0] | Should-Be 'no result: True'
+        $run.ErrorId | Should-BeCollection -Count 1
+        $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
+        Test-Path -LiteralPath $marker | Should-BeFalse
+    }
+
+    It 'ends a Win32 uninstall at the detection that is not there, without running the command' {
+        # With nothing where the detection result should be, the app read as detected
+        $missing = Join-Path $TestDrive 'not-there.ps1'
+        $content = Join-Path $TestDrive "content-$([guid]::NewGuid().ToString('N'))"
+        $null = New-Item -ItemType Directory -Path $content
+        $marker = Join-Path $TestDrive "uninstalled-$([guid]::NewGuid().ToString('N')).marker"
+        $batch = Join-Path $content 'uninstall.cmd'
+        Set-Content -LiteralPath $batch -Value "@echo ran> `"$marker`"" -Encoding ascii
+
+        $run = Invoke-CallerScript -Statement @(
+            "`$appSplat = @{ DetectionPath = '$missing'; ContentPath = '$content'; Intent = 'Uninstall' }"
+            "`$result = Invoke-IntuneWin32AppTest @appSplat -UninstallCommand 'uninstall.cmd'"
+            "'no result: ' + (`$null -eq `$result)"
+        )
+
+        $run.ReachedEnd | Should-BeTrue
+        $run.Output | Should-BeCollection -Count 1
+        $run.Output[0] | Should-Be 'no result: True'
+        $run.ErrorId | Should-BeCollection -Count 1
+        $run.ErrorId[0] | Should-BeLikeString 'PathNotFound,*'
+        Test-Path -LiteralPath $marker | Should-BeFalse
     }
 }
 

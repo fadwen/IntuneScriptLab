@@ -65,7 +65,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
                 $Credential.UserName -eq 'LAB\isl-user'
             }
             { Invoke-IntuneRemediationTest @remediationSplat -Context System } |
-                Should-Throw -ExceptionMessage '*-Credential applies to -Context User*'
+                Should-Throw -FullyQualifiedErrorId 'CredentialWithSystemContext,*'
         }
     }
 
@@ -199,6 +199,19 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'TimedOut'
             $result.PostDetection | Should-BeNull
+        }
+
+        It 'ends with the error of a run that cannot be started, without the detection that follows' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
+                throw 'The host could not be started.'
+            }
+            $remediationSplat = @{ DetectionPath = $script:Detect; RemediationPath = $script:Remediate }
+
+            { Invoke-IntuneRemediationTest @remediationSplat } |
+                Should-Throw -ExceptionMessage '*host could not be started*'
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 1 -Exactly -ParameterFilter {
+                $Phase -eq 'detect'
+            }
         }
     }
 }
