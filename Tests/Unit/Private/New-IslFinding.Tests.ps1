@@ -19,10 +19,15 @@ Describe 'New-IslFinding' -Tag 'Unit', 'Private' {
 
     Context 'Parameter Validation' {
         It 'requires a rule name, a severity from the set, a message and a context' {
+            # Read from the command, not by leaving a parameter out: a host that can prompt asks
+            # for a mandatory parameter that is missing, and the suite waits for the answer
+            $command = InModuleScope IntuneScriptLab { Get-Command -Name New-IslFinding }
+            foreach ($name in 'RuleName', 'Severity', 'Message', 'Context') {
+                $command | Should-HaveParameter -ParameterName $name -Mandatory
+            }
             InModuleScope IntuneScriptLab -Parameters @{ Path = $script:Path } {
                 $scriptContext = Get-IslScriptContext -Path $Path
                 { New-IslFinding -RuleName R -Severity Fatal -Message m -Context $scriptContext } | Should-Throw
-                { New-IslFinding -RuleName R -Severity Error -Message m } | Should-Throw
             }
         }
     }
