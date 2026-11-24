@@ -40,6 +40,38 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             $result.PSObject.TypeNames | Should-ContainCollection 'IntuneScriptLab.ProcessResult'
         }
 
+        It 'says which executable could not be started' {
+            $missing = Join-Path $TestDrive 'no-such-host.exe'
+            $failure = { Invoke-Process @{
+                FilePath = $missing; WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
+            } } | Should-Throw
+            $failure.Exception.Message | Should-BeLikeString "Could not start '$missing': *"
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'ProcessStartFailed,*'
+        }
+
+        It 'ends with the error of a cleanup that could not be run after a timeout' {
+            # A TimedOut result would say that the tree is gone. The mock notes the process it was
+            # asked to end, and the test ends it afterwards
+            $script:LeftRunning = $null
+            Mock Stop-IslProcessTree -ModuleName IntuneScriptLab {
+                $script:LeftRunning = $ProcessId
+                throw 'taskkill.exe could not be started'
+            }
+            try {
+                $failure = { Invoke-Process @{
+                    FilePath = $script:Cmd; Arguments = '/D /C ping.exe -n 30 127.0.0.1 > nul'
+                    WorkingDirectory = [System.Environment]::SystemDirectory; WorkFolder = $TestDrive
+                    TimeoutSeconds = 1
+                } } | Should-Throw
+                $failure.Exception.Message | Should-BeLikeString '*taskkill.exe could not be started*'
+                $script:LeftRunning | Should-NotBeNull
+            } finally {
+                if ($script:LeftRunning) {
+                    $null = & $script:Cmd /D /C "taskkill.exe /PID $($script:LeftRunning) /T /F > nul 2>&1"
+                }
+            }
+        }
+
         It 'runs in the working directory it is given' {
             $result = Invoke-Process @{
                 FilePath = $script:Cmd; Arguments = '/C cd'; WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
@@ -185,6 +217,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
                 FilePath = 'x.exe'; WorkingDirectory = 'C:\'; WorkFolder = $script:WorkFolder; Context = 'System'
             } } | Should-Throw
             $failure.Exception.Message | Should-BeLikeString '*run elevated*Access is denied*'
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'ScheduledTaskNotRegistered,*'
         }
 
         It 'reports TimedOut, stops the task and removes it when no exit file appears' {
@@ -372,6 +405,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             $stopwatch.Elapsed.TotalSeconds | Should-BeLessThan 10
             $failure.Exception.Message |
                 Should-BeLikeString '*LAB\isl-user did not start: 0x80070569*Log on as a batch job*'
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'ScheduledTaskNotStarted,*'
             Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1
         }
 

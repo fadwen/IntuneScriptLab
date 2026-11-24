@@ -62,6 +62,11 @@ a scheduled task (elevated session required).
 User, the default here, needs no
 rights and is right for packages set to run with the signed-in user's credentials.
 
+A run that cannot be started, such as one of a script that is not there, ends the command with
+a terminating error: no result is returned, and the runs that would have followed do not start.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

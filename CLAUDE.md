@@ -63,9 +63,13 @@ declares it, the contract test expects it, and the command is still not exported
 The manifest declares `CompatiblePSEditions = Desktop, Core` and the root module carries
 `#Requires -Version 5.1`, because the agent runs scripts with 5.1 and so do the harness hosts.
 A ternary, `??`, `ForEach-Object -Parallel` or `Join-Path` with more than one child path parses on
-7 and breaks every command on 5.1. Two 5.1 traps the suites already hit: `Group-Object` orders
-groups differently (sort explicitly), and .NET Framework's `ZipFile::CreateFromDirectory` writes
-backslash entry names (build zips entry by entry with forward slashes).
+7 and breaks every command on 5.1. Three 5.1 traps the suites already hit: `Group-Object` orders
+groups differently (sort explicitly), .NET Framework's `ZipFile::CreateFromDirectory` writes
+backslash entry names (build zips entry by entry with forward slashes), and a line that a native
+command writes to a redirected error stream becomes an error record, which ends the caller under
+an error preference of `Stop`. `taskkill.exe` and `icacls.exe` therefore run through
+`Invoke-IslNativeCommand`, which starts a process and reads its streams, and module code never
+sets `$ErrorActionPreference` to get round it.
 
 The harness launches `powershell.exe` hosts by architecture, reads the registry and registers
 scheduled tasks, so the suites run on Windows only: the `desktop` job under 5.1 and the `arm64`
@@ -116,7 +120,15 @@ function it calls is converted.
 `Tests/Unit/Module.ErrorFlow.Tests.ps1` holds the rule on the syntax trees, because behaviour does
 not show it: a caller that goes on with nothing often returns nothing too, and `Should-Throw` calls
 inside a `try`, where every error travels all the way up. The test lists the calls that still rely
-on a `throw`, and the list must match the code exactly. `Invoke-CallerScript` in the test helpers
+on a `throw`, and the list must match the code exactly. A `try` with a `catch` covers everything
+called below it, so a nested function needs no `catch` of its own when every call of it is inside
+one, as in `Invoke-IntuneWin32AppTest`; the test accepts that and nothing less.
+
+A command that takes several items reports one that fails with `$PSCmdlet.WriteError($_)` in that
+`catch` and goes on with the next, and `-ErrorAction Stop` ends it there. A module function that
+calls such a command and needs its result passes `-ErrorAction Stop`: without it the call returns
+nothing and no error ends anything. In `Invoke-IntuneWin32AppTest` a detection that returned
+nothing read as "detected". `Invoke-CallerScript` in the test helpers
 runs statements from a script without `try` in a new process, for what such a caller sees.
 
 A failure the module detects itself is raised with a record from `New-IslErrorRecord`, which gives

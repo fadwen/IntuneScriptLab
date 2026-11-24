@@ -82,6 +82,24 @@ entries are carried over from the manifest's release notes.
   read the logs through it: the timelines are built from the logs that could be read, and the
   package is still written, with every log in it. `-ErrorAction Stop` ends the command at the
   first such error.
+- The five `Invoke-Intune*Test` commands end on a failure with a terminating error raised the
+  way a compiled cmdlet raises one, where they used `throw`. The messages are the same, and each
+  failure the harness detects has an ID of its own in `FullyQualifiedErrorId`:
+  `CredentialWithSystemContext`, `HostArchitectureUnavailable`, `HostNotFound`,
+  `ProcessStartFailed`, `ScheduledTaskNotRegistered`, `ScheduledTaskNotStarted` and
+  `FolderAccessNotGranted`, and for the arguments of `Invoke-IntuneWin32AppTest` `DetectionMissing`,
+  `IntentCommandMissing`, `RelatedAppNameMissing` and `RelatedAppDetectionMissing`. **A script
+  that calls one of them without `try` and without `$ErrorActionPreference = 'Stop'` now goes on
+  at its next statement after the failure, where it used to end.** In return,
+  `-ErrorAction SilentlyContinue` on the call no longer lets the command carry on past its own
+  failure.
+- `Invoke-IntuneDetectionTest`, `Invoke-IntuneRequirementTest` and `Invoke-IntunePlatformScriptTest`
+  report a script that cannot be run, such as one that is not there or one asked to run in a host
+  the device does not have, as an error for that script, and go on with the next one from the
+  pipeline, where the first such script ended the command. `-ErrorAction Stop` ends the command at
+  that error. `Invoke-IntuneRemediationTest` and `Invoke-IntuneWin32AppTest` run one flow, and a
+  step of it that cannot be run ends the command: no result is returned, and the steps that would
+  have followed do not run.
 - The module's functions run under strict mode, set once in the root module. A read of a variable
   that was never assigned, or of a member that is not there, is an error where it was a silent
   `$null`. Graph replies, export rows and the other data with optional members are read through one
@@ -110,6 +128,14 @@ entries are carried over from the manifest's release notes.
   The run has 300 seconds now, the default of the commands.
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
+- Under PowerShell 7, a run whose script could not be copied to its run folder went on: the host
+  was started on a file that was not there, and its complaint came back as the result of the
+  script, with exit code -196608. The run now ends with the error of the copy, as it did under
+  Windows PowerShell 5.1, and so does an install or uninstall of `Invoke-IntuneWin32AppTest` whose
+  content folder cannot be copied. The run folder is removed in either case.
+- A run that timed out and whose cleanup could not be run, because `taskkill.exe` could not be
+  started, returned a `TimedOut` result without output and left the process running. It now ends
+  with the error of the cleanup.
 - With `$WhatIfPreference` set in the caller's session, the runtime harness did neither a preview
   nor a run: it skipped copying the script, started the host on the file that was not there, and
   returned the host's complaint as the result of the script, with exit code -196608. A run through

@@ -77,6 +77,12 @@ working directory. A `powershell` call on the command line, or inside the batch 
 command line names, adds a warning about the 32-bit host.
 Soft/hard reboot codes count as success but are reported.
 
+A step that cannot be run, such as a detection script that is not there or a content folder
+that cannot be copied, ends the command with a terminating error: no result is returned, and the
+install or uninstall and the detections that would have followed do not run.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

@@ -64,6 +64,20 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
             Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
 
+        It 'ends without starting the host when the script cannot be copied' {
+            # Copy-Item reports this without ending anything. The run used to go on, and the host
+            # was started on a file that was not there
+            $locked = New-TestScript 'Locked.ps1' 'exit 0' -Bom
+            $stream = [System.IO.File]::Open($locked, 'Open', 'Read', 'None')
+            try {
+                { Invoke-ScriptRun @{ Path = $locked; Architecture = 'x86' } } |
+                    Should-Throw -ExceptionType ([System.IO.IOException])
+            } finally {
+                $stream.Dispose()
+            }
+            Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
         It 'removes the cache copy after the run' {
             $result = Invoke-ScriptRun @{ Path = $script:Script; Architecture = 'x86' }
             $workFolder = ($result.StdOut -split '\|')[3]

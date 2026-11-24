@@ -32,6 +32,10 @@ BeforeAll {
             Caller, Callee, Call (both names) and EndsQuietly: whether the callee ends with
             ThrowTerminatingError, which lets the caller carry on.
 
+            A call is guarded when it is inside a try that has a catch. A call made in a nested
+            function is guarded as well when every call of that nested function is: an error
+            raised below a try travels up to its catch through every function in between.
+
         .PARAMETER ModuleRoot
             The folder that holds Public and Private.
 
@@ -132,6 +136,31 @@ BeforeAll {
             }
         }
 
+        # A try covers what the nested functions called inside it call in turn. A nested function
+        # is covered when it is called at all and every call of it is guarded, or made by a nested
+        # function that is covered itself
+        $covered = @{}
+        foreach ($name in $nodes.Keys) {
+            if ($name -like '*::*' -and @($calls | Where-Object { $_.Callee -eq $name }).Count -gt 0) {
+                $covered[$name] = $true
+            }
+        }
+        do {
+            $changed = $false
+            foreach ($call in $calls) {
+                $isCovered = $call.Guarded -or $covered.ContainsKey($call.Caller)
+                if (-not $isCovered -and $covered.ContainsKey($call.Callee)) {
+                    $covered.Remove($call.Callee)
+                    $changed = $true
+                }
+            }
+        } while ($changed)
+        foreach ($call in $calls) {
+            if ($covered.ContainsKey($call.Caller)) {
+                $call.Guarded = $true
+            }
+        }
+
         # A function that makes an unguarded call to one that can fail can fail itself
         do {
             $changed = $false
@@ -173,16 +202,10 @@ Describe 'How a failure travels through the module' -Tag 'Unit', 'Contract' {
     }
 
     It 'never calls a function that ends with ThrowTerminatingError outside a try with a catch' {
-        # The caller would carry on with nothing where the result should be. The one exception is
-        # the cleanup after a timeout: measured, a failure of it leaves the run with its TimedOut
-        # result and without its output. It goes with the runtime harness, the next area of #64
-        $known = @(
-            'Invoke-IslProcess -> Stop-IslProcessTree'
-        )
+        # The caller would carry on with nothing where the result should be
         $quiet = @($script:Unguarded | Where-Object { $_.EndsQuietly } | ForEach-Object { $_.Call } | Sort-Object)
 
-        @($quiet | Where-Object { $_ -notin $known }) | Should-BeCollection @()
-        @($known | Where-Object { $_ -notin $quiet }) | Should-BeCollection @()
+        $quiet | Should-BeCollection @()
     }
 
     It 'lists every call that still relies on a throw in the function it calls, and no other' {
@@ -211,20 +234,7 @@ Describe 'How a failure travels through the module' -Tag 'Unit', 'Contract' {
             'Get-IntuneScriptHealth::Get-WantedPolicy -> Invoke-IslGraphRequest'
             'Get-IslExportReport -> Invoke-IslGraphRequest'
             'Get-IslSetting -> Get-IslSetting::ConvertTo-SettingsObject'
-            'Invoke-IntuneDetectionTest -> Invoke-IslScriptRun'
-            'Invoke-IntunePlatformScriptTest -> Invoke-IslScriptRun'
-            'Invoke-IntuneRemediationTest -> Invoke-IslScriptRun'
-            'Invoke-IntuneRequirementTest -> Invoke-IslScriptRun'
-            'Invoke-IntuneWin32AppTest -> Invoke-IntuneWin32AppTest::Invoke-ContentCommand'
-            'Invoke-IntuneWin32AppTest -> Invoke-IntuneWin32AppTest::Invoke-DetectionPass'
-            'Invoke-IntuneWin32AppTest::Invoke-ContentCommand -> Grant-IslFolderAccess'
-            'Invoke-IntuneWin32AppTest::Invoke-ContentCommand -> Invoke-IslProcess'
-            'Invoke-IntuneWin32AppTest::Invoke-DetectionPass -> Invoke-IntuneDetectionTest'
-            'Invoke-IntuneWin32AppTest::Invoke-DetectionPass -> Test-IntuneWin32Rule'
             'Invoke-IslGraphRequest -> Invoke-IslGraphRequest::Invoke-Once'
-            'Invoke-IslScriptRun -> Get-IslHostPath'
-            'Invoke-IslScriptRun -> Grant-IslFolderAccess'
-            'Invoke-IslScriptRun -> Invoke-IslProcess'
             'Repair-IntuneScript -> Test-IntuneScript'
             'Test-IntuneAssignmentFilter -> Get-IslFilterDeviceFact'
             'Test-IntuneDeployedScript -> Invoke-IslGraphRequest'

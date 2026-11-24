@@ -29,11 +29,13 @@
     }
     catch { Write-Verbose "$valueName not readable from the registry, assuming $codePage" }
 
-    try {
-        if (-not ('System.Text.CodePagesEncodingProvider' -as [type])) { throw 'no provider type' }
-        [System.Text.Encoding]::RegisterProvider([System.Text.CodePagesEncodingProvider]::Instance)
+    # Windows PowerShell has the code pages built in and no provider type to register
+    if ('System.Text.CodePagesEncodingProvider' -as [type]) {
+        try {
+            [System.Text.Encoding]::RegisterProvider([System.Text.CodePagesEncodingProvider]::Instance)
+        }
+        catch { Write-Verbose "Code page provider not registered: $($_.Exception.Message)" }
     }
-    catch { Write-Verbose 'Code page provider not registered (Windows PowerShell has the code pages built in)' }
 
     try { [System.Text.Encoding]::GetEncoding($codePage) }
     catch {

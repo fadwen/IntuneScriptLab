@@ -2791,7 +2791,12 @@ Detection scripts run as SYSTEM under Intune.
 -Context System reproduces that through a
 scheduled task (elevated session required); the default User is quicker and needs
 no rights, but results that depend on the account (HKCU, user profile paths) differ, which
-Test-IntuneScript's IslContextIssue flags statically.</maml:para>
+Test-IntuneScript's IslContextIssue flags statically.
+
+A script that cannot be run, such as one that is not there or one asked to run in a host this
+device does not have, is reported as an error for that script, and the next script from the
+pipeline still runs.
+-ErrorAction Stop ends the command at that error.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -3054,7 +3059,12 @@ Write-Host, is reported as the result message, so ResultMessage is the full capt
 The portal's default context for platform scripts is the signed-in user, which is what
 User approximates.
 -Context System runs it as NT AUTHORITY\SYSTEM in session 0
-through a scheduled task (elevated session required).</maml:para>
+through a scheduled task (elevated session required).
+
+A script that cannot be run, such as one that is not there or one asked to run in a host this
+device does not have, is reported as an error for that script, and the next script from the
+pipeline still runs.
+-ErrorAction Stop ends the command at that error.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -3322,7 +3332,12 @@ Warnings point out output Intune drops.
 Remediations run as SYSTEM by default under Intune; -Context System reproduces that with
 a scheduled task (elevated session required).
 User, the default here, needs no
-rights and is right for packages set to run with the signed-in user's credentials.</maml:para>
+rights and is right for packages set to run with the signed-in user's credentials.
+
+A run that cannot be started, such as one of a script that is not there, ends the command with
+a terminating error: no result is returned, and the runs that would have followed do not start.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -3589,7 +3604,12 @@ Float, Version, Boolean and DateTime outputs are parsed as that type, and an out
 does not parse fails the rule.
 
 Under Intune the requirement runs before the install and after the detection has said
-"not installed"; a rule that fails leaves the app "Not applicable".</maml:para>
+"not installed"; a rule that fails leaves the app "Not applicable".
+
+A script that cannot be run, such as one that is not there or one asked to run in a host this
+device does not have, is reported as an error for that script, and the next script from the
+pipeline still runs.
+-ErrorAction Stop ends the command at that error.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -3924,7 +3944,13 @@ command runs through a 32-bit cmd.exe, so a bare `powershell.exe` resolves to th
 host exactly as it does under the agent's own 32-bit process, with the content copy as
 working directory. A `powershell` call on the command line, or inside the batch file the
 command line names, adds a warning about the 32-bit host.
-Soft/hard reboot codes count as success but are reported.</maml:para>
+Soft/hard reboot codes count as success but are reported.
+
+A step that cannot be run, such as a detection script that is not there or a content folder
+that cannot be copied, ends the command with a terminating error: no result is returned, and the
+install or uninstall and the detections that would have followed do not run.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
