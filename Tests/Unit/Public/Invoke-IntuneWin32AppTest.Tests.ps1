@@ -60,8 +60,12 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'needs a detection script or detection rules, the content folder and the intent command' {
             $command = Get-Command Invoke-IntuneWin32AppTest
             $command.Parameters['ContentPath'].Attributes.Mandatory | Should-ContainCollection $true
+            $missingDetection = @{
+                FullyQualifiedErrorId = 'DetectionMissing,*'
+                ExceptionMessage = '*-DetectionPath*-DetectionRule*'
+            }
             { Invoke-IntuneWin32AppTest -ContentPath $script:Fixture.Content -InstallCommand 'setup.exe' } |
-                Should-Throw -FullyQualifiedErrorId 'DetectionMissing,*' -ExceptionMessage '*-DetectionPath*-DetectionRule*'
+                Should-Throw @missingDetection
             $intuneWin32AppTestSplat = @{
                 DetectionPath = $script:Fixture.Detection
                 ContentPath   = $script:Fixture.Content
