@@ -43,7 +43,7 @@ entries are carried over from the manifest's release notes.
 ### Changed
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
-  `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`,
+  `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`,
   `Get-IslSetting`, `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest` and three analyzer rules
   (`IslInteractiveCall`, `IslExitCodeIssue`, `IslModuleDependency`) are private functions of their own, each an
   advanced function with help and tests (#65). Nothing changes for a caller, except that the error
