@@ -62,10 +62,17 @@ function Invoke-IslGraphRequest {
     )
 
     if (-not (Get-Command -Name Invoke-MgGraphRequest -ErrorAction SilentlyContinue)) {
-        throw ('Microsoft.Graph.Authentication is not loaded. Install-PSResource ' +
+        $message = ('Microsoft.Graph.Authentication is not loaded. Install-PSResource ' +
             'Microsoft.Graph.Authentication, then Connect-MgGraph -Scopes ' +
             'DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All, ' +
             'DeviceManagementScripts.Read.All, GroupMember.Read.All')
+        $recordSplat = @{
+            Message = $message
+            ErrorId = 'GraphModuleNotLoaded'
+            Category = [System.Management.Automation.ErrorCategory]::NotInstalled
+            TargetObject = 'Microsoft.Graph.Authentication'
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
     $requestSplat = @{ Method = $Method; Uri = $Uri; ErrorAction = 'Stop' }
     if ($Body) { $requestSplat.Body = $Body }
@@ -115,17 +122,27 @@ function Invoke-IslGraphRequest {
         }
     }
 
-    if (-not $All) { return Invoke-Once -Splat $requestSplat }
-
+    # The request that failed for good ends this function with Graph's own error, unchanged, so
+    # that a caller reads the status code and the response from it as before
     $items = [System.Collections.Generic.List[object]]::new()
-    $next = $Uri
-    while ($next) {
-        $requestSplat.Uri = $next
-        $page = Invoke-Once -Splat $requestSplat
-        # The last page has no next link, and an empty collection may come without a value
-        $pageItems = @(Get-IslPropertyValue -InputObject $page -Name 'value')
-        if ($pageItems.Count -gt 0) { $items.AddRange([object[]]$pageItems) }
-        $next = Get-IslPropertyValue -InputObject $page -Name '@odata.nextLink'
+    try {
+        if (-not $All) {
+            $reply = Invoke-Once -Splat $requestSplat
+        } else {
+            $next = $Uri
+            while ($next) {
+                $requestSplat.Uri = $next
+                $page = Invoke-Once -Splat $requestSplat
+                # The last page has no next link, and an empty collection may come without a value
+                $pageItems = @(Get-IslPropertyValue -InputObject $page -Name 'value')
+                if ($pageItems.Count -gt 0) { $items.AddRange([object[]]$pageItems) }
+                $next = Get-IslPropertyValue -InputObject $page -Name '@odata.nextLink'
+            }
+        }
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
+
+    if (-not $All) { return $reply }
     $items.ToArray()
 }

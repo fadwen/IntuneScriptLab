@@ -52,8 +52,9 @@ Describe 'Invoke-IslGraphRequest' -Tag 'Unit', 'Private' {
     It 'explains what to install and connect when the Graph module is not loaded' {
         $graphCommand = { $Name -eq 'Invoke-MgGraphRequest' }
         Mock Get-Command -ModuleName IntuneScriptLab { $null } -ParameterFilter $graphCommand
-        { InModuleScope IntuneScriptLab { Invoke-IslGraphRequest -Uri '/v1.0/me' } } |
+        $failure = { InModuleScope IntuneScriptLab { Invoke-IslGraphRequest -Uri '/v1.0/me' } } |
             Should-Throw -ExceptionMessage '*Microsoft.Graph.Authentication*Connect-MgGraph*'
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'GraphModuleNotLoaded,*'
     }
 
     It 'passes the method, URI and body through and returns the reply as is' {

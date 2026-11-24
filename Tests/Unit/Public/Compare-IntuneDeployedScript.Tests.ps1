@@ -11,6 +11,10 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
+    # Stands in for the Graph module in a calling script: every request fails
+    $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
+        "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:Get-ByteArray {
         param([string]$Text, [switch]$Bom)
@@ -274,11 +278,41 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
     Context 'Error Handling' {
         It 'refuses a -Path that is not a folder' {
             $file = Join-Path $script:Root 'Scripts\Dup.ps1'
-            { Compare-IntuneDeployedScript -Path $file } | Should-Throw -ExceptionMessage '*must be a folder*'
+            $failure = { Compare-IntuneDeployedScript -Path $file } |
+                Should-Throw -ExceptionMessage '*must be a folder*'
+            $failure.FullyQualifiedErrorId | Should-BeLikeString 'LocalPathNotFolder,*'
         }
 
         It 'refuses a -Path that does not exist' {
-            { Compare-IntuneDeployedScript -Path (Join-Path $TestDrive 'nope') } | Should-Throw
+            { Compare-IntuneDeployedScript -Path (Join-Path $TestDrive 'nope') } |
+                Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'ends at the read of a policy that fails, with what the policies before it gave' {
+            Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
+                $Uri -like '*/deviceManagementScripts/*'
+            } { throw 'Graph answered 503.' }
+
+            $output = [System.Collections.Generic.List[object]]::new()
+
+            { Compare-IntuneDeployedScript -Path $script:Root | ForEach-Object { $output.Add($_) } } |
+                Should-Throw -ExceptionMessage '*Graph answered 503*'
+            # The remediations are compared first and were written before the failure; nothing of
+            # the platform scripts or the apps follows
+            $output.Count | Should-BeGreaterThan 0
+            @($output | Where-Object { $_.Kind -ne 'Remediation' }) | Should-BeCollection @()
+        }
+
+        It 'leaves a calling script one error and no result when Graph cannot be reached' {
+            $run = Invoke-CallerScript -Statement @(
+                $script:GraphDown
+                "`$drift = @(Compare-IntuneDeployedScript -Path '$($script:Root)' -Kind Remediation)"
+                "'results: ' + `$drift.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection @('results: 0')
+            $run.ErrorId | Should-BeCollection @('Graph is down')
         }
     }
 }

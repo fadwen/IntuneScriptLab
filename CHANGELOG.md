@@ -100,6 +100,17 @@ entries are carried over from the manifest's release notes.
   that error. `Invoke-IntuneRemediationTest` and `Invoke-IntuneWin32AppTest` run one flow, and a
   step of it that cannot be run ends the command: no result is returned, and the steps that would
   have followed do not run.
+- `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`, `Get-IntuneScriptHealth` and
+  `Test-IntuneAssignmentFilter` end on a failure with a terminating error raised the way a compiled
+  cmdlet raises one, where they used `throw`. A request that Microsoft Graph refused ends the
+  command with Graph's own error, unchanged, and the failures the module detects have IDs of their
+  own: `GraphModuleNotLoaded`, `LocalPathNotFolder`, `DeviceFactsNeedWindows`, and for the app
+  install export `ExportJobTimedOut`, `ExportJobFailed` and `ExportHasNoCsv`. **A script that calls
+  one of them without `try` and without `$ErrorActionPreference = 'Stop'` now goes on at its next
+  statement after the failure, where it used to end.** What these commands return for a tenant
+  they can read is unchanged. `Get-IntuneScriptHealth` still returns its reports when only the
+  file of `-MarkdownPath` could not be written, and reports that as an error which
+  `-ErrorAction Stop` turns into the end of the command.
 - The module's functions run under strict mode, set once in the root module. A read of a variable
   that was never assigned, or of a member that is not there, is an error where it was a silent
   `$null`. Graph replies, export rows and the other data with optional members are read through one

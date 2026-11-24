@@ -77,13 +77,43 @@ Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {
 
     It 'fails when the job ends in failure' {
         Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab { @{ id = 'job-3'; status = 'failed' } }
-        { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'AppInstallStatusAggregate' } } |
-            Should-Throw -ExceptionMessage "*ended with status 'failed'*"
+        $export = { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'AppInstallStatusAggregate' } }
+        $failure = $export | Should-Throw -ExceptionMessage "*ended with status 'failed'*"
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'ExportJobFailed,*'
+        Should-Invoke Invoke-WebRequest -ModuleName IntuneScriptLab -Times 0 -Exactly
     }
 
     It 'fails when the job does not complete in time' {
         Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab { @{ id = 'job-4'; status = 'inProgress' } }
-        { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'X' -TimeoutSeconds -1 } } |
+        $failure = { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'X' -TimeoutSeconds -1 } } |
             Should-Throw -ExceptionMessage '*did not complete within*'
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'ExportJobTimedOut,*'
+    }
+
+    It 'fails when the download holds no CSV file, and removes the download' {
+        Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab {
+            @{ id = 'job-5'; status = 'completed'; url = 'https://download.example/job-5.zip' }
+        }
+        $script:Downloaded = $null
+        Mock Invoke-WebRequest -ModuleName IntuneScriptLab {
+            $script:Downloaded = $OutFile
+            $archive = [System.IO.Compression.ZipFile]::Open($OutFile, 'Create')
+            try { $null = $archive.CreateEntry('readme.txt') } finally { $archive.Dispose() }
+        }
+
+        $failure = { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'X' } } | Should-Throw
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'ExportHasNoCsv,*'
+        $script:Downloaded | Should-NotBeNull
+        Test-Path -LiteralPath $script:Downloaded | Should-BeFalse
+    }
+
+    It 'ends with the error of a download that fails' {
+        Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab {
+            @{ id = 'job-6'; status = 'completed'; url = 'https://download.example/job-6.zip' }
+        }
+        Mock Invoke-WebRequest -ModuleName IntuneScriptLab { throw 'The download was refused.' }
+
+        { InModuleScope IntuneScriptLab { Get-IslExportReport -ReportName 'X' } } |
+            Should-Throw -ExceptionMessage '*download was refused*'
     }
 }

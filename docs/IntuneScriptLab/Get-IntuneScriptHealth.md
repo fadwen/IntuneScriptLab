@@ -59,6 +59,15 @@ A policy changed minutes ago is best read with -SkipRunState.
 -MarkdownPath writes the same report as a Markdown table per kind, for a wiki or a pull request.
 Nothing in the tenant is changed.
 
+A request to Microsoft Graph that fails for good ends the command with a terminating error
+that is Graph's own, with its status code, and no report is returned.
+The run summaries and the app install export are the exception: when one of them cannot be
+read, a warning says so and the device columns stay empty.
+A file of -MarkdownPath that cannot be written is reported as an error, and the reports are
+still returned.
+A script that calls the command goes on after a terminating error unless the call is inside
+try or the script sets $ErrorActionPreference to Stop.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

@@ -26,7 +26,14 @@ function Test-IntuneAssignmentFilter {
             [System.StringComparer]::OrdinalIgnoreCase)
         $source = $null
         if ($null -ne $Device) { $source = $Device }
-        elseif (-not $SyntaxOnly) { $source = Get-IslFilterDeviceFact }
+        elseif (-not $SyntaxOnly) {
+            # No facts, no verdict: the command ends here and process does not run
+            try {
+                $source = Get-IslFilterDeviceFact
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($_)
+            }
+        }
         if ($source -is [System.Collections.IDictionary]) {
             foreach ($key in $source.Keys) { $facts["$key"] = $source[$key] }
         }

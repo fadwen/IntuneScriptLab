@@ -144,7 +144,10 @@ way out, so a `[object[]]` parameter splatted from that result binds `$null` and
 ### Graph goes through `Invoke-IslGraphRequest`, and the endpoints are the ones that still exist
 
 Every Graph call goes through the private `Invoke-IslGraphRequest` seam so the suites can mock it
-and never touch a tenant. `mobileApps/{id}/installSummary`, `deviceStatuses` and `userStatuses`
+and never touch a tenant. A request that fails for good ends the seam with Graph's own error
+record, unchanged, so a caller still reads the status code from it; the tenant commands end with
+it in turn, and write what each policy gave after the `try` that read the policy, so that the
+output stays a stream. `mobileApps/{id}/installSummary`, `deviceStatuses` and `userStatuses`
 are gone and `reports/getAppsInstallSummaryReport` returns 400; app install counts come from the
 `AppInstallStatusAggregate` export job through `Get-IslExportReport`. `$select=installExperience`
 on `mobileApps/{id}` is refused (derived-type property) - fetch the app without `$select`.
