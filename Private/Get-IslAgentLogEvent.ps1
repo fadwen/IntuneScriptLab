@@ -159,65 +159,6 @@ function Get-IslAgentLogEvent {
             }
             @{ Event = 'ExecutorError'; Pattern = '^error from script =(.*)$' }
         )
-        # The literal text a pattern starts with, which a matching message must contain somewhere:
-        # cheaper to look for than to run the pattern, and most messages match no pattern at all.
-        # Read up to the first metacharacter; an escaped punctuation character is a literal, an
-        # escaped letter is a class. A quantifier would make the last literal optional, so it goes
-        function Get-LiteralPrefix {
-            param([string]$Pattern)
-            $literal = [System.Text.StringBuilder]::new()
-            $index = if ($Pattern.StartsWith('^')) { 1 } else { 0 }
-            while ($index -lt $Pattern.Length) {
-                $character = $Pattern[$index]
-                if ($character -eq '\') {
-                    if ($index + 1 -ge $Pattern.Length) { break }
-                    $next = $Pattern[$index + 1]
-                    if ([char]::IsLetterOrDigit($next)) { break }
-                    $null = $literal.Append($next)
-                    $index += 2
-                    continue
-                }
-                if ('()[]{}.*+?|^$'.IndexOf($character) -ge 0) { break }
-                $null = $literal.Append($character)
-                $index++
-            }
-            if ($index -lt $Pattern.Length -and '*?{'.IndexOf($Pattern[$index]) -ge 0 -and $literal.Length) {
-                $literal.Length--
-            }
-            $literal.ToString()
-        }
-        # The same pattern with its capturing groups named <prefix><n>, so every group of the
-        # combined expression below has a name and the matched alternative is the first group that
-        # succeeded. A "(" opens a capture unless it is escaped, inside a class, or followed by "?"
-        function ConvertTo-NamedGroup {
-            param([string]$Pattern, [string]$Prefix)
-            $named = [System.Text.StringBuilder]::new()
-            $count = 0
-            $inClass = $false
-            for ($index = 0; $index -lt $Pattern.Length; $index++) {
-                $character = $Pattern[$index]
-                if ($character -eq '\' -and $index + 1 -lt $Pattern.Length) {
-                    $null = $named.Append($character).Append($Pattern[$index + 1])
-                    $index++
-                    continue
-                }
-                if ($inClass) {
-                    if ($character -eq ']') { $inClass = $false }
-                    $null = $named.Append($character)
-                    continue
-                }
-                if ($character -eq '[') { $inClass = $true }
-                $opensCapture = $character -eq '(' -and
-                    ($index + 1 -ge $Pattern.Length -or $Pattern[$index + 1] -ne '?')
-                if ($opensCapture) {
-                    $count++
-                    $null = $named.Append("(?<$Prefix$count>")
-                    continue
-                }
-                $null = $named.Append($character)
-            }
-            @{ Pattern = $named.ToString(); Count = $count }
-        }
         # One expression for the whole table: 44 patterns tried one by one cost 44 statements a
         # message, which was most of what reading a log cost; one Match is one. Alternation keeps
         # the table's order at a given position, so two patterns that fit the same text still
@@ -226,9 +167,12 @@ function Get-IslAgentLogEvent {
         $combined = [System.Text.StringBuilder]::new()
         $position = 0
         $script:IslAgentLogEvents = @(foreach ($definition in $definitions) {
-                $prefix = Get-LiteralPrefix -Pattern $definition.Pattern
+                # The literal text a pattern starts with, which a matching message must contain
+                # somewhere: cheaper to look for than to run the pattern, and most messages match
+                # no pattern at all
+                $prefix = Get-IslRegexLiteralPrefix -Pattern $definition.Pattern
                 $group = "e$position"
-                $renamed = ConvertTo-NamedGroup -Pattern $definition.Pattern -Prefix "${group}g"
+                $renamed = ConvertTo-IslNamedGroupPattern -Pattern $definition.Pattern -Prefix "${group}g"
                 if ($position -gt 0) { $null = $combined.Append('|') }
                 $null = $combined.Append("(?<$group>").Append($renamed.Pattern).Append(')')
                 $position++

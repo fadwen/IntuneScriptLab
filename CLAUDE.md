@@ -115,10 +115,10 @@ call is inside a `try` that has a `catch`; a `try` with only a `finally`, a nest
 pipeline do not stop it. A `throw` ended every function above it, which is what the callers were
 written for until the module moved from `throw` to `ThrowTerminatingError` (#64). A new call of a
 function that can fail gets `try { ... } catch { $PSCmdlet.ThrowTerminatingError($_) }` before the
-function it calls is written to fail that way. The one `throw` that is left is in a nested function
-without `[CmdletBinding()]`, `Invoke-Once` in `Invoke-IslGraphRequest`, which passes on the error it
-caught; nested helpers are being moved to their own files as advanced functions (#65), and a
-helper in its own file ends with `ThrowTerminatingError` like any other.
+function it calls is written to fail that way. No function of the module uses `throw`:
+nested helpers are being moved to their own files as advanced functions (#65), and a helper in its
+own file ends with `ThrowTerminatingError` like any other. A plain nested function has no
+`$PSCmdlet`, so a new one that can fail is written as a private function of its own instead.
 
 `Tests/Unit/Module.ErrorFlow.Tests.ps1` holds the rule on the syntax trees, because behaviour does
 not show it: a caller that goes on with nothing often returns nothing too, and `Should-Throw` calls

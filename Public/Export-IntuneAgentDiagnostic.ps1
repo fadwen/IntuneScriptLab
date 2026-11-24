@@ -42,65 +42,6 @@ function Export-IntuneAgentDiagnostic {
     $stagingName = "IntuneScriptLab-diag-$([guid]::NewGuid().ToString('N'))"
     $staging = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $stagingName
     $manifest = [System.Collections.Generic.List[string]]::new()
-    $utf8 = [System.Text.UTF8Encoding]::new($false)
-
-    function Write-Section {
-        param([string]$Relative, [string[]]$Lines)
-        $file = Join-Path -Path $staging -ChildPath $Relative
-        $folder = Split-Path -Path $file -Parent
-        $null = New-Item -ItemType Directory -Path $folder -Force @script:IslInternal
-        [System.IO.File]::WriteAllLines($file, [string[]]$Lines, $utf8)
-    }
-
-    # A log the agent holds open copies through a shared-read stream
-    function Copy-SharedFile {
-        param([string]$Source, [string]$Destination)
-        $in = [System.IO.File]::Open($Source, 'Open', 'Read', 'ReadWrite')
-        try {
-            $out = [System.IO.File]::Create($Destination)
-            try { $in.CopyTo($out) } finally { $out.Dispose() }
-        }
-        finally { $in.Dispose() }
-    }
-
-    # A registry key and its subkeys as "key" and "  name = value" lines
-    function Get-RegistryText {
-        param([string]$Key, [int]$Depth)
-        if (-not (Test-Path -LiteralPath $Key)) { return @("$Key : not present") }
-        $children = @(Get-ChildItem -LiteralPath $Key -Recurse -Depth $Depth -ErrorAction SilentlyContinue)
-        $keys = @(Get-Item -LiteralPath $Key) + $children
-        foreach ($item in $keys) {
-            "[$($item.Name)]"
-            $values = Get-ItemProperty -LiteralPath $item.PSPath -ErrorAction SilentlyContinue
-            if (-not $values) { continue }
-            foreach ($property in $values.PSObject.Properties) {
-                if ($property.Name -like 'PS*') { continue }
-                $text = if ($property.Value -is [byte[]]) { "byte[$($property.Value.Length)]" }
-                else { "$($property.Value)" }
-                if ($text.Length -gt 400) { $text = $text.Substring(0, 400) + '...' }
-                "  $($property.Name) = $text"
-            }
-        }
-    }
-
-    # The staging folder as a zip with forward-slash entry names on every host (.NET Framework's
-    # CreateFromDirectory writes backslashes)
-    function Compress-Staging {
-        param([string]$Folder, [string]$Destination)
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $archive = [System.IO.Compression.ZipFile]::Open($Destination, 'Create')
-        $count = 0
-        try {
-            foreach ($file in (Get-ChildItem -LiteralPath $Folder -Recurse -File)) {
-                $relative = $file.FullName.Substring($Folder.Length).TrimStart('\', '/') -replace '\\', '/'
-                $null = [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                    $archive, $file.FullName, $relative)
-                $count++
-            }
-        }
-        finally { $archive.Dispose() }
-        $count
-    }
 
     try {
         $null = New-Item -ItemType Directory -Path $staging -Force @script:IslInternal
@@ -113,7 +54,8 @@ function Export-IntuneAgentDiagnostic {
             $null = New-Item -ItemType Directory -Path $logFolder -Force @script:IslInternal
             foreach ($file in $logFiles) {
                 $destination = Join-Path -Path $logFolder -ChildPath $file.Name
-                Copy-SharedFile -Source $file.FullName -Destination $destination
+                # A log the agent holds open is copied through a shared-read stream
+                Copy-IslSharedFile -Source $file.FullName -Destination $destination @script:IslInternal
             }
             $manifest.Add("Logs: $($logFiles.Count) file(s) from $LogPath")
         }
@@ -139,10 +81,11 @@ function Export-IntuneAgentDiagnostic {
         if ($agentExe -and (Test-Path -LiteralPath $agentExe)) {
             $system.Add("Agent version: $((Get-Item -LiteralPath $agentExe).VersionInfo.FileVersion)")
         }
-        Write-Section -Relative 'Device\system.txt' -Lines $system
+        Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system @script:IslInternal
         if (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue) {
             $joinState = @(& dsregcmd.exe /status 2>&1 | ForEach-Object { "$_" })
-            Write-Section -Relative 'Device\dsregcmd.txt' -Lines $joinState
+            $sectionSplat = @{ Root = $staging; RelativePath = 'Device\dsregcmd.txt'; Line = $joinState }
+            Write-IslTextFile @sectionSplat @script:IslInternal
             $manifest.Add('Device: system.txt, dsregcmd.txt')
         }
         else { $manifest.Add('Device: system.txt (dsregcmd not available)') }
@@ -159,8 +102,9 @@ function Export-IntuneAgentDiagnostic {
                     Key = 'HKLM:\SOFTWARE\Microsoft\Provisioning\Diagnostics\AutoPilot' }
             )
             foreach ($entry in $keys) {
-                $lines = @(Get-RegistryText -Key $entry.Key -Depth $entry.Depth)
-                Write-Section -Relative "Registry\$($entry.Name).txt" -Lines $lines
+                $lines = @(Get-IslRegistryText -Key $entry.Key -Depth $entry.Depth)
+                $sectionSplat = @{ Root = $staging; RelativePath = "Registry\$($entry.Name).txt"; Line = $lines }
+                Write-IslTextFile @sectionSplat @script:IslInternal
             }
             $manifest.Add("Registry: $(($keys | ForEach-Object { $_.Name }) -join ', ')")
         }
@@ -188,14 +132,14 @@ function Export-IntuneAgentDiagnostic {
         else { $manifest.Add('Timeline: skipped') }
 
         $manifest.Insert(0, "IntuneScriptLab diagnostic package, $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))")
-        Write-Section -Relative 'Manifest.txt' -Lines $manifest
+        Write-IslTextFile -Root $staging -RelativePath 'Manifest.txt' -Line $manifest @script:IslInternal
 
         if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force @script:IslInternal }
         $zipFolder = Split-Path -Path $zip -Parent
         if ($zipFolder -and -not (Test-Path -LiteralPath $zipFolder)) {
             $null = New-Item -ItemType Directory -Path $zipFolder -Force @script:IslInternal
         }
-        $entryCount = Compress-Staging -Folder $staging -Destination $zip
+        $entryCount = Compress-IslFolder -Folder $staging -Destination $zip @script:IslInternal
     }
     catch {
         # Whatever failed, the package is not complete: the command ends without a result

@@ -1,0 +1,62 @@
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+
+<#
+    One text section of the diagnostic package, written below its staging folder.
+#>
+
+BeforeAll {
+    $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    if (-not (Get-Module -Name IntuneScriptLab)) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1')
+    }
+
+    function script:Write-Section {
+        param([string]$Root, [string]$RelativePath, [AllowNull()][string[]]$Line)
+        $parameters = @{ Root = $Root; RelativePath = $RelativePath; Line = $Line }
+        InModuleScope IntuneScriptLab -Parameters @{ Parameters = $parameters } {
+            Write-IslTextFile @Parameters @script:IslInternal
+        }
+    }
+}
+
+Describe 'Write-IslTextFile' -Tag 'Unit', 'Private' {
+
+    BeforeEach {
+        $script:Root = Join-Path $TestDrive "staging-$([guid]::NewGuid().ToString('N'))"
+        $null = New-Item -ItemType Directory -Path $script:Root
+    }
+
+    It 'creates the folders on the way and writes UTF-8 without a byte order mark' {
+        $greeting = 'Gr' + [char]0xFC + [char]0xDF + 'e'
+        Write-Section -Root $script:Root -RelativePath 'Registry\Scripts.txt' -Line 'first', $greeting
+
+        $file = Join-Path $script:Root 'Registry\Scripts.txt'
+        $bytes = [System.IO.File]::ReadAllBytes($file)
+        $bytes[0] | Should-Be ([byte][char]'f')
+        $lines = [System.IO.File]::ReadAllLines($file, [System.Text.UTF8Encoding]::new($false))
+        $lines | Should-BeCollection -Count 2
+        $lines[0] | Should-Be 'first'
+        $lines[1] | Should-Be $greeting
+    }
+
+    It 'writes an empty file for no lines' {
+        Write-Section -Root $script:Root -RelativePath 'Device\dsregcmd.txt' -Line $null
+
+        (Get-Item -LiteralPath (Join-Path $script:Root 'Device\dsregcmd.txt')).Length | Should-Be 0
+    }
+
+    It 'replaces a file that is there' {
+        Write-Section -Root $script:Root -RelativePath 'Manifest.txt' -Line 'old', 'older'
+        Write-Section -Root $script:Root -RelativePath 'Manifest.txt' -Line 'new'
+
+        [System.IO.File]::ReadAllLines((Join-Path $script:Root 'Manifest.txt')) | Should-BeCollection @('new')
+    }
+
+    It 'writes nothing under -WhatIf' {
+        InModuleScope IntuneScriptLab -Parameters @{ Root = $script:Root } {
+            Write-IslTextFile -Root $Root -RelativePath 'Preview\x.txt' -Line 'x' -WhatIf
+        }
+
+        Test-Path -LiteralPath (Join-Path $script:Root 'Preview') | Should-BeFalse
+    }
+}
