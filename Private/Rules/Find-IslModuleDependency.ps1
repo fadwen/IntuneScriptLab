@@ -37,32 +37,8 @@ function Find-IslModuleDependency {
         'killed at the 60-minute timeout (detectionState scriptError) while every remediation queued behind ' +
         'it waited (REM-INSTALL-MODULE)')
 
-    function Test-InBox {
-        param([string]$Name)
-        # A path is a file the script ships or references, not a module by name; leave it to the
-        # relative-path rule
-        if ($Name -match '[\\/]' -or $Name -match '\.psm?1$|\.psd1$') { return $true }
-        if ($Name -match '[\*\?\$]') { return $true }
-        $Name -in $inbox
-    }
-
-    function Write-Missing {
-        param([string]$Name, $Extent, [string]$How)
-        $findingSplat = @{
-            RuleName = $rule
-            Severity = 'Warning'
-            Context  = $Context
-            Extent   = $Extent
-            Message  = ("$How names $Name, which is not in-box under the agent's SYSTEM session. It must be " +
-                'installed machine-wide (Program Files\WindowsPowerShell\Modules) before the script runs; a ' +
-                '#Requires for a missing module stops the script before it starts (exit 1, ' +
-                'ScriptRequiresMissingModules) and a detection failing that way still runs the remediation')
-            Evidence = $pathEvidence + '; a #Requires -Modules for a module the device lacks exited 1 without ' +
-                'running, the remediation ran anyway, and Graph reported detectionState fail, remediationState ' +
-                'remediationFailed (REM-REQUIRES-MODULE)'
-        }
-        New-IslFinding @findingSplat
-    }
+    # Each module named that is not in-box: what names it, and where
+    $missing = [System.Collections.Generic.List[hashtable]]::new()
 
     # A script without a #Requires line has no requirements object at all
     $requirements = $Context.Ast.ScriptRequirements
@@ -71,15 +47,17 @@ function Find-IslModuleDependency {
         $requiredModules = @($requirements.RequiredModules | Where-Object { $_ })
     }
     foreach ($required in $requiredModules) {
-        if (-not (Test-InBox -Name "$($required.Name)")) {
-            Write-Missing -Name $required.Name -Extent $Context.Ast.Extent -How '#Requires -Modules'
+        if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name "$($required.Name)")) {
+            $missing.Add(@{ Name = $required.Name; Extent = $Context.Ast.Extent; How = '#Requires -Modules' })
         }
     }
     foreach ($using in (Find-IslAstNode -Ast $Context.Ast -TypeName UsingStatementAst -Where {
                 param($node) "$($node.UsingStatementKind)" -eq 'Module'
             })) {
         $name = if ($using.Name) { $using.Name.Value } else { "$($using.ModuleSpecification.Extent.Text)" }
-        if (-not (Test-InBox -Name $name)) { Write-Missing -Name $name -Extent $using.Extent -How 'using module' }
+        if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $name)) {
+            $missing.Add(@{ Name = $name; Extent = $using.Extent; How = 'using module' })
+        }
     }
     foreach ($command in (Find-IslCommand -Ast $Context.Ast -Name 'Import-Module', 'ipmo')) {
         $elements = $command.CommandElements
@@ -100,11 +78,31 @@ function Find-IslModuleDependency {
             else { @($nameElement) }
             foreach ($literal in $literals) {
                 if ($literal.GetType().Name -ne 'StringConstantExpressionAst') { continue }
-                if (-not (Test-InBox -Name $literal.Value)) {
-                    Write-Missing -Name $literal.Value -Extent $command.Extent -How 'Import-Module'
+                if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $literal.Value)) {
+                    $missing.Add(@{ Name = $literal.Value; Extent = $command.Extent; How = 'Import-Module' })
                 }
             }
         }
+    }
+
+    foreach ($entry in $missing) {
+        $name = $entry['Name']
+        $how = $entry['How']
+        $extent = $entry['Extent']
+        $findingSplat = @{
+            RuleName = $rule
+            Severity = 'Warning'
+            Context  = $Context
+            Extent   = $extent
+            Message  = ("$How names $Name, which is not in-box under the agent's SYSTEM session. It must be " +
+                'installed machine-wide (Program Files\WindowsPowerShell\Modules) before the script runs; a ' +
+                '#Requires for a missing module stops the script before it starts (exit 1, ' +
+                'ScriptRequiresMissingModules) and a detection failing that way still runs the remediation')
+            Evidence = $pathEvidence + '; a #Requires -Modules for a module the device lacks exited 1 without ' +
+                'running, the remediation ran anyway, and Graph reported detectionState fail, remediationState ' +
+                'remediationFailed (REM-REQUIRES-MODULE)'
+        }
+        New-IslFinding @findingSplat
     }
 
     $installers = 'Install-Module', 'Install-PSResource', 'Install-Package', 'Save-Module', 'Update-Module'
