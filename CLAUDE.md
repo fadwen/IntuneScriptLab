@@ -186,6 +186,12 @@ Markdown from `Get-Help`), then trim the block to `.EXTERNALHELP IntuneScriptLab
 one-line `.SYNOPSIS`, delete the ALIASES placeholder and fill INPUTS and OUTPUTS by hand. Adding
 `.EXTERNALHELP` before the first generation leaves the Markdown full of `{{ Fill in }}`.
 
+Inside a comment-based help block, a line that starts with a dot and a word is read as a keyword.
+One that is not a keyword, such as a sentence that begins `.NET Framework's`, leaves the function
+with no help that `Get-Help` finds, and nothing reports it but the standards' check (DOC-01).
+Start such a sentence with another word, and check a new private function with
+`(Get-Help <name>).description` from inside the module.
+
 ### Never `Publish-PSResource -Path .`
 
 This repository *is* the module root, so packaging it directly ships the whole working tree,
