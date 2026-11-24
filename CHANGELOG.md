@@ -100,9 +100,9 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
-- A test of the confirm preference inside a run started the 32-bit host, which is emulated on
-  the ARM64 runner, and the run there sometimes took longer than the test's timeout of 60
-  seconds. It runs the device's own 64-bit host now.
+- A test of the confirm preference inside a run starts the 32-bit host, which is emulated on the
+  ARM64 runner, and the run there sometimes took longer than the test's timeout of 60 seconds.
+  The run has 300 seconds now, the default of the commands.
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
 - With `$WhatIfPreference` set in the caller's session, the runtime harness did neither a preview
