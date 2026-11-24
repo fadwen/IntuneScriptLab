@@ -85,6 +85,9 @@ function Invoke-IntuneDetectionTest {
                 $run = Invoke-IslScriptRun @scriptRunSplat
             }
         } catch {
+            # Once for each script, also for a failure that every script shares, such as a host
+            # this device does not have: the scripts are not known in begin, and the unit tests
+            # mock the launch with architectures the test computer may not have
             $PSCmdlet.WriteError($_)
             return
         }

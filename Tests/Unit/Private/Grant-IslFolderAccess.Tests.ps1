@@ -58,6 +58,17 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         @($rule).Count | Should-Be 1
     }
 
+    It 'grants on a folder path that ends in a backslash' {
+        # Before, the backslash escaped the closing quote and icacls was handed a path with the rest
+        # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
+        Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
+        Grant-Access "$($script:Folder)\" $script:Me.Name
+        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
+            -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
+        }
+        @($rule).Count | Should-Be 1
+    }
+
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
         @{ Preference = 'Continue' }
         @{ Preference = 'Stop' }

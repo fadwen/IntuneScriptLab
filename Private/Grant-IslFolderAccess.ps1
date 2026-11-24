@@ -38,7 +38,11 @@ function Grant-IslFolderAccess {
     # a caller's -ErrorAction Stop the first one ends the function with icacls' bare line instead
     # of the message below. Invoke-IslNativeCommand reads the streams without that
     $icacls = Join-Path -Path ([System.Environment]::SystemDirectory) -ChildPath 'icacls.exe'
-    $arguments = '"{0}" /grant "{1}:(OI)(CI)M"' -f $Path, $trustee
+    # A backslash before a closing quote escapes the quote when a program parses its command line,
+    # so a path that ends in one would swallow the rest of the arguments. Doubled, the backslashes
+    # stand for themselves; trimmed, C:\ would become C:, the current folder of that drive
+    $quotedPath = $Path -replace '(\\+)$', '$1$1'
+    $arguments = '"{0}" /grant "{1}:(OI)(CI)M"' -f $quotedPath, $trustee
     try {
         $result = Invoke-IslNativeCommand -FilePath $icacls -Arguments $arguments
     } catch {
