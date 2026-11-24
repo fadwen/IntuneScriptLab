@@ -31,19 +31,6 @@ function Test-IntuneWin32Requirement {
     $device = Get-IslDeviceFact
     $checks = [System.Collections.Generic.List[object]]::new()
 
-    function Get-Check {
-        param([string]$Requirement, [bool]$Met, $Actual, $Expected, [string]$Details, $Code)
-        [pscustomobject]@{
-            PSTypeName    = 'IntuneScriptLab.RequirementCheck'
-            Requirement   = $Requirement
-            Met           = $Met
-            Actual        = $Actual
-            Expected      = $Expected
-            Details       = if ($Met) { '' } else { $Details }
-            Applicability = if ($Met) { $null } else { $Code }
-        }
-    }
-
     if ($Architecture) {
         $checkSplat = @{
             Requirement = 'Architecture'
@@ -53,7 +40,7 @@ function Test-IntuneWin32Requirement {
             Code        = 1000
             Details     = 'Device architecture (e.g. x86/amd64) is not applicable for the application.'
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumWindowsRelease) {
         try {
@@ -70,7 +57,7 @@ function Test-IntuneWin32Requirement {
             Details     = ('The operating system release is below the configured minimum (portal text and ' +
                 'device code not observed)')
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumFreeDiskSpaceMB) {
         $checkSplat = @{
@@ -81,7 +68,7 @@ function Test-IntuneWin32Requirement {
             Code        = 1001
             Details     = 'Available disk space on the target device is less than the configured minimum.'
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumMemoryMB) {
         $checkSplat = @{
@@ -92,7 +79,7 @@ function Test-IntuneWin32Requirement {
             Code        = 1003
             Details     = 'Amount of RAM on the target device is less than the configured minimum.'
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumProcessors) {
         $checkSplat = @{
@@ -103,7 +90,7 @@ function Test-IntuneWin32Requirement {
             Code        = 1004
             Details     = 'Count of logical processors on the target device is less than the configured minimum.'
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumCpuSpeedMHz) {
         $checkSplat = @{
@@ -115,7 +102,7 @@ function Test-IntuneWin32Requirement {
             Details     = ('The CPU speed is below the configured minimum (portal text and device code not ' +
                 'observed)')
         }
-        $checks.Add((Get-Check @checkSplat))
+        $checks.Add((New-IslRequirementCheck @checkSplat))
     }
 
     $failed = @($checks | Where-Object { -not $_.Met })

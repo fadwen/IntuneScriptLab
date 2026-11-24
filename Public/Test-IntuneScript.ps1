@@ -51,12 +51,6 @@ function Test-IntuneScript {
             }
         }
 
-        function Test-RuleSelected {
-            param([string]$RuleName, [string[]]$Include, [string[]]$Exclude)
-            if ($Include -and -not ($Include | Where-Object { $RuleName -like $_ })) { return $false }
-            if ($Exclude -and ($Exclude | Where-Object { $RuleName -like $_ })) { return $false }
-            $true
-        }
     }
 
     process {
@@ -110,7 +104,7 @@ function Test-IntuneScript {
                 else { $MinimumSeverity }
                 $filters = @{ Include = $include; Exclude = $exclude }
                 $rules = foreach ($rule in $script:RuleOrder) {
-                    if (Test-RuleSelected -RuleName ($rule -replace '^Find-', '') @filters) { $rule }
+                    if (Test-IslRuleSelected -RuleName ($rule -replace '^Find-', '') @filters) { $rule }
                 }
 
                 $scriptContextSplat = @{
@@ -135,7 +129,7 @@ function Test-IntuneScript {
                 # Say what was assumed: the wrong type silently skips whole rule sets. The note obeys
                 # the rule filters, so -ExcludeRule IslAssumedContext silences it
                 $noteWanted = $scriptContext.TypeSource -notin 'parameter', 'settings', 'directive' -and
-                    (Test-RuleSelected -RuleName 'IslAssumedContext' @filters)
+                    (Test-IslRuleSelected -RuleName 'IslAssumedContext' @filters)
                 if ($noteWanted) {
                     $findingSplat = @{
                         RuleName = 'IslAssumedContext'
