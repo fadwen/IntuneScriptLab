@@ -279,5 +279,14 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             { Test-IntuneAssignmentFilter -Rule '(device.deviceName -like "X")' -Device @{} -ErrorAction Stop } |
                 Should-Throw -ExceptionMessage '*unknown operator*'
         }
+
+        It 'ends before any rule is judged when the facts of this device cannot be read' {
+            Mock Get-IslFilterDeviceFact -ModuleName IntuneScriptLab { throw 'The device facts need Windows.' }
+            Mock ConvertFrom-IslFilterRule -ModuleName IntuneScriptLab { }
+
+            { '(device.deviceName -eq "X")' | Test-IntuneAssignmentFilter } |
+                Should-Throw -ExceptionMessage '*device facts need Windows*'
+            Should-Invoke ConvertFrom-IslFilterRule -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
     }
 }

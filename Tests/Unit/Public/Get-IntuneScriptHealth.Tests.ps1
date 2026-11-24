@@ -9,6 +9,10 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
+    # Stands in for the Graph module in a calling script: every request fails
+    $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
+        "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     $group = @{ '@odata.type' = '#microsoft.graph.groupAssignmentTarget'; groupId = 'grp-devices' }
     $allDevices = @{ '@odata.type' = '#microsoft.graph.allDevicesAssignmentTarget' }
@@ -257,6 +261,46 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
             try { $null = Get-IntuneScriptHealth -MarkdownPath '.\health.md' -SkipAnalysis -SkipRunState }
             finally { Pop-Location }
             Test-Path -LiteralPath (Join-Path $folder 'health.md') | Should-BeTrue
+        }
+    }
+
+    Context 'Error Handling' {
+        It 'ends with the error of the analysis when it fails, and returns no report' {
+            Mock Test-IntuneDeployedScript -ModuleName IntuneScriptLab {
+                throw 'The analysis could not read Graph.'
+            }
+
+            { Get-IntuneScriptHealth -SkipRunState } |
+                Should-Throw -ExceptionMessage '*analysis could not read Graph*'
+        }
+
+        It 'returns its reports when only the Markdown file cannot be written, and reports that' {
+            $missingFolder = Join-Path $TestDrive "no-such-folder-$([guid]::NewGuid().ToString('N'))"
+            $healthSplat = @{
+                SkipAnalysis = $true; SkipRunState = $true; MarkdownPath = Join-Path $missingFolder 'health.md'
+            }
+
+            $output = Get-IntuneScriptHealth @healthSplat -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $reports = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].Exception.GetBaseException() |
+                Should-HaveType ([System.IO.DirectoryNotFoundException])
+            $reports.Count | Should-BeGreaterThan 0
+            { Get-IntuneScriptHealth @healthSplat -ErrorAction Stop } | Should-Throw
+        }
+
+        It 'leaves a calling script one error and no report when Graph cannot be reached' {
+            $run = Invoke-CallerScript -Statement @(
+                $script:GraphDown
+                "`$reports = @(Get-IntuneScriptHealth -Kind Remediation -SkipRunState)"
+                "'reports: ' + `$reports.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection @('reports: 0')
+            $run.ErrorId | Should-BeCollection @('Graph is down')
         }
     }
 }

@@ -65,6 +65,11 @@ LineEndings, Whitespace, Bom, Settings)
 and Detail says where.
 Nothing in the tenant is changed.
 
+A request to Microsoft Graph that fails for good ends the command with a terminating error
+that is Graph's own, with its status code. What was written before the failure stays written.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

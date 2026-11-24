@@ -1114,7 +1114,12 @@ carry, or a -Map entry naming a policy the selection did not include; a local fo
 policy the tenant does not have is not reported); Differences lists what differs (Content,
 LineEndings, Whitespace, Bom, Settings)
 and Detail says where.
-Nothing in the tenant is changed.</maml:para>
+Nothing in the tenant is changed.
+
+A request to Microsoft Graph that fails for good ends the command with a terminating error
+that is Graph's own, with its status code. What was written before the failure stays written.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -2449,7 +2454,16 @@ not re-reported at all, so lastStateUpdateDateTime is the last change, not the l
 count that is days old is not stale.
 A policy changed minutes ago is best read with -SkipRunState.
 -MarkdownPath writes the same report as a Markdown table per kind, for a wiki or a pull request.
-Nothing in the tenant is changed.</maml:para>
+Nothing in the tenant is changed.
+
+A request to Microsoft Graph that fails for good ends the command with a terminating error
+that is Graph's own, with its status code, and no report is returned.
+The run summaries and the app install export are the exception: when one of them cannot be
+read, a warning says so and the device columns stay empty.
+A file of -MarkdownPath that cannot be written is reported as an error, and the reports are
+still returned.
+A script that calls the command goes on after a terminating error unless the call is inside
+try or the script sets $ErrorActionPreference to Stop.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -5097,7 +5111,12 @@ once, and the rest of the run does without them.
 
 Script content is written to a temporary folder for the analysis, byte for byte as the
 tenant stores it, and removed afterwards.
-Nothing in the tenant is changed.</maml:para>
+Nothing in the tenant is changed.
+
+A request to Microsoft Graph that fails for good ends the command with a terminating error
+that is Graph's own, with its status code. What was written before the failure stays written.
+A script that calls the command goes on after that error unless the call is inside try or the
+script sets $ErrorActionPreference to Stop.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>

@@ -29,7 +29,15 @@ function Get-IslFilterDeviceFact {
 
     $onWindows = $PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows
     if (-not $onWindows) {
-        throw 'The local device facts come from Windows (CIM, the registry, dsregcmd); pass -Device elsewhere'
+        $message = ('The local device facts come from Windows (CIM, the registry, dsregcmd); pass ' +
+            '-Device elsewhere')
+        $recordSplat = @{
+            Message = $message
+            ErrorId = 'DeviceFactsNeedWindows'
+            Category = [System.Management.Automation.ErrorCategory]::NotImplemented
+            ExceptionType = [System.PlatformNotSupportedException]
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
 
     $computer = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue

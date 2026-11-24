@@ -10,6 +10,10 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
     Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
+    # Stands in for the Graph module in a calling script: every request fails
+    $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
+        "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:ConvertTo-Base64 {
         param([string]$Text, [switch]$Bom)
@@ -419,6 +423,24 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $before = @(Get-ChildItem @listSplat).Count
             { Test-IntuneDeployedScript -Kind PlatformScript } | Should-Throw -ExceptionMessage '*analysis broke*'
             @(Get-ChildItem @listSplat).Count | Should-Be $before
+        }
+
+        It 'leaves a calling script one error and no finding when Graph cannot be reached' {
+            $run = Invoke-CallerScript -Statement @(
+                $script:GraphDown
+                "`$findings = @(Test-IntuneDeployedScript -Kind Remediation)"
+                "'findings: ' + `$findings.Count"
+            )
+
+            $run.ReachedEnd | Should-BeTrue
+            $run.Output | Should-BeCollection @('findings: 0')
+            $run.ErrorId | Should-BeCollection @('Graph is down')
+        }
+
+        It 'does not take the error of a command further down the pipeline for its own' {
+            $downstream = { Test-IntuneDeployedScript | ForEach-Object { throw 'the caller''s own failure' } }
+
+            $downstream | Should-Throw -ExceptionMessage 'the caller''s own failure'
         }
     }
 }

@@ -25,9 +25,20 @@ function Compare-IntuneDeployedScript {
     Write-Verbose ("Starting $($MyInvocation.MyCommand.Name) against $Path for $($Kind -join ', ') named " +
         "$($Name -join ', ')$(if ($Id) { " or with id $($Id -join ', ')" })")
 
-    $root = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    try {
+        $root = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     if (-not (Test-Path -LiteralPath $root -PathType Container)) {
-        throw "Path must be a folder holding the local scripts: $Path"
+        $recordSplat = @{
+            Message = "Path must be a folder holding the local scripts: $Path"
+            ErrorId = 'LocalPathNotFolder'
+            Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+            TargetObject = $Path
+            ExceptionType = [System.ArgumentException]
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
     }
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.ps1')
     $folders = @(Get-Item -LiteralPath $root) + @(Get-ChildItem -LiteralPath $root -Recurse -Directory)
@@ -344,123 +355,158 @@ function Compare-IntuneDeployedScript {
     try {
         if ('Remediation' -in $Kind) {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
-            foreach ($summary in (Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")) {
-                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
-                $policy = Invoke-IslGraphRequest -Uri "$remediations/$summaryId"
-                $policySettings = @{
-                    RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
-                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
-                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
+            try {
+                $summaries = @(Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($_)
+            }
+            foreach ($summary in $summaries) {
+                # A read that fails ends the command. What one policy gives is written after its try, so
+                # that an error of a command further down the pipeline is not caught here
+                $policyOutput = try {
+                    $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                    $policy = Invoke-IslGraphRequest -Uri "$remediations/$summaryId"
+                    $enforceSignature = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
+                    $policySettings = @{
+                        RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
+                        RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                        EnforceSignatureCheck = $enforceSignature
+                    }
+                    $detectSplat = @{
+                        PolicyKind = 'Remediation'
+                        Policy = $policy
+                        Role = 'detection'
+                        Content = Get-IslPropertyValue -InputObject $policy -Name 'detectionScriptContent'
+                        Candidates = Find-LocalFile -Policy $policy -Role 'detection' -Pattern '^(?i)detect'
+                    }
+                    Compare-Role @detectSplat @policySettings
+                    $remediateSplat = @{
+                        PolicyKind = 'Remediation'
+                        Policy = $policy
+                        Role = 'remediation'
+                        Content = Get-IslPropertyValue -InputObject $policy -Name 'remediationScriptContent'
+                        Candidates = Find-LocalFile -Policy $policy -Role 'remediation' -Pattern '^(?i)remediat'
+                    }
+                    Compare-Role @remediateSplat @policySettings
+                } catch {
+                    $PSCmdlet.ThrowTerminatingError($_)
                 }
-                $detectSplat = @{
-                    PolicyKind = 'Remediation'
-                    Policy = $policy
-                    Role = 'detection'
-                    Content = Get-IslPropertyValue -InputObject $policy -Name 'detectionScriptContent'
-                    Candidates = Find-LocalFile -Policy $policy -Role 'detection' -Pattern '^(?i)detect'
-                }
-                Compare-Role @detectSplat @policySettings
-                $remediateSplat = @{
-                    PolicyKind = 'Remediation'
-                    Policy = $policy
-                    Role = 'remediation'
-                    Content = Get-IslPropertyValue -InputObject $policy -Name 'remediationScriptContent'
-                    Candidates = Find-LocalFile -Policy $policy -Role 'remediation' -Pattern '^(?i)remediat'
-                }
-                Compare-Role @remediateSplat @policySettings
+                $policyOutput
             }
         }
 
         if ('PlatformScript' -in $Kind) {
             $scripts = '/beta/deviceManagement/deviceManagementScripts'
-            foreach ($summary in (Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")) {
-                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
-                $policy = Invoke-IslGraphRequest -Uri "$scripts/$summaryId"
-                $scriptSplat = @{
-                    PolicyKind = 'PlatformScript'
-                    Policy = $policy
-                    Role = 'script'
-                    Content = Get-IslPropertyValue -InputObject $policy -Name 'scriptContent'
-                    RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
-                    RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
-                    EnforceSignatureCheck = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
-                    Candidates = Find-LocalFile -Policy $policy -Role 'script'
+            try {
+                $summaries = @(Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($_)
+            }
+            foreach ($summary in $summaries) {
+                $policyOutput = try {
+                    $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                    $policy = Invoke-IslGraphRequest -Uri "$scripts/$summaryId"
+                    $enforceSignature = Get-IslPropertyValue -InputObject $policy -Name 'enforceSignatureCheck'
+                    $scriptSplat = @{
+                        PolicyKind = 'PlatformScript'
+                        Policy = $policy
+                        Role = 'script'
+                        Content = Get-IslPropertyValue -InputObject $policy -Name 'scriptContent'
+                        RunAsAccount = Get-IslPropertyValue -InputObject $policy -Name 'runAsAccount'
+                        RunAs32Bit = Get-IslPropertyValue -InputObject $policy -Name 'runAs32Bit'
+                        EnforceSignatureCheck = $enforceSignature
+                        Candidates = Find-LocalFile -Policy $policy -Role 'script'
+                    }
+                    Compare-Role @scriptSplat
+                } catch {
+                    $PSCmdlet.ThrowTerminatingError($_)
                 }
-                Compare-Role @scriptSplat
+                $policyOutput
             }
         }
 
         if ('Win32App' -in $Kind) {
             $apps = '/beta/deviceAppManagement/mobileApps'
             $listUri = "$apps`?`$filter=isof('microsoft.graph.win32LobApp')&`$select=id,displayName"
-            foreach ($summary in (Get-WantedPolicy -Uri $listUri)) {
-                $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
-                $app = Invoke-IslGraphRequest -Uri "$apps/$summaryId"
-                $scriptType = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
-                $detectionRules = @(
-                    Get-IslPropertyValue -InputObject $app -Name 'detectionRules' | Where-Object {
-                        "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $scriptType
-                    })
-                $detectionFiles = @(Find-LocalFile -Policy $app -Role 'detection' -Pattern '^(?i)detect')
-                for ($index = 0; $index -lt $detectionRules.Count; $index++) {
-                    $candidateSplat = @{
-                        Files = $detectionFiles; RuleCount = $detectionRules.Count; Index = $index
+            try {
+                $summaries = @(Get-WantedPolicy -Uri $listUri)
+            } catch {
+                $PSCmdlet.ThrowTerminatingError($_)
+            }
+            foreach ($summary in $summaries) {
+                $policyOutput = try {
+                    $summaryId = Get-IslPropertyValue -InputObject $summary -Name 'id'
+                    $app = Invoke-IslGraphRequest -Uri "$apps/$summaryId"
+                    $scriptType = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
+                    $detectionRules = @(
+                        Get-IslPropertyValue -InputObject $app -Name 'detectionRules' | Where-Object {
+                            "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $scriptType
+                        })
+                    $detectionFiles = @(Find-LocalFile -Policy $app -Role 'detection' -Pattern '^(?i)detect')
+                    for ($index = 0; $index -lt $detectionRules.Count; $index++) {
+                        $candidateSplat = @{
+                            Files = $detectionFiles; RuleCount = $detectionRules.Count; Index = $index
+                        }
+                        $candidates = Select-Candidate @candidateSplat
+                        $rule = $detectionRules[$index]
+                        $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
+                        $detectSplat = @{
+                            PolicyKind = 'Win32App'
+                            Policy = $app
+                            Role = 'detection'
+                            Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                            Candidates = $candidates
+                            RunAsAccount = 'system'
+                            RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                            EnforceSignatureCheck = $signatureCheck
+                            HasContext = $false
+                        }
+                        Compare-Role @detectSplat
                     }
-                    $candidates = Select-Candidate @candidateSplat
-                    $rule = $detectionRules[$index]
-                    $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
-                    $detectSplat = @{
-                        PolicyKind = 'Win32App'
-                        Policy = $app
-                        Role = 'detection'
-                        Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
-                        Candidates = $candidates
-                        RunAsAccount = 'system'
-                        RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
-                        EnforceSignatureCheck = $signatureCheck
-                        HasContext = $false
+                    if ($detectionRules.Count -eq 0 -and $detectionFiles.Count -gt 0) {
+                        $noRuleSplat = @{
+                            PolicyKind = 'Win32App'; Policy = $app; Role = 'detection'; Content = ''
+                            Candidates = $detectionFiles
+                        }
+                        Compare-Role @noRuleSplat
                     }
-                    Compare-Role @detectSplat
+                    $requirementType = '#microsoft.graph.win32LobAppPowerShellScriptRequirement'
+                    $requirementRules = @(
+                        Get-IslPropertyValue -InputObject $app -Name 'requirementRules' | Where-Object {
+                            "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $requirementType
+                        })
+                    $requirementFind = @{ Policy = $app; Role = 'requirement'; Pattern = '^(?i)requirement' }
+                    $requirementFiles = @(Find-LocalFile @requirementFind)
+                    if ($requirementRules.Count -eq 0) {
+                        $noRuleSplat = @{
+                            PolicyKind = 'Win32App'; Policy = $app; Role = 'requirement'; Content = ''
+                            Candidates = $requirementFiles
+                        }
+                        Compare-Role @noRuleSplat
+                    }
+                    for ($index = 0; $index -lt $requirementRules.Count; $index++) {
+                        $candidateSplat = @{
+                            Files = $requirementFiles; RuleCount = $requirementRules.Count; Index = $index
+                        }
+                        $candidates = Select-Candidate @candidateSplat
+                        $rule = $requirementRules[$index]
+                        $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
+                        $requirementSplat = @{
+                            PolicyKind = 'Win32App'
+                            Policy = $app
+                            Role = 'requirement'
+                            Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
+                            Candidates = $candidates
+                            RunAsAccount = Get-IslPropertyValue -InputObject $rule -Name 'runAsAccount'
+                            RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
+                            EnforceSignatureCheck = $signatureCheck
+                        }
+                        Compare-Role @requirementSplat
+                    }
+                } catch {
+                    $PSCmdlet.ThrowTerminatingError($_)
                 }
-                if ($detectionRules.Count -eq 0 -and $detectionFiles.Count -gt 0) {
-                    $noRuleSplat = @{
-                        PolicyKind = 'Win32App'; Policy = $app; Role = 'detection'; Content = ''
-                        Candidates = $detectionFiles
-                    }
-                    Compare-Role @noRuleSplat
-                }
-                $requirementType = '#microsoft.graph.win32LobAppPowerShellScriptRequirement'
-                $requirementRules = @(
-                    Get-IslPropertyValue -InputObject $app -Name 'requirementRules' | Where-Object {
-                        "$(Get-IslPropertyValue -InputObject $_ -Name '@odata.type')" -eq $requirementType
-                    })
-                $requirementFiles = @(Find-LocalFile -Policy $app -Role 'requirement' -Pattern '^(?i)requirement')
-                if ($requirementRules.Count -eq 0) {
-                    $noRuleSplat = @{
-                        PolicyKind = 'Win32App'; Policy = $app; Role = 'requirement'; Content = ''
-                        Candidates = $requirementFiles
-                    }
-                    Compare-Role @noRuleSplat
-                }
-                for ($index = 0; $index -lt $requirementRules.Count; $index++) {
-                    $candidateSplat = @{
-                        Files = $requirementFiles; RuleCount = $requirementRules.Count; Index = $index
-                    }
-                    $candidates = Select-Candidate @candidateSplat
-                    $rule = $requirementRules[$index]
-                    $signatureCheck = Get-IslPropertyValue -InputObject $rule -Name 'enforceSignatureCheck'
-                    $requirementSplat = @{
-                        PolicyKind = 'Win32App'
-                        Policy = $app
-                        Role = 'requirement'
-                        Content = Get-IslPropertyValue -InputObject $rule -Name 'scriptContent'
-                        Candidates = $candidates
-                        RunAsAccount = Get-IslPropertyValue -InputObject $rule -Name 'runAsAccount'
-                        RunAs32Bit = Get-IslPropertyValue -InputObject $rule -Name 'runAs32Bit'
-                        EnforceSignatureCheck = $signatureCheck
-                    }
-                    Compare-Role @requirementSplat
-                }
+                $policyOutput
             }
         }
 
