@@ -258,4 +258,53 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             [System.Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3) | Should-Be $text
         }
     }
+
+    Context 'Error Handling' {
+        It 'reports a path that does not exist and still repairs the others' {
+            $body = "if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n"
+            $path = New-TestScript 'Remediations\Mixed\Detect.ps1' $body -Bom
+            $missing = Join-Path $TestDrive 'not-there.ps1'
+
+            $output = Repair-IntuneScript -Path $missing, $path -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $repairs = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'PathNotFound,*'
+            $repairs | Should-BeCollection -Count 1
+            $repairs[0].Path | Should-Be $path
+            $repairs[0].Written | Should-BeTrue
+        }
+
+        It 'reports a script it cannot write and still repairs the next one' {
+            $body = "if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n"
+            $locked = New-TestScript 'Remediations\ReadOnly\Detect.ps1' $body -Bom
+            $open = New-TestScript 'Remediations\Writable\Detect.ps1' $body -Bom
+            Set-ItemProperty -LiteralPath $locked -Name IsReadOnly -Value $true
+            try {
+                $output = Repair-IntuneScript -Path $locked, $open -ErrorAction Continue 2>&1
+            } finally {
+                Set-ItemProperty -LiteralPath $locked -Name IsReadOnly -Value $false
+            }
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $repairs = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].Exception.GetBaseException() | Should-HaveType ([System.UnauthorizedAccessException])
+            $repairs | Should-BeCollection -Count 1
+            $repairs[0].Path | Should-Be $open
+            $repairs[0].Written | Should-BeTrue
+        }
+
+        It 'ends at the script it cannot write when the caller asks it to stop' {
+            $body = "if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n"
+            $locked = New-TestScript 'Remediations\ReadOnlyStop\Detect.ps1' $body -Bom
+            Set-ItemProperty -LiteralPath $locked -Name IsReadOnly -Value $true
+            try {
+                { Repair-IntuneScript -Path $locked -ErrorAction Stop } | Should-Throw
+            } finally {
+                Set-ItemProperty -LiteralPath $locked -Name IsReadOnly -Value $false
+            }
+        }
+    }
 }

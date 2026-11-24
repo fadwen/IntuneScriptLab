@@ -53,13 +53,29 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
     Context 'Parameter Validation' {
         It 'refuses a comparison without an operator and value' {
+            $expected = @{
+                FullyQualifiedErrorId = 'RuleOperatorMissing,*'; ExceptionMessage = '*-Operator and -Value*'
+            }
             { Test-IntuneWin32Rule -Path $script:Fixtures -FileOrFolderName 'big.bin' -FileOperation SizeInMB } |
-                Should-Throw -ExceptionMessage '*-Operator and -Value*'
+                Should-Throw @expected
         }
 
         It 'refuses a registry key path without a hive' {
             { Test-IntuneWin32Rule -KeyPath 'SOFTWARE\X' -RegistryOperation Exists } |
-                Should-Throw -ExceptionMessage '*hive*'
+                Should-Throw -FullyQualifiedErrorId 'RegistryHiveUnknown,*' -ExceptionMessage '*hive*'
+        }
+
+        It 'ends with the error of a rule it cannot read' {
+            { Test-IntuneWin32Rule -Rule @{ Path = 'C:\x' } } |
+                Should-Throw -FullyQualifiedErrorId 'RuleTypeUnknown,*'
+            $scriptRule = @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptRule' }
+            { Test-IntuneWin32Rule -Rule $scriptRule } | Should-Throw -FullyQualifiedErrorId 'RuleIsScript,*'
+        }
+
+        It 'ends with the error of the parameters when a rule in a hashtable leaves a value out' {
+            $sizeRule = @{ Type = 'File'; Path = 'C:\x'; FileOrFolderName = 'big.bin'; OperationType = 'SizeInMB' }
+            { Test-IntuneWin32Rule -Rule $sizeRule } |
+                Should-Throw -FullyQualifiedErrorId 'RuleOperatorMissing,*'
         }
 
         It 'limits the operations and operators' {
@@ -319,7 +335,8 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
                 Operator          = 'Equal'
                 Value             = 'x'
             }
-            { Test-IntuneWin32Rule @intuneWin32RuleSplat2 } | Should-Throw -ExceptionMessage '*-ValueName*'
+            { Test-IntuneWin32Rule @intuneWin32RuleSplat2 } |
+                Should-Throw -FullyQualifiedErrorId 'RuleValueNameMissing,*' -ExceptionMessage '*-ValueName*'
         }
 
         It 'reads the 32-bit view with the switch (W32-REG-VIEW-64, W32-REG-VIEW-32)' -Skip:(

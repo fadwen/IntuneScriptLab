@@ -40,6 +40,20 @@ Describe 'Assert-PassIntuneAnalysis' -Tag 'Unit', 'Public' {
             $message | Should-NotBeLikeString '*Detect-Clean.ps1:*'
         }
 
+        It 'fails for a path that is not there, where it would pass on nothing analyzed' {
+            $missing = Join-Path $TestDrive 'not-there.ps1'
+
+            { $missing | Should-PassIntuneAnalysis } | Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
+        }
+
+        It 'says that Pester 6.2 is needed when New-ShouldAssertion is not there' {
+            $assertionCommand = { $Name -eq 'New-ShouldAssertion' }
+            Mock Get-Command -ModuleName IntuneScriptLab { $null } -ParameterFilter $assertionCommand
+
+            { $script:Clean | Should-PassIntuneAnalysis } |
+                Should-Throw -FullyQualifiedErrorId 'PesterAssertionNotSupported,*'
+        }
+
         It 'limits MinimumSeverity and ScriptType to the analyzer values' {
             $command = Get-Command Assert-PassIntuneAnalysis
             $command.Parameters['MinimumSeverity'].Attributes.ValidValues |

@@ -66,6 +66,13 @@ And a file named IntuneScriptLab.settings.psd1 in the scripts' folder or any fol
 (the nearest wins) carries the exclusions, severity overrides and default type, context,
 architecture and signature check a team would otherwise repeat on every call; see -Settings.
 
+A path that is not there, and a script that cannot be analyzed, as when the settings file
+above it has a value that is not allowed, are each reported as an error for that one item, and
+the other scripts are still analyzed.
+-ErrorAction Stop ends the command at the first such error; a script that gates a build on the
+findings needs it, or it passes on scripts that were never analyzed.
+A -Settings argument that is wrong ends the command before any script is analyzed.
+
 ## EXAMPLES
 
 ### EXAMPLE 1
@@ -84,11 +91,18 @@ Only the findings that will make a Win32 detection rule report "not detected".
 
 ### EXAMPLE 3
 
-Get-ChildItem .\Remediations -Recurse -Filter *.ps1 | Test-IntuneScript -MinimumSeverity Warning
+$ErrorActionPreference = 'Stop'
+$findings = @(Get-ChildItem .\Remediations -Recurse -Filter *.ps1 |
+    Test-IntuneScript -MinimumSeverity Warning -ErrorAction Stop)
+if ($findings.Count -gt 0) { exit 1 }
 
-Analyzes a whole folder, letting each file's name decide its type, and fails a CI step
-when anything comes back: `if (Test-IntuneScript ...
-) { exit 1 }`.
+Analyzes a whole folder, letting each file's name decide its type, and fails a CI step when
+anything comes back.
+-ErrorAction Stop ends the analysis at a script it cannot read, so the step fails instead of
+passing on scripts that were never analyzed; without it, such a script is reported as an error
+and the others are still analyzed.
+The preference is needed as well: -ErrorAction Stop ends only the statement that holds the
+call, and the script ends with it only under an error preference of Stop.
 
 ### EXAMPLE 4
 

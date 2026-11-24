@@ -41,6 +41,15 @@ function Get-IslWindowsReleaseBuild {
         'Windows11_24H2' = 26100
         'Windows11_25H2' = 26200
     }
-    if (-not $builds.ContainsKey($Release)) { throw "Unknown Windows release '$Release'" }
+    if (-not $builds.ContainsKey($Release)) {
+        $recordSplat = @{
+            Message = "Unknown Windows release '$Release'"
+            ErrorId = 'WindowsReleaseUnknown'
+            Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+            TargetObject = $Release
+            ExceptionType = [System.ArgumentException]
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+    }
     $builds[$Release]
 }

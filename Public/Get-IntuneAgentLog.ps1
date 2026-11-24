@@ -80,9 +80,22 @@ function Get-IntuneAgentLog {
         All           = '*.log'
     }
     # Each path is one item of the input. One that cannot be resolved is reported, and the others
-    # are still read
+    # are still read. A path that is not there is tested first and reported once: an error that
+    # Resolve-Path raised and this command caught would also reach a caller's -ErrorVariable
     $unresolved = 0
     $files = foreach ($item in $Path) {
+        if (-not (Test-Path -LiteralPath $item)) {
+            $unresolved++
+            $recordSplat = @{
+                Message = "Cannot find path '$item' because it does not exist."
+                ErrorId = 'PathNotFound'
+                Category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                TargetObject = $item
+                ExceptionType = [System.Management.Automation.ItemNotFoundException]
+            }
+            $PSCmdlet.WriteError((New-IslErrorRecord @recordSplat))
+            continue
+        }
         try {
             $resolved = (Resolve-Path -LiteralPath $item -ErrorAction Stop).ProviderPath
         } catch {

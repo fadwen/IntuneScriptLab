@@ -176,7 +176,10 @@ $scriptFiles = @(foreach ($item in $Path) {
             else { $resolved.ProviderPath }
         }
     })
-$testSplat = @{ Path = $scriptFiles; ScriptType = $ScriptType }
+# -ErrorAction Stop: the analysis reports a script it cannot read and goes on with the others,
+# and a gate must not pass on scripts that were not analyzed. The preference set above does not
+# reach a module's command unless this script runs in the global scope
+$testSplat = @{ Path = $scriptFiles; ScriptType = $ScriptType; ErrorAction = 'Stop' }
 if ($PSBoundParameters.ContainsKey('Settings')) { $testSplat.Settings = $Settings }
 if ($IncludeRule) { $testSplat.IncludeRule = $IncludeRule }
 if ($ExcludeRule) { $testSplat.ExcludeRule = $ExcludeRule }

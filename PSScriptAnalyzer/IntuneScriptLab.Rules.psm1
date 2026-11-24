@@ -35,7 +35,7 @@ function Get-IslAnalysis {
         $item = Get-Item -LiteralPath $file -ErrorAction Stop
         $key = "$($item.FullName)|$($item.LastWriteTimeUtc.Ticks)|$($item.Length)"
         if (-not $script:AnalysisCache.ContainsKey($key)) {
-            $script:AnalysisCache[$key] = @(Test-IntuneScript -Path $item.FullName)
+            $script:AnalysisCache[$key] = @(Test-IntuneScript -Path $item.FullName -ErrorAction Stop)
         }
         return $script:AnalysisCache[$key]
     }
@@ -54,7 +54,7 @@ function Get-IslAnalysis {
         $temp = Join-Path -Path $folder -ChildPath "definition-$([guid]::NewGuid().ToString('N')).ps1"
         try {
             [System.IO.File]::WriteAllText($temp, $text, [System.Text.UTF8Encoding]::new($true))
-            $script:AnalysisCache[$key] = @(Test-IntuneScript -Path $temp)
+            $script:AnalysisCache[$key] = @(Test-IntuneScript -Path $temp -ErrorAction Stop)
         }
         finally {
             Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue

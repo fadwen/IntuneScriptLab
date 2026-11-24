@@ -65,8 +65,24 @@ function ConvertFrom-IslRuleSpec {
             }
             if ($null -ne $Rule['ProductVersion']) { $value = "$($Rule['ProductVersion'])" }
         }
-        'Script' { throw 'A PowerShell script rule is run with Invoke-IntuneDetectionTest, not evaluated here' }
-        default { throw "Rule needs a Type of File, Registry or ProductCode (or a win32LobApp*Rule @odata.type)" }
+        'Script' {
+            $recordSplat = @{
+                Message = 'A PowerShell script rule is run with Invoke-IntuneDetectionTest, not evaluated here'
+                ErrorId = 'RuleIsScript'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+        }
+        default {
+            $recordSplat = @{
+                Message = 'Rule needs a Type of File, Registry or ProductCode (or a win32LobApp*Rule @odata.type)'
+                ErrorId = 'RuleTypeUnknown'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+        }
     }
     if ($operator -and $operator -ne 'notConfigured') { $splat.Operator = $operator }
     if ($null -ne $value) { $splat.Value = $value }

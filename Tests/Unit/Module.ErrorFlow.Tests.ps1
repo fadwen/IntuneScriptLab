@@ -11,9 +11,9 @@
     travels all the way up. So the rule is checked as a rule: no call to a function that can end
     with ThrowTerminatingError outside a try with a catch.
 
-    The module is being moved from throw to ThrowTerminatingError one area at a time (#64). The
-    calls that still rely on a throw in the function they call are listed below, and the list has
-    to match what is in the code exactly, so it shrinks with every area that is converted.
+    The module was moved from throw to ThrowTerminatingError one area at a time (#64), with a
+    list here of the calls that still relied on a throw. The list is empty now and gone: a call
+    to a function that can fail, by either means, has to be inside a try with a catch.
 #>
 
 BeforeAll {
@@ -28,8 +28,8 @@ BeforeAll {
             Every function of Public, Private and Private\Rules is a node, and so is every function
             nested in one of them. A node can fail when it has a throw outside a try with a catch,
             when it calls ThrowTerminatingError, or when it makes an unguarded call to a node that
-            can fail. Returns one object for each unguarded call to a node that can fail, with
-            Caller, Callee, Call (both names) and EndsQuietly: whether the callee ends with
+            can fail. Returns one object for each call to a node that can fail, with Caller,
+            Callee, Call (both names), Guarded, and EndsQuietly: whether the callee ends with
             ThrowTerminatingError, which lets the caller carry on.
 
             A call is guarded when it is inside a try that has a catch. A call made in a nested
@@ -173,10 +173,11 @@ BeforeAll {
             }
         } while ($changed)
 
+        # One line for each pair of names, and an unguarded call wins over a guarded one
         $seen = @{}
-        foreach ($call in $calls) {
+        foreach ($call in ($calls | Sort-Object -Property Guarded)) {
             $text = "$($call.Caller) -> $($call.Callee)"
-            if ($call.Guarded -or -not $canFail.ContainsKey($call.Callee) -or $seen.ContainsKey($text)) {
+            if (-not $canFail.ContainsKey($call.Callee) -or $seen.ContainsKey($text)) {
                 continue
             }
             $seen[$text] = $true
@@ -184,51 +185,103 @@ BeforeAll {
                 Caller = $call.Caller
                 Callee = $call.Callee
                 Call = $text
+                Guarded = $call.Guarded
                 EndsQuietly = $endsQuietly.ContainsKey($call.Callee)
             }
         }
     }
 
-    $script:Unguarded = @(Get-ErrorFlowCall -ModuleRoot $script:ModuleRoot)
+    $script:Calls = @(Get-ErrorFlowCall -ModuleRoot $script:ModuleRoot)
 }
 
 Describe 'How a failure travels through the module' -Tag 'Unit', 'Contract' {
 
     It 'finds the module''s functions and the calls between them' {
-        # Guards the two tests below against an analysis that found nothing to check
-        $script:Unguarded.Count | Should-BeGreaterThan 0
-        @($script:Unguarded | Where-Object { $_.Caller -eq 'Get-IntuneAgentTimeline' }) |
-            Should-BeCollection -Count 0
+        # Guards the test below against an analysis that found nothing to check
+        $script:Calls.Count | Should-BeGreaterThan 40
+        $launchCall = 'Invoke-IntuneDetectionTest -> Invoke-IslScriptRun'
+        $launch = @($script:Calls | Where-Object { $_.Call -eq $launchCall })
+        $launch | Should-BeCollection -Count 1
+        $launch[0].Guarded | Should-BeTrue
+        $launch[0].EndsQuietly | Should-BeTrue
     }
 
-    It 'never calls a function that ends with ThrowTerminatingError outside a try with a catch' {
-        # The caller would carry on with nothing where the result should be
-        $quiet = @($script:Unguarded | Where-Object { $_.EndsQuietly } | ForEach-Object { $_.Call } | Sort-Object)
+    It 'never calls a function that can fail outside a try with a catch' {
+        # After a function that ends with ThrowTerminatingError, the caller would carry on with
+        # nothing where the result should be
+        $unguarded = @($script:Calls | Where-Object { -not $_.Guarded } | ForEach-Object { $_.Call } | Sort-Object)
 
-        $quiet | Should-BeCollection @()
+        $unguarded | Should-BeCollection @()
+    }
+}
+
+Describe 'The analysis itself, on a module of four functions' -Tag 'Unit', 'Contract' {
+
+    BeforeAll {
+        $root = Join-Path $TestDrive 'SampleModule'
+        foreach ($folder in 'Public', 'Private', 'Private\Rules') {
+            $null = New-Item -ItemType Directory -Path (Join-Path $root $folder) -Force
+        }
+        $files = @{
+            'Private\Get-Inner.ps1' = @'
+function Get-Inner {
+    [CmdletBinding()]
+    param()
+    $PSCmdlet.ThrowTerminatingError($record)
+}
+'@
+            'Public\Get-Careless.ps1' = @'
+function Get-Careless {
+    [CmdletBinding()]
+    param()
+    try { $value = Get-Inner } finally { $null = $value }
+}
+'@
+            'Public\Get-Careful.ps1' = @'
+function Get-Careful {
+    [CmdletBinding()]
+    param()
+    function Get-Nested { Get-Inner }
+    try { Get-Nested } catch { $PSCmdlet.ThrowTerminatingError($_) }
+}
+'@
+            'Public\Get-HalfCareful.ps1' = @'
+function Get-HalfCareful {
+    [CmdletBinding()]
+    param()
+    function Get-Nested { Get-Inner }
+    try { Get-Nested } catch { $PSCmdlet.ThrowTerminatingError($_) }
+    Get-Nested
+}
+'@
+        }
+        foreach ($name in $files.Keys) {
+            Set-Content -LiteralPath (Join-Path $root $name) -Value $files[$name] -Encoding ascii
+        }
+        $script:Sample = @(Get-ErrorFlowCall -ModuleRoot $root)
     }
 
-    It 'lists every call that still relies on a throw in the function it calls, and no other' {
-        # Not yet converted (#64). A line goes when its caller gets the try and the catch; a new
-        # line is a call that was added without them
-        $pending = @(
-            'Assert-BeIntuneApplicable -> Test-IslPesterAssertionSupport'
-            'Assert-BeIntuneDetected -> Test-IslPesterAssertionSupport'
-            'Assert-HaveIntuneRunState -> Test-IslPesterAssertionSupport'
-            'Assert-HaveIntuneStatus -> Test-IslPesterAssertionSupport'
-            'Assert-NotBeIntuneApplicable -> Test-IslPesterAssertionSupport'
-            'Assert-NotBeIntuneDetected -> Test-IslPesterAssertionSupport'
-            'Assert-PassIntuneAnalysis -> Test-IntuneScript'
-            'Assert-PassIntuneAnalysis -> Test-IslPesterAssertionSupport'
-            'Get-IslSetting -> Get-IslSetting::ConvertTo-SettingsObject'
-            'Repair-IntuneScript -> Test-IntuneScript'
-            'Test-IntuneScript -> Get-IslSetting'
-            'Test-IntuneWin32Requirement -> Get-IslWindowsReleaseBuild'
-            'Test-IntuneWin32Rule -> ConvertFrom-IslRuleSpec'
-        )
-        $relying = @($script:Unguarded | Where-Object { -not $_.EndsQuietly } | ForEach-Object { $_.Call })
+    It 'reports a call that has only a finally around it' {
+        $call = @($script:Sample | Where-Object { $_.Call -eq 'Get-Careless -> Get-Inner' })
 
-        @($relying | Where-Object { $_ -notin $pending } | Sort-Object) | Should-BeCollection @()
-        @($pending | Where-Object { $_ -notin $relying } | Sort-Object) | Should-BeCollection @()
+        $call | Should-BeCollection -Count 1
+        $call[0].Guarded | Should-BeFalse
+        $call[0].EndsQuietly | Should-BeTrue
+    }
+
+    It 'accepts a call in a nested function when every call of that nested function is guarded' {
+        $nested = @($script:Sample | Where-Object { $_.Caller -like 'Get-Careful*' })
+
+        $nested.Count | Should-BeGreaterThan 0
+        @($nested | Where-Object { -not $_.Guarded }) | Should-BeCollection @()
+    }
+
+    It 'reports the call in a nested function when one call of that nested function is not guarded' {
+        $unguarded = @($script:Sample | Where-Object { $_.Caller -like 'Get-HalfCareful*' -and -not $_.Guarded } |
+                ForEach-Object { $_.Call } | Sort-Object)
+
+        $unguarded | Should-BeCollection -Count 2
+        $unguarded[0] | Should-Be 'Get-HalfCareful -> Get-HalfCareful::Get-Nested'
+        $unguarded[1] | Should-Be 'Get-HalfCareful::Get-Nested -> Get-Inner'
     }
 }

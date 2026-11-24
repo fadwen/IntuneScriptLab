@@ -54,11 +54,21 @@ function Test-IntuneWin32Rule {
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) ($($PSCmdlet.ParameterSetName))"
 
+    $argumentError = @{
+        Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+        ExceptionType = [System.ArgumentException]
+    }
     if ($PSCmdlet.ParameterSetName -eq 'Rule') {
-        $splat = ConvertFrom-IslRuleSpec -Rule $Rule
-        if ($Rule.ContainsKey('RuleType') -and $Rule.RuleType) { $splat.RuleType = $Rule.RuleType }
-        else { $splat.RuleType = $RuleType }
-        return Test-IntuneWin32Rule @splat
+        # A rule that cannot be read, or that the parameters refuse, ends this call as well
+        try {
+            $splat = ConvertFrom-IslRuleSpec -Rule $Rule
+            if ($Rule.ContainsKey('RuleType') -and $Rule.RuleType) { $splat.RuleType = $Rule.RuleType }
+            else { $splat.RuleType = $RuleType }
+            $ruleResult = Test-IntuneWin32Rule @splat
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+        return $ruleResult
     }
 
     $kind = $PSCmdlet.ParameterSetName
@@ -82,10 +92,14 @@ function Test-IntuneWin32Rule {
     }
     $needsValue = $operation -notin 'Exists', 'DoesNotExist'
     if ($needsValue -and -not $Operator) {
-        throw "A $kind $operation rule needs -Operator and -Value"
+        $message = "A $kind $operation rule needs -Operator and -Value"
+        $record = New-IslErrorRecord -Message $message -ErrorId 'RuleOperatorMissing' @argumentError
+        $PSCmdlet.ThrowTerminatingError($record)
     }
     if ($needsValue -and -not $PSBoundParameters.ContainsKey('Value')) {
-        throw "A $kind $operation rule needs -Value"
+        $message = "A $kind $operation rule needs -Value"
+        $record = New-IslErrorRecord -Message $message -ErrorId 'RuleValueMissing' @argumentError
+        $PSCmdlet.ThrowTerminatingError($record)
     }
 
     switch ($kind) {
@@ -174,7 +188,11 @@ function Test-IntuneWin32Rule {
                 '^(HKEY_CLASSES_ROOT|HKCR)$' { 'ClassesRoot' }
                 '^(HKEY_USERS|HKU)$' { 'Users' }
                 '^(HKEY_CURRENT_CONFIG|HKCC)$' { 'CurrentConfig' }
-                default { throw "Registry key path must start with a hive (HKEY_LOCAL_MACHINE\...): $KeyPath" }
+                default {
+                    $message = "Registry key path must start with a hive (HKEY_LOCAL_MACHINE\...): $KeyPath"
+                    $record = New-IslErrorRecord -Message $message -ErrorId 'RegistryHiveUnknown' @argumentError
+                    $PSCmdlet.ThrowTerminatingError($record)
+                }
             }
             $result.Target = if ($ValueName) { "$KeyPath : $ValueName" } else { $KeyPath }
             $viewLabel = if ($view -eq 'Registry32') { '32-bit view' } else { '64-bit view' }
@@ -207,7 +225,13 @@ function Test-IntuneWin32Rule {
                         "in the $viewLabel (registry DoesNotExist is evaluated, W32-REG-KEY-NOTEXIST)"
                 }
                 default {
-                    if (-not $ValueName) { throw "A registry $operation rule needs -ValueName" }
+                    if (-not $ValueName) {
+                        $recordSplat = @{
+                            Message = "A registry $operation rule needs -ValueName"
+                            ErrorId = 'RuleValueNameMissing'
+                        }
+                        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat @argumentError))
+                    }
                     if (-not $valueExists) {
                         $result.Reason = "The value does not exist in the $viewLabel, so the rule is not met"
                         break

@@ -73,6 +73,10 @@ whose text no longer matches the file is skipped with a warning.
 The command supports
 -WhatIf and -Confirm; nothing is written under -WhatIf.
 
+A path that is not there, and a script that cannot be analyzed or written, are each reported
+as an error for that one item, and the other scripts are still repaired.
+-ErrorAction Stop ends the command at the first such error.
+
 ## EXAMPLES
 
 ### EXAMPLE 1

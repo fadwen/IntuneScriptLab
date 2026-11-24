@@ -65,25 +65,35 @@ function Get-IslSetting {
         $context = $Table['Context']
         $architecture = $Table['Architecture']
         $severityTable = $Table['Severity']
+        # The first value that is wrong is the one reported
+        $problem = $null
         if ($minimumSeverity -and "$minimumSeverity" -notin $validSeverities) {
-            throw "${Source}: MinimumSeverity must be one of $($validSeverities -join ', ')"
-        }
-        if ($scriptType -and "$scriptType" -notin $validTypes) {
-            throw "${Source}: ScriptType must be one of $($validTypes -join ', ')"
-        }
-        if ($context -and "$context" -notin 'System', 'User') {
-            throw "${Source}: Context must be System or User"
-        }
-        if ($architecture -and "$architecture" -notin 'x86', 'x64', 'arm64') {
-            throw "${Source}: Architecture must be x86, x64 or arm64"
+            $problem = "MinimumSeverity must be one of $($validSeverities -join ', ')"
+        } elseif ($scriptType -and "$scriptType" -notin $validTypes) {
+            $problem = "ScriptType must be one of $($validTypes -join ', ')"
+        } elseif ($context -and "$context" -notin 'System', 'User') {
+            $problem = 'Context must be System or User'
+        } elseif ($architecture -and "$architecture" -notin 'x86', 'x64', 'arm64') {
+            $problem = 'Architecture must be x86, x64 or arm64'
         }
         $severity = @{}
         $severityKeys = if ($severityTable) { @($severityTable.Keys | Where-Object { $null -ne $_ }) } else { @() }
         foreach ($key in $severityKeys) {
-            if ("$($severityTable[$key])" -notin $validSeverities) {
-                throw "${Source}: Severity for $key must be one of $($validSeverities -join ', ')"
+            if ($null -eq $problem -and "$($severityTable[$key])" -notin $validSeverities) {
+                $problem = "Severity for $key must be one of $($validSeverities -join ', ')"
             }
             $severity[$key] = "$($severityTable[$key])"
+        }
+        if ($null -ne $problem) {
+            # This nested function has no $PSCmdlet of its own. The record is thrown, and the
+            # function that holds this one ends with it
+            $recordSplat = @{
+                Message = "${Source}: $problem"
+                ErrorId = 'SettingsInvalid'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidData
+                TargetObject = $Source
+            }
+            throw (New-IslErrorRecord @recordSplat)
         }
         [pscustomobject]@{
             PSTypeName            = 'IntuneScriptLab.Settings'
@@ -102,29 +112,39 @@ function Get-IslSetting {
         }
     }
 
-    if ($null -ne $Settings) {
-        if ($Settings -is [hashtable]) { return ConvertTo-SettingsObject -Table $Settings -Source '-Settings' }
-        $file = (Resolve-Path -LiteralPath "$Settings" -ErrorAction Stop).ProviderPath
-        return ConvertTo-SettingsObject -Table (Import-PowerShellDataFile -LiteralPath $file) -Source $file
-    }
-
-    $resolved = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
-    $folder = if (Test-Path -LiteralPath $resolved -PathType Container) { $resolved }
-    else { Split-Path -Path $resolved -Parent }
-    if ($Cache.ContainsKey($folder)) { return $Cache[$folder] }
-
+    # A settings file that cannot be read, and a value in it that is wrong, end the function
     $found = $null
-    $probe = $folder
-    while ($probe) {
-        $candidate = Join-Path -Path $probe -ChildPath 'IntuneScriptLab.settings.psd1'
-        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-            $candidateTable = Import-PowerShellDataFile -LiteralPath $candidate
-            $found = ConvertTo-SettingsObject -Table $candidateTable -Source $candidate
-            break
+    try {
+        if ($Settings -is [hashtable]) {
+            $found = ConvertTo-SettingsObject -Table $Settings -Source '-Settings'
+        } elseif ($null -ne $Settings) {
+            $file = (Resolve-Path -LiteralPath "$Settings" -ErrorAction Stop).ProviderPath
+            $fileTable = Import-PowerShellDataFile -LiteralPath $file -ErrorAction Stop
+            $found = ConvertTo-SettingsObject -Table $fileTable -Source $file
+        } else {
+            $resolved = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+            $folder = if (Test-Path -LiteralPath $resolved -PathType Container) { $resolved }
+            else { Split-Path -Path $resolved -Parent }
+            if ($Cache.ContainsKey($folder)) {
+                $found = $Cache[$folder]
+            } else {
+                $probe = $folder
+                while ($probe) {
+                    $candidate = Join-Path -Path $probe -ChildPath 'IntuneScriptLab.settings.psd1'
+                    if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                        $candidateTable = Import-PowerShellDataFile -LiteralPath $candidate -ErrorAction Stop
+                        $found = ConvertTo-SettingsObject -Table $candidateTable -Source $candidate
+                        break
+                    }
+                    $probe = Split-Path -Path $probe -Parent
+                }
+                if (-not $found) { $found = ConvertTo-SettingsObject -Table @{} -Source '' }
+                $Cache[$folder] = $found
+            }
         }
-        $probe = Split-Path -Path $probe -Parent
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     }
-    if (-not $found) { $found = ConvertTo-SettingsObject -Table @{} -Source '' }
-    $Cache[$folder] = $found
+
     $found
 }

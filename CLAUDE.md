@@ -113,14 +113,18 @@ A function that ends with `$PSCmdlet.ThrowTerminatingError()` ends only itself. 
 that called it carries on at its next statement with nothing where the result should be, unless the
 call is inside a `try` that has a `catch`; a `try` with only a `finally`, a nested helper and a
 pipeline do not stop it. A `throw` ended every function above it, which is what the callers were
-written for. The module is moving from `throw` to `ThrowTerminatingError` one area at a time (#64),
-callers first: the caller gets `try { ... } catch { $PSCmdlet.ThrowTerminatingError($_) }`, then the
-function it calls is converted.
+written for until the module moved from `throw` to `ThrowTerminatingError` (#64). A new call of a
+function that can fail gets `try { ... } catch { $PSCmdlet.ThrowTerminatingError($_) }` before the
+function it calls is written to fail that way. The two `throw` statements that are left are in nested
+functions without `[CmdletBinding()]`, which have no `$PSCmdlet` of their own: one passes on the
+error it caught, the other throws a record from `New-IslErrorRecord`, and the function that holds
+each of them ends with it.
 
 `Tests/Unit/Module.ErrorFlow.Tests.ps1` holds the rule on the syntax trees, because behaviour does
 not show it: a caller that goes on with nothing often returns nothing too, and `Should-Throw` calls
-inside a `try`, where every error travels all the way up. The test lists the calls that still rely
-on a `throw`, and the list must match the code exactly. A `try` with a `catch` covers everything
+inside a `try`, where every error travels all the way up. The test fails for any call of a
+function that can fail, by a `throw` or by `ThrowTerminatingError`, that is not inside a `try` with
+a `catch`, and it checks its own analysis on a sample module. A `try` with a `catch` covers everything
 called below it, so a nested function needs no `catch` of its own when every call of it is inside
 one, as in `Invoke-IntuneWin32AppTest`; the test accepts that and nothing less.
 
@@ -128,7 +132,9 @@ A command that takes several items reports one that fails with `$PSCmdlet.WriteE
 `catch` and goes on with the next, and `-ErrorAction Stop` ends it there. A module function that
 calls such a command and needs its result passes `-ErrorAction Stop`: without it the call returns
 nothing and no error ends anything. In `Invoke-IntuneWin32AppTest` a detection that returned
-nothing read as "detected". `Invoke-CallerScript` in the test helpers
+nothing read as "detected", and `Test-IntuneScript` returning nothing reads as a script without
+findings: the pre-flight, `Repair-IntuneScript`, `Should-PassIntuneAnalysis`, the PSScriptAnalyzer
+rule module and the example gate all pass `-ErrorAction Stop` to it. `Invoke-CallerScript` in the test helpers
 runs statements from a script without `try` in a new process, for what such a caller sees.
 
 A failure the module detects itself is raised with a record from `New-IslErrorRecord`, which gives

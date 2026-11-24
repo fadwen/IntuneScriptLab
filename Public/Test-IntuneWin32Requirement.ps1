@@ -56,7 +56,11 @@ function Test-IntuneWin32Requirement {
         $checks.Add((Get-Check @checkSplat))
     }
     if ($MinimumWindowsRelease) {
-        $required = Get-IslWindowsReleaseBuild -Release $MinimumWindowsRelease
+        try {
+            $required = Get-IslWindowsReleaseBuild -Release $MinimumWindowsRelease
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
         $checkSplat = @{
             Requirement = 'MinimumWindowsRelease'
             Met         = $device.Build -ge $required

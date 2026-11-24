@@ -29,4 +29,12 @@ Describe 'Get-IntuneAnalyzerRulePath' -Tag 'Unit', 'Public' {
         $source | Should-BeLikeString '*IslAssumedContext*'
         $source | Should-BeLikeString '*Export-ModuleMember*'
     }
+
+    It 'says where the rule module should be when it is not there' {
+        Mock Test-Path -ModuleName IntuneScriptLab { $false }
+
+        $failure = { Get-IntuneAnalyzerRulePath } | Should-Throw
+        $failure.FullyQualifiedErrorId | Should-BeLikeString 'AnalyzerRulesMissing,*'
+        $failure.Exception.Message | Should-BeLikeString 'The PSScriptAnalyzer rule module is missing*'
+    }
 }
