@@ -43,74 +43,6 @@ function Test-IntuneAssignmentFilter {
         $view = [ordered]@{}
         foreach ($key in @($facts.Keys | Sort-Object)) { $view[$key] = $facts[$key] }
         $deviceView = [pscustomobject]$view
-
-        function Get-VersionPart {
-            # Four numeric parts, missing ones as 0; $null when the text is not a version
-            param([string]$Text)
-            if ($Text -notmatch '^\s*\d+(\.\d+){0,3}\s*$') { return $null }
-            $parts = [System.Collections.Generic.List[long]]::new()
-            foreach ($part in ($Text.Trim() -split '\.')) { $parts.Add([long]$part) }
-            while ($parts.Count -lt 4) { $parts.Add(0) }
-            $parts.ToArray()
-        }
-
-        function Compare-Version {
-            # -1, 0 or 1 the way the filter evaluator ordered versions; $null when a side is not one
-            param([string]$Actual, [string]$Expected)
-            $left = Get-VersionPart -Text $Actual
-            $right = Get-VersionPart -Text $Expected
-            if ($null -eq $left -or $null -eq $right) { return $null }
-            for ($index = 0; $index -lt 4; $index++) {
-                if ($left[$index] -lt $right[$index]) { return -1 }
-                if ($left[$index] -gt $right[$index]) { return 1 }
-            }
-            0
-        }
-
-        function Test-Clause {
-            param($Clause)
-            $raw = if ($facts.ContainsKey($Clause.Property)) { $facts[$Clause.Property] } else { $null }
-            $actual = if ($null -eq $raw) { '' } else { "$raw" }
-            $Clause.Actual = if ($null -eq $raw) { $null } else { "$raw" }
-            $values = @(foreach ($item in @($Clause.Value)) { if ($null -ne $item) { "$item".Trim() } })
-            $expected = if ($values.Count) { $values[0] } else { '' }
-            $ignoreCase = [System.StringComparison]::OrdinalIgnoreCase
-            $order = $null
-            if ($Clause.Kind -eq 'Version') { $order = Compare-Version -Actual $actual -Expected $expected }
-            $matched = switch ($Clause.Operator) {
-                'eq' { if ($Clause.Kind -eq 'Version') { $order -eq 0 } else { $actual -eq $expected } }
-                'ne' { if ($Clause.Kind -eq 'Version') { $order -ne 0 } else { $actual -ne $expected } }
-                'in' { $values -contains $actual }
-                'notIn' { $values -notcontains $actual }
-                'startsWith' { $actual.StartsWith($expected, $ignoreCase) }
-                'contains' { $actual.IndexOf($expected, $ignoreCase) -ge 0 }
-                'notContains' { $actual.IndexOf($expected, $ignoreCase) -lt 0 }
-                'gt' { $null -ne $order -and $order -gt 0 }
-                'ge' { $null -ne $order -and $order -ge 0 }
-                'lt' { $null -ne $order -and $order -lt 0 }
-                'le' { $null -ne $order -and $order -le 0 }
-            }
-            $Clause.Matched = [bool]$matched
-            $Clause.Matched
-        }
-
-        function Test-Node {
-            param($Node)
-            switch ($Node.Type) {
-                'Clause' { Test-Clause -Clause $Node.Clause }
-                'And' {
-                    # Both sides run so every clause reports what it saw
-                    $left = Test-Node -Node $Node.Left
-                    $right = Test-Node -Node $Node.Right
-                    $left -and $right
-                }
-                'Or' {
-                    $left = Test-Node -Node $Node.Left
-                    $right = Test-Node -Node $Node.Right
-                    $left -or $right
-                }
-            }
-        }
     }
 
     process {
@@ -139,7 +71,7 @@ function Test-IntuneAssignmentFilter {
             $reason = "The rule is valid: $clauseCount clause(s), $(@($parsed.Warnings).Count) warning(s)"
         }
         else {
-            $matched = [bool](Test-Node -Node $parsed.Tree)
+            $matched = [bool](Test-IslFilterNode -Node $parsed.Tree -Facts $facts)
             $applicable = if ($Mode -eq 'Include') { $matched } else { -not $matched }
             $reason = if ($Mode -eq 'Include' -and $matched) {
                 'Included: the rule matches this device, so the assignment applies'
