@@ -46,7 +46,8 @@ function Grant-IslFolderAccess {
     }
 
     if ($result.ExitCode -ne 0) {
-        $output = @($result.StdOut, $result.StdErr | Where-Object { $_ }) -join ' '
+        # icacls writes the reason to its error stream and a count of files to its output
+        $output = @($result.StdErr, $result.StdOut | Where-Object { $_ }) -join ' '
         $recordSplat = @{
             Message = "Could not grant $Account access to ${Path}: $output"
             ErrorId = 'FolderAccessNotGranted'
