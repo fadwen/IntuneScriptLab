@@ -229,14 +229,16 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
             # After a Yes to -Confirm the preference is still Low in the command's scope, and the
             # functions it calls see it. With only -WhatIf pinned, the run folder and the copy each
             # asked again; here, where nobody can answer, they failed, and the host was started on
-            # a copy that was never made
+            # a copy that was never made. The run stays in the 32-bit host: on the ARM64 runner
+            # it is emulated, and this is the one unit test that starts it for real. Its start
+            # there took longer than 60 seconds, so the run has the commands' default of 300 (#98)
             $probe = New-MarkerScript -Name 'ConfirmLow'
             $run = Invoke-CallerScript -Statement @(
                 "`$result = & (Get-Module IntuneScriptLab) {"
                 "    param(`$Path)"
                 "    `$ConfirmPreference = 'Low'"
                 "    `$runSplat = @{ Path = `$Path; Architecture = 'x86'; Context = 'User'; Phase = 'detect' }"
-                "    Invoke-IslScriptRun @runSplat -TimeoutSeconds 60"
+                "    Invoke-IslScriptRun @runSplat -TimeoutSeconds 300"
                 "} '$($probe.Script)'"
                 "'exit code: ' + `$result.ExitCode"
             )
