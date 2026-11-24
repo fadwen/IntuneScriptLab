@@ -100,6 +100,11 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- A test of `New-IslFinding` left out a mandatory parameter and expected an error. A host that can
+  prompt asks for the value instead, so the suites waited for an answer at a console and wherever
+  the standard input stayed open. The test reads the parameters from the command now, and a new
+  test, `Tests/Unit/Module.Prompt.Tests.ps1`, fails for any call in a test file that leaves out a
+  mandatory parameter of a function of the module.
 - A test of `Get-IslAgentLogEvent` read the event table before anything had built it, so it failed
   whenever the shuffled order of the CI run put it first in its file. It builds the table first.
 - With `$WhatIfPreference` set in the caller's session, the runtime harness did neither a preview
