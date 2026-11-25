@@ -50,9 +50,9 @@ BeforeAll {
         )
 
         $path = New-TestScript $Name $Body
-        @(InModuleScope IntuneScriptLab -Parameters @{ Path = $path } {
-                Get-IslSuppression -Context (Get-IslScriptContext -Path $Path)
-            })
+        InModuleScope IntuneScriptLab -Parameters @{ Path = $path } {
+            Get-IslSuppression -Context (Get-IslScriptContext -Path $Path)
+        }
     }
 }
 

@@ -136,7 +136,36 @@ $rootPath = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd('\', '/')
 
 
 function Get-RelativePath {
-    param([string]$FullPath)
+    <#
+    .SYNOPSIS
+        Gets a path relative to the gate's root, with forward slashes.
+
+    .DESCRIPTION
+        The findings and the annotations name each file relative to -Root, the folder the script
+        resolved into $rootPath, so that GitHub can place an annotation on the file. A path outside
+        the root stays as it is.
+
+    .PARAMETER FullPath
+        The full path of an analyzed file.
+
+    .EXAMPLE
+        Get-RelativePath -FullPath (Join-Path -Path $rootPath -ChildPath 'Intune\Detect.ps1')
+
+        Returns 'Intune/Detect.ps1'.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The relative path, or the full path when it is outside the root.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$FullPath
+    )
+
     if ($FullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
         $FullPath.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
     } else { $FullPath }
@@ -180,16 +209,70 @@ function Write-GateLine {
 
 
 function ConvertTo-AnnotationText {
-    # Workflow commands take a percent-encoded message on one line
-    param([string]$Text)
+    <#
+    .SYNOPSIS
+        Encodes a message for a GitHub workflow command.
+
+    .DESCRIPTION
+        Workflow commands take a percent-encoded message on one line: '%', carriage return and line
+        feed are written as %25, %0D and %0A.
+
+    .PARAMETER Text
+        The message. Nothing, or an empty string, gives an empty string.
+
+    .EXAMPLE
+        ConvertTo-AnnotationText -Text "Line one`nLine two"
+
+        Returns 'Line one%0ALine two'.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The encoded message.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$Text
+    )
+
     $Text.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
 }
 
 
 function ConvertTo-AnnotationProperty {
-    # A property value (file=, title=) also encodes the ':' and ',' that delimit the command, or a
-    # path outside -Root, which stays absolute, ends the property list at its drive letter
-    param([string]$Text)
+    <#
+    .SYNOPSIS
+        Encodes a property value of a GitHub workflow command.
+
+    .DESCRIPTION
+        A property value (file=, title=) is encoded as a message is, and its ':' and ',' as well,
+        because they delimit the command: a path outside -Root, which stays absolute, would
+        otherwise end the property list at its drive letter.
+
+    .PARAMETER Text
+        The property value. Nothing, or an empty string, gives an empty string.
+
+    .EXAMPLE
+        ConvertTo-AnnotationProperty -Text 'C:\Scripts\Detect.ps1'
+
+        Returns 'C%3A\Scripts\Detect.ps1'.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The encoded value.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$Text
+    )
+
     (ConvertTo-AnnotationText -Text $Text).Replace(':', '%3A').Replace(',', '%2C')
 }
 

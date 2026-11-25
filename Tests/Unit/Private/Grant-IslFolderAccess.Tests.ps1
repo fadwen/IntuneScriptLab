@@ -36,7 +36,7 @@ BeforeAll {
             The error action preference in force inside the module, Continue by default.
 
         .EXAMPLE
-            Grant-Access $script:Folder $script:Me.Name
+            Grant-Access -Path $script:Folder -Account $script:Me.Name
 
             Grants the current user access to the test folder.
 
@@ -78,7 +78,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         }
         # S-1-5-32-545 is BUILTIN\Users, standing in for the account: the grant has to land on the
         # SID it was given, whatever the name passed in
-        Grant-Access $script:Folder 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
+        Grant-Access -Path $script:Folder -Account 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
         $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
             -not $_.IsInherited -and
             $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value -eq 'S-1-5-32-545'
@@ -90,7 +90,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
 
     It 'grants by the name as given when Windows does not resolve it' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        Grant-Access $script:Folder $script:Me.Name
+        Grant-Access -Path $script:Folder -Account $script:Me.Name
         $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
             -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
         }
@@ -101,7 +101,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         # Before, the backslash escaped the closing quote and icacls was handed a path with the rest
         # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        Grant-Access "$($script:Folder)\" $script:Me.Name
+        Grant-Access -Path "$($script:Folder)\" -Account $script:Me.Name
         $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
             -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
         }
@@ -116,7 +116,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         # that line alone as the message (the CI runner and the lab device both showed it)
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
         $missing = "$env:COMPUTERNAME\no-such-account-for-isl"
-        $failure = { Grant-Access $script:Folder $missing $Preference } | Should-Throw
+        $failure = { Grant-Access -Path $script:Folder -Account $missing -Preference $Preference } | Should-Throw
         $failure.Exception.Message | Should-BeLikeString "Could not grant $missing access to *No mapping*"
         $failure.FullyQualifiedErrorId | Should-BeLikeString 'FolderAccessNotGranted,*'
     }

@@ -49,7 +49,7 @@ BeforeAll {
         )
 
         $preamble = [System.Text.UTF8Encoding]::new([bool]$Bom).GetPreamble()
-        [byte[]]($preamble + [System.Text.Encoding]::UTF8.GetBytes($Text))
+        $preamble + [System.Text.Encoding]::UTF8.GetBytes($Text)
     }
 
     function script:Get-Difference {

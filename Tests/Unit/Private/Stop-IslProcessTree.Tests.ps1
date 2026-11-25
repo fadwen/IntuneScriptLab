@@ -35,12 +35,12 @@ BeforeAll {
             None.
 
         .OUTPUTS
-            System.Int32[]. The id of cmd.exe, then the id of ping.exe.
+            System.Int32. The id of cmd.exe, then the id of ping.exe.
         #>
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
             Justification = 'Starts two short-lived processes that the test ends itself.')]
         [CmdletBinding()]
-        [OutputType([int[]])]
+        [OutputType([int])]
         param()
 
         $startParameters = @{
@@ -64,7 +64,8 @@ BeforeAll {
                 $exception, 'ChildProcessNotStarted', $category, $parent.Id)
             $PSCmdlet.ThrowTerminatingError($errorRecord)
         }
-        $parent.Id, [int]$child.ProcessId
+        $parent.Id
+        [int]$child.ProcessId
     }
 
     function Wait-ProcessGone {
@@ -89,10 +90,10 @@ BeforeAll {
             None.
 
         .OUTPUTS
-            System.Int32[]. The ids of the processes that are still running.
+            System.Int32. The ids of the processes that are still running.
         #>
         [CmdletBinding()]
-        [OutputType([int[]])]
+        [OutputType([int])]
         param(
             [Parameter(Mandatory)]
             [int[]]$Id

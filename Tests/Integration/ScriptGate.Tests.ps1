@@ -104,7 +104,7 @@ BeforeAll {
         )
 
         $output = & $script:HostExe -NoProfile -NonInteractive -Command "& '$($script:Gate)' $Arguments" 2>&1
-        @($output | ForEach-Object { "$_" })
+        $output | ForEach-Object { "$_" }
     }
 }
 
