@@ -317,7 +317,8 @@ device, the agent restarted once to fetch them.
 Probe (2026-09-28, `Invoke-FilterProbe.ps1`, nothing created): 114 rules through
 `deviceManagement/assignmentFilters/validateFilter` for the Windows 10 and later platform (FLT-V,
 FLT-W, FLT-X) and 84 through `deviceManagement/evaluateAssignmentFilter`, the call behind the
-portal's Preview devices, against the two enrolled devices (FLT-E, FLT-F, FLT-Y). The evaluator
+portal's Preview devices, against the two enrolled devices (FLT-E, FLT-F, FLT-Y). Two more
+through `validateFilter` on 2026-11-25, the length cases FLT-X11 and FLT-X12, make 116. The evaluator
 returned the joined device as deviceName `KRBETYP-AIEPVQ5`, cpuArchitecture `amd64`, deviceTrustType
 `Azure AD joined`, manufacturer `QEMU`, model `Standard PC (Q35 + ICH9, 2009)`, operatingSystemSKU
 `EnterpriseSEval` (Win32_OperatingSystem SKU 129; managedDevice.skuFamily says `Enterprise`),

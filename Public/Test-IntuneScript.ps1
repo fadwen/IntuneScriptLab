@@ -21,10 +21,8 @@ function Test-IntuneScript {
         [ValidateSet('Auto', 'x86', 'x64', 'arm64')]
         [string]$Architecture = 'Auto',
 
-        [ValidateLength(0, 1000)]
         [string[]]$IncludeRule,
 
-        [ValidateLength(0, 1000)]
         [string[]]$ExcludeRule,
 
         [ValidateSet('Information', 'Warning', 'Error')]
@@ -40,6 +38,13 @@ function Test-IntuneScript {
     )
 
     begin {
+        # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+        try {
+            Assert-IslTextLength -Name 'IncludeRule' -Value $IncludeRule
+            Assert-IslTextLength -Name 'ExcludeRule' -Value $ExcludeRule
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
         $severityRank = @{ Information = 0; Warning = 1; Error = 2 }
         $settingsCache = @{}
         # -Settings is the same for every script. It is read once, and one that is wrong ends the

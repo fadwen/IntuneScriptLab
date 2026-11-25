@@ -21,16 +21,24 @@ function Repair-IntuneScript {
         [ValidateSet('Auto', 'x86', 'x64', 'arm64')]
         [string]$Architecture = 'Auto',
 
-        [ValidateLength(0, 1000)]
         [string[]]$IncludeRule,
 
-        [ValidateLength(0, 1000)]
         [string[]]$ExcludeRule,
 
         [switch]$EnforceSignatureCheck,
 
         [object]$Settings
     )
+
+    begin {
+        # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+        try {
+            Assert-IslTextLength -Name 'IncludeRule' -Value $IncludeRule
+            Assert-IslTextLength -Name 'ExcludeRule' -Value $ExcludeRule
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+    }
 
     process {
         # A path that is not there is reported, and the other paths are still repaired. It is tested

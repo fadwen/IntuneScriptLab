@@ -51,9 +51,10 @@ entries are carried over from the manifest's release notes.
   work folder. The characters of the display name are still replaced to keep the folder name
   readable (#131).
 - `-Name`, `-Id`, `-IncludeRule` and `-ExcludeRule` refuse a value of more than 1,000 characters
-  when they bind (SEC-16), and `Test-IntuneAssignmentFilter -Rule` one of more than 3,072, the
-  most the service takes: a rule of 3,073 characters is refused by Graph's `validateFilter`
-  (#130).
+  with `InputTooLong` before the command does anything (SEC-16); `$null` and an empty value still
+  mean "not given". `Test-IntuneAssignmentFilter -Rule` refuses one of more than 3,072 characters
+  when it binds, the most the service takes: a rule of 3,073 characters is refused by Graph's
+  `validateFilter` (#130).
 - Every private function has full comment-based help, the only documentation these functions
   have: a synopsis of one line and at most 80 characters, a description, an entry for each
   parameter, an example, and `.INPUTS` and `.OUTPUTS`. Each declares its output type, and
