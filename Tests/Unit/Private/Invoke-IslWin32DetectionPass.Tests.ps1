@@ -75,6 +75,30 @@ Describe 'Invoke-IslWin32DetectionPass' -Tag 'Unit', 'Private' {
         $pass.Reason | Should-Be 'Timed out after 3 s'
     }
 
+    It 'ends with DetectionRuleEmpty for a rule entry that is null, and runs nothing' {
+        $pass = @{
+            Phase = 'Pre'; Rule = @($script:MetRule, $null); Label = ' for dependency Runtime'
+            Detection = @{}; Warning = $script:Warnings
+        }
+
+        { Invoke-Pass $pass } | Should-Throw -FullyQualifiedErrorId 'DetectionRuleEmpty,*' -ExceptionMessage (
+            'Detection rule 2 for dependency Runtime is empty')
+        Should-Invoke Test-IntuneWin32Rule -ModuleName IntuneScriptLab -Times 0 -Exactly
+    }
+
+    It 'ends with DetectionRuleEmpty for rules that are all null, as an entry of -DependsOn can give' {
+        $pass = @{ Phase = 'Pre'; Rule = @($null, $null); Detection = @{}; Warning = $script:Warnings }
+
+        { Invoke-Pass $pass } | Should-Throw -FullyQualifiedErrorId 'DetectionRuleEmpty,*'
+    }
+
+    It 'ends with DetectionMissing for a pass with neither a script nor a rule' {
+        $pass = @{ Phase = 'Post'; Label = ' for superseded app Old'; Detection = @{}; Warning = $script:Warnings }
+
+        { Invoke-Pass $pass } | Should-Throw -FullyQualifiedErrorId 'DetectionMissing,*' -ExceptionMessage (
+            'The Post detection for superseded app Old has no script and no rules')
+    }
+
     It 'ends with the error of a detection script that cannot be run' {
         Mock Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab { throw 'The host could not be started.' }
 

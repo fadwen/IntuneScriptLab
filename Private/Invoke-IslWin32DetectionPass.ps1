@@ -10,8 +10,10 @@ function Invoke-IslWin32DetectionPass {
     list it is given.
 
     A script that cannot be run, or a rule that cannot be read, ends the function with its
-    error. Invoke-IntuneDetectionTest reports a script it cannot run without ending, so it is
-    called with -ErrorAction Stop: with nothing returned, the app would read as detected.
+    error. An entry of -Rule that is null ends it with DetectionRuleEmpty, and a pass with
+    neither a script nor a rule with DetectionMissing: either would read as detected.
+    Invoke-IntuneDetectionTest reports a script it cannot run without ending, so it is called
+    with -ErrorAction Stop: with nothing returned, the app would read as detected.
 
     .PARAMETER Phase
     Pre or Post, for the warnings.
@@ -71,13 +73,35 @@ function Invoke-IslWin32DetectionPass {
         [System.Collections.Generic.List[string]]$Warning
     )
 
+    # A null entry is a rule that is missing, not one to leave out
+    $entries = @(if ($null -ne $Rule) { $Rule })
+    $problem = $null
+    for ($index = 0; $index -lt $entries.Count; $index++) {
+        if ($null -eq $entries[$index]) {
+            $problem = @{ Id = 'DetectionRuleEmpty'; Text = "Detection rule $($index + 1)$Label is empty" }
+            break
+        }
+    }
+    if ($null -eq $problem -and -not $Path -and $entries.Count -eq 0) {
+        $problem = @{ Id = 'DetectionMissing'; Text = "The $Phase detection$Label has no script and no rules" }
+    }
+    if ($null -ne $problem) {
+        $recordSplat = @{
+            Message = $problem['Text']
+            ErrorId = $problem['Id']
+            Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+            TargetObject = $Rule
+        }
+        $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+    }
+
     $scriptResult = $null
     try {
         if ($Path) {
             $detectionRun = @{ Path = $Path; ErrorAction = 'Stop' }
             $scriptResult = Invoke-IntuneDetectionTest @detectionRun @Detection @script:IslInternal
         }
-        $rules = @(foreach ($entry in @($Rule | Where-Object { $_ })) {
+        $rules = @(foreach ($entry in $entries) {
                 Test-IntuneWin32Rule -Rule $entry -RuleType Detection -ErrorAction Stop
             })
     } catch {
