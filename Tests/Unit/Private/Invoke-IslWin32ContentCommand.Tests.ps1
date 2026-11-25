@@ -145,8 +145,7 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
             $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = 'setup.exe' }
             $null = Invoke-Content ($run + $script:Base + @{ Credential = $script:Account })
 
-            $runs = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
-            $script:Seen['WorkFolder'] | Should-BeLikeString "$runs\*"
+            $script:Seen['WorkFolder'] | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLabRun-*')
             $script:Seen['Granted'] | Should-Be 'LAB\tester'
             $script:Seen['Credential'].UserName | Should-Be 'LAB\tester'
             $script:Seen['Copied'] | Should-BeTrue

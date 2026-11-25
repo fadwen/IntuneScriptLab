@@ -167,7 +167,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
                 Path = $script:Script; Architecture = 'x86'; Credential = $credential; LogonType = 'Password'
             }
             $workFolder, $user, $logon = $result.StdOut -split '\|'
-            $workFolder | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLabRuns\*')
+            $workFolder | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLabRun-*')
             $user | Should-Be 'isl-user'
             $logon | Should-Be 'Password'
             $result.RunAs | Should-Be 'isl-user (Interactive)'
