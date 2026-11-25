@@ -145,6 +145,20 @@ BeforeAll {
         $line = 'MEASURE {0} lines={1} seconds={2} megabytes={3} powershell={4}' -f $Name, $Lines,
         $measurement.Seconds, $measurement.Megabytes, $PSVersionTable.PSVersion
         Write-Information -MessageData $line -InformationAction Continue
+        # For the performance gate (Build/Test-PerformanceBaseline.ps1): one JSON line for each
+        # measurement, appended to the file the variable names
+        if ($env:ISL_PERFORMANCE_RESULTS) {
+            $record = [ordered]@{
+                Name = $Name
+                Lines = $Lines
+                Seconds = $measurement.Seconds
+                Megabytes = $measurement.Megabytes
+                PowerShell = "$($PSVersionTable.PSVersion)"
+            }
+            $json = ($record | ConvertTo-Json -Compress) + "`n"
+            $utf8 = [System.Text.UTF8Encoding]::new($false)
+            [System.IO.File]::AppendAllText($env:ISL_PERFORMANCE_RESULTS, $json, $utf8)
+        }
         $measurement
     }
 
