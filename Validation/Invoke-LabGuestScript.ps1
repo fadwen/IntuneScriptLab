@@ -82,7 +82,9 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
 
-$remote = Join-Path -Path 'C:\ProgramData\IntuneScriptLab' -ChildPath $RemoteName
+# A path on the VM, which is Windows whatever the host runs: Join-Path would refuse the C: drive on
+# a Linux or macOS host, which has none
+$remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
 $content = Get-Content -LiteralPath (Resolve-Path -LiteralPath $ScriptPath) -Raw
 $bytes = [Text.UTF8Encoding]::new($true).GetPreamble() + [Text.Encoding]::UTF8.GetBytes($content)
 Send-GuestFile -RemotePath $remote -Bytes $bytes

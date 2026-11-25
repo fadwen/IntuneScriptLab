@@ -50,11 +50,10 @@
 param()
 
 Set-StrictMode -Version Latest
-# Not 'Stop': the script collects what it can and goes on past a read that fails, so that one bad
-# source does not cost the evidence of all the others. Under Windows PowerShell 5.1 the line that
-# Exception to ERR-01: the script collects what it can and goes on past a read that fails.
-# query.exe writes to the redirected error stream while nobody is signed in, as during the device
-# phase of the page, becomes an error record, and a probe line that is not JSON fails
+# Exception to ERR-01: the script collects what it can and goes on past a read that fails, so that
+# one bad source does not cost the evidence of all the others. Under Windows PowerShell 5.1 the
+# line that query.exe writes to the redirected error stream while nobody is signed in, as during
+# the device phase of the page, becomes an error record, and a probe line that is not JSON fails
 # ConvertFrom-Json; under 'Stop' either would end the script before it writes any JSON. The errors
 # still reach stderr, which Invoke-LabGuestScript.ps1 shows as warnings.
 $ErrorActionPreference = 'Continue'
