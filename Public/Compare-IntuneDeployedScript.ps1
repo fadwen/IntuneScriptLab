@@ -45,8 +45,9 @@ function Compare-IntuneDeployedScript {
     $settingsCache = @{}
     $mapped = @{}
     $sha = [System.Security.Cryptography.SHA256]::Create()
-    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
     $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     function Get-NameKey {

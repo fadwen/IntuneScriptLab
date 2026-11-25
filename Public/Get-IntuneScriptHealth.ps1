@@ -33,8 +33,10 @@ function Get-IntuneScriptHealth {
     # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }
 
-    # The selection parameters every helper command gets
-    $selection = @{ Kind = $Kind; Name = $Name }
+    # The selection parameters every helper command gets. -Name only when the caller gave it: its
+    # default selects every policy, and passed on beside -Id it made them read the whole tenant
+    $selection = @{ Kind = $Kind }
+    if ($PSBoundParameters.ContainsKey('Name')) { $selection.Name = $Name }
     if ($Id) { $selection.Id = $Id }
 
     # The analysis and the drift comparison each read the tenant; a read that fails ends this

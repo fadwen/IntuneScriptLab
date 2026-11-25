@@ -163,6 +163,12 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- `Get-IntuneScriptHealth -Id` with no `-Name` analyzed and compared every policy of the tenant,
+  then kept only the requested ones: it passed its default `-Name` of `*` on to
+  `Test-IntuneDeployedScript` and `Compare-IntuneDeployedScript`, which select by name as well as
+  by id when a name is given. It passes `-Name` on only when the caller gave one, so `-Id` alone
+  reads only those policies, and a policy that cannot be read elsewhere in the tenant no longer
+  ends the command.
 - `Test-IntuneScript` ended with `The property 'Value' cannot be found on this object` on a
   script that calls a method whose name is a variable, such as `$host.UI.$m()` or
   `[pscredential]::$m($user, $secure)`. The interactive-call rule (`IslInteractiveCall`) now

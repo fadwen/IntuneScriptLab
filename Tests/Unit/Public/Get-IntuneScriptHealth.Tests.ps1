@@ -1,4 +1,4 @@
-﻿#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
     The health report over a fake tenant: the Graph seam serves the policies with their assignments
@@ -252,6 +252,29 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
         It 'selects by id alone when no name is given' {
             $report = @(Get-IntuneScriptHealth -Id 'ps-b' -SkipAnalysis -SkipRunState)
             $report.PolicyName | Should-BeCollection @('Set-Proxy')
+        }
+
+        It 'passes -Id alone on to the analysis and the drift comparison, without the default name' {
+            $null = Get-IntuneScriptHealth -Id 'ps-b' -Path $TestDrive -SkipRunState
+
+            # With Name passed on, its default of '*' selected every policy in those commands
+            $byIdAlone = {
+                $Id -eq 'ps-b' -and -not $PesterBoundParameters.ContainsKey('Name')
+            }
+            $invoked = @{
+                ModuleName = 'IntuneScriptLab'; Times = 1; Exactly = $true; ParameterFilter = $byIdAlone
+            }
+            Should-Invoke Test-IntuneDeployedScript @invoked
+            Should-Invoke Compare-IntuneDeployedScript @invoked
+        }
+
+        It 'passes a -Name the caller gave on to them' {
+            $null = Get-IntuneScriptHealth -Name 'Set-*' -SkipRunState
+
+            $invoked = @{
+                ModuleName = 'IntuneScriptLab'; Times = 1; Exactly = $true; ParameterFilter = { $Name -eq 'Set-*' }
+            }
+            Should-Invoke Test-IntuneDeployedScript @invoked
         }
 
         It 'resolves a relative -MarkdownPath against the PowerShell location' {
