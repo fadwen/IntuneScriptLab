@@ -13,7 +13,7 @@ BeforeAll {
     function script:Copy-Shared {
         param([string]$Source, [string]$Destination)
         InModuleScope IntuneScriptLab -Parameters @{ Source = $Source; Destination = $Destination } {
-            Copy-IslSharedFile -Source $Source -Destination $Destination @script:IslInternal
+            Copy-IslSharedFile -Source $Source -Destination $Destination
         }
     }
 }
@@ -54,6 +54,20 @@ Describe 'Copy-IslSharedFile' -Tag 'Unit', 'Private' {
     It 'ends with an error for a source that is not there' {
         $missing = Join-Path $TestDrive 'not-there.log'
 
-        { Copy-Shared -Source $missing -Destination (Join-Path $TestDrive 'never.log') } | Should-Throw
+        $never = Join-Path $TestDrive 'never.log'
+        { Copy-Shared -Source $missing -Destination $never } | Should-Throw -ExceptionMessage '*not-there.log*'
+        Test-Path -LiteralPath $never | Should-BeFalse
+    }
+
+    It 'copies when -WhatIf reached it through the preference, as the command has asked' {
+        $source = Join-Path $TestDrive 'Preview.log'
+        $destination = Join-Path $TestDrive 'copy-preview.log'
+        [System.IO.File]::WriteAllText($source, 'previewed')
+        InModuleScope IntuneScriptLab -Parameters @{ Source = $source; Destination = $destination } {
+            $WhatIfPreference = $true
+            Copy-IslSharedFile -Source $Source -Destination $Destination
+        }
+
+        [System.IO.File]::ReadAllText($destination) | Should-Be 'previewed'
     }
 }

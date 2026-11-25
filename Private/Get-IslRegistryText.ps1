@@ -44,7 +44,7 @@ function Get-IslRegistryText {
         return "$Key : not present"
     }
     $children = @(Get-ChildItem -LiteralPath $Key -Recurse -Depth $Depth -ErrorAction SilentlyContinue)
-    $keys = @(Get-Item -LiteralPath $Key) + $children
+    $keys = @(Get-Item -LiteralPath $Key -ErrorAction SilentlyContinue) + $children
     foreach ($item in $keys) {
         "[$($item.Name)]"
         $values = Get-ItemProperty -LiteralPath $item.PSPath -ErrorAction SilentlyContinue

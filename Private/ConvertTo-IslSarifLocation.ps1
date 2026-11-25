@@ -14,7 +14,8 @@ function ConvertTo-IslSarifLocation {
     The full path of the script that a finding is about.
 
     .PARAMETER RootPath
-    The full path of the folder the relative URIs start from, without a trailing separator.
+    The full path of the folder the relative URIs start from, without a trailing separator. The
+    root of a file system on Linux or macOS, /, is an empty string once its separator is removed.
 
     .EXAMPLE
     ConvertTo-IslSarifLocation -FilePath 'C:\repo\Remediations\A\Detect.ps1' -RootPath 'C:\repo'
@@ -35,6 +36,7 @@ function ConvertTo-IslSarifLocation {
         [string]$FilePath,
 
         [Parameter(Mandatory)]
+        [AllowEmptyString()]
         [string]$RootPath
     )
 

@@ -7,8 +7,9 @@ function Copy-IslSharedFile {
     The agent keeps its current log open while it writes to it. A stream that allows only
     other readers cannot open such a file, so the source is opened for reading with write
     sharing allowed, and the copy is the file as it stands at that moment. A file that is at the
-    destination is replaced. The command that calls this has asked ShouldProcess for the whole
-    package, and calls it with -WhatIf:$false and -Confirm:$false.
+    destination is replaced. It does not ask ShouldProcess: the command that calls it has asked
+    for the whole package, and it copies even when -WhatIf or -Confirm reached it through the
+    preferences. A failure ends the function with its error.
 
     .PARAMETER Source
     The full path of the file to copy.
@@ -17,7 +18,7 @@ function Copy-IslSharedFile {
     The full path of the copy. Its folder must exist.
 
     .EXAMPLE
-    Copy-IslSharedFile -Source $log.FullName -Destination $copy @script:IslInternal
+    Copy-IslSharedFile -Source $log.FullName -Destination $copy
 
     Copies a log of the agent that the agent is still writing.
 
@@ -27,7 +28,7 @@ function Copy-IslSharedFile {
     .OUTPUTS
     None.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     [OutputType([void])]
     param(
         [Parameter(Mandatory)]
@@ -37,14 +38,16 @@ function Copy-IslSharedFile {
         [string]$Destination
     )
 
-    if (-not $PSCmdlet.ShouldProcess($Destination, "Copy $Source")) {
-        return
-    }
-    $in = [System.IO.File]::Open($Source, 'Open', 'Read', 'ReadWrite')
+    $in = $null
+    $out = $null
     try {
+        $in = [System.IO.File]::Open($Source, 'Open', 'Read', 'ReadWrite')
         $out = [System.IO.File]::Create($Destination)
-        try { $in.CopyTo($out) } finally { $out.Dispose() }
+        $in.CopyTo($out)
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
     } finally {
-        $in.Dispose()
+        if ($null -ne $out) { $out.Dispose() }
+        if ($null -ne $in) { $in.Dispose() }
     }
 }

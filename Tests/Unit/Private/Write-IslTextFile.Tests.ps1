@@ -14,7 +14,7 @@ BeforeAll {
         param([string]$Root, [string]$RelativePath, [AllowNull()][string[]]$Line)
         $parameters = @{ Root = $Root; RelativePath = $RelativePath; Line = $Line }
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $parameters } {
-            Write-IslTextFile @Parameters @script:IslInternal
+            Write-IslTextFile @Parameters
         }
     }
 }
@@ -52,11 +52,20 @@ Describe 'Write-IslTextFile' -Tag 'Unit', 'Private' {
         [System.IO.File]::ReadAllLines((Join-Path $script:Root 'Manifest.txt')) | Should-BeCollection @('new')
     }
 
-    It 'writes nothing under -WhatIf' {
+    It 'writes the file when -WhatIf reached it through the preference, as the command has asked' {
         InModuleScope IntuneScriptLab -Parameters @{ Root = $script:Root } {
-            Write-IslTextFile -Root $Root -RelativePath 'Preview\x.txt' -Line 'x' -WhatIf
+            $WhatIfPreference = $true
+            Write-IslTextFile -Root $Root -RelativePath 'Preview\x.txt' -Line 'x'
         }
 
-        Test-Path -LiteralPath (Join-Path $script:Root 'Preview') | Should-BeFalse
+        [System.IO.File]::ReadAllLines((Join-Path $script:Root 'Preview\x.txt')) | Should-BeCollection @('x')
+    }
+
+    It 'ends with an error when the file cannot be written' {
+        # A folder in the place of the file
+        $null = New-Item -ItemType Directory -Path (Join-Path $script:Root 'Manifest.txt')
+
+        { Write-Section -Root $script:Root -RelativePath 'Manifest.txt' -Line 'x' } |
+            Should-Throw -ExceptionMessage '*Manifest.txt*'
     }
 }
