@@ -43,10 +43,11 @@ entries are carried over from the manifest's release notes.
 ### Changed
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
-  `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`, `Get-IslSetting`,
-  `Get-IslAgentLogEvent` and `Invoke-IslGraphRequest` are private functions of their own, each an
-  advanced function with help and tests (#65). Nothing changes for a caller: a settings value that
-  is not allowed still ends `Test-IntuneScript` with `SettingsInvalid,Test-IntuneScript`.
+  `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`,
+  `Get-IslSetting`, `Get-IslAgentLogEvent` and `Invoke-IslGraphRequest` are private functions of
+  their own, each an advanced function with help and tests (#65). Nothing changes for a caller: a
+  settings value that is not allowed still ends `Test-IntuneScript` with
+  `SettingsInvalid,Test-IntuneScript`.
 - The README's section headings no longer carry the version that introduced each feature, the
   tenant pre-flight paragraph no longer says since when each check exists, and the roadmap points
   at this changelog instead of listing versions; a first-time reader wants the overview, and the
