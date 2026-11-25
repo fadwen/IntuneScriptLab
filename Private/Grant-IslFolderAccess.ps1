@@ -1,13 +1,17 @@
 function Grant-IslFolderAccess {
     <#
     .SYNOPSIS
-        Gives an account Modify rights on a folder and everything created in it.
+        Gives an account Modify on what is in a folder, and the right to add to it.
 
     .DESCRIPTION
         The harness runs another account's script from a cache folder and reads that account's
         output files back from it, so the account needs to read the script copy and write next to
-        it. Uses icacls, which resolves the account name the way the scheduled task will. A
-        separate function so the unit tests can mock the grant for accounts that do not exist.
+        it. It gets Modify on what is in the folder and what is created there, inherited and not
+        on the folder itself, and on the folder itself the rights to list, read and traverse it and
+        to add files and folders. It gets no Delete there, so it cannot rename the folder and put
+        another in its place. Uses icacls, which resolves the account name the way the scheduled
+        task will. A separate function so the unit tests can mock the grant for accounts that do
+        not exist.
 
     .PARAMETER Path
         The folder.
@@ -18,7 +22,7 @@ function Grant-IslFolderAccess {
     .EXAMPLE
         Grant-IslFolderAccess -Path C:\ProgramData\IntuneScriptLab\Runs\abc -Account isl-user
 
-        Modify, inherited by files and subfolders, for isl-user.
+        Modify on the folder's contents, and list, read and add on the folder itself, for isl-user.
 
     .INPUTS
         None.
@@ -48,7 +52,10 @@ function Grant-IslFolderAccess {
     # so a path that ends in one would swallow the rest of the arguments. Doubled, the backslashes
     # stand for themselves; trimmed, C:\ would become C:, the current folder of that drive
     $quotedPath = $Path -replace '(\\+)$', '$1$1'
-    $arguments = '"{0}" /grant "{1}:(OI)(CI)M"' -f $quotedPath, $trustee
+    # (OI)(CI)(IO)M: Modify on everything below, not on the folder. The folder itself: list (RD),
+    # read its attributes (RA, REA) and access list (RC), traverse (X), synchronize (S), add files
+    # (WD) and folders (AD)
+    $arguments = '"{0}" /grant "{1}:(OI)(CI)(IO)M" "{1}:(RD,RA,REA,RC,X,S,WD,AD)"' -f $quotedPath, $trustee
     try {
         $result = Invoke-IslNativeCommand -FilePath $icacls -Arguments $arguments
     } catch {

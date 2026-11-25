@@ -333,8 +333,8 @@ session by SID. A stored-password task did not start for such an account on the 
 or without the batch logon right, so an Entra account has to hold a session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
-harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the
-account granted Modify, since another account cannot reach your temp folder.
+harness as another account"). The script copy and its output live in a folder of the run's own, `ProgramData\IntuneScriptLabRun-<id>`, with the
+account granted Modify on what is in it once the copy is there, since another account cannot reach your temp folder; no other account can open that folder.
 [Validation/New-IslHarnessUser.ps1](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/New-IslHarnessUser.ps1) creates a standard lab
 account with a generated password stored as a DPAPI credential, and the `UserContext` integration
 suite runs against it when `ISL_TEST_CREDENTIAL` points at that file.
@@ -844,6 +844,7 @@ $Error[0].FullyQualifiedErrorId
 | `ScheduledTaskNotRegistered` | The scheduled task for `-Context System` or `-Credential` was refused | Run from an elevated session; with `-Credential`, check the password |
 | `ScheduledTaskNotStarted` | The task for another account did not start | Follow the hint in the message: grant the account "Log on as a batch job", or sign it in and run while it holds a session |
 | `FolderAccessNotGranted` | `icacls` could not give the other account access to the run folder | Read the message, which carries what `icacls` reported |
+| `RunFolderUnsafe` | The folder a run as another account copies its script to, `ProgramData\IntuneScriptLabRun-<id>`, was already there, or came out owned by another account or open to one | Run again: each run takes a new name. If it recurs, another user of the machine is creating folders there; find them with `Get-ChildItem $env:ProgramData -Filter IntuneScriptLabRun-*` |
 | `SettingsInvalid` | A settings file or `-Settings` table holds a value the module does not accept | Correct the entry the message names |
 | `GraphModuleNotLoaded` | A tenant command ran without Microsoft.Graph.Authentication | `Install-PSResource Microsoft.Graph.Authentication`, then `Connect-MgGraph` with the scopes the message lists |
 | `ExportJobFailed`, `ExportJobTimedOut`, `ExportHasNoCsv` | The report export for the app install counts did not complete or held no data | Run again, or use `-SkipRunState` to leave the device counts out |

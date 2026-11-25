@@ -140,8 +140,22 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
     }
 
     Context 'Another account' {
-        It 'runs from a ProgramData cache the account is granted, and passes the credential through' {
-            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
+        BeforeEach {
+            # The run folder goes under ProgramData, which New-IslRunFolder closes to other users:
+            # pointed at the test's own drive, so that the machine's folder is left as it is
+            $script:SavedProgramData = $env:ProgramData
+            $env:ProgramData = Join-Path $TestDrive "programdata-$([guid]::NewGuid().ToString('N'))"
+        }
+
+        AfterEach {
+            $env:ProgramData = $script:SavedProgramData
+        }
+
+        It 'runs from a ProgramData cache the account is granted after the copy, and passes the credential' {
+            # What the folder holds when the account is let in: the copy must be there already
+            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab {
+                $script:CopiesAtGrant = @(Get-ChildItem -LiteralPath $Path -Filter '*.ps1').Count
+            }
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
                 ConvertTo-FakeRunResult -TypeName IntuneScriptLab.ProcessResult -Member @{
                     ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::Zero
@@ -156,7 +170,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
                 Path = $script:Script; Architecture = 'x86'; Credential = $credential; LogonType = 'Password'
             }
             $workFolder, $user, $logon = $result.StdOut -split '\|'
-            $workFolder | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLab\Runs\*')
+            $workFolder | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLabRun-*')
             $user | Should-Be 'isl-user'
             $logon | Should-Be 'Password'
             $result.RunAs | Should-Be 'isl-user (Interactive)'
@@ -164,6 +178,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
                 $Account -eq 'isl-user' -and $Path -eq $workFolder
             }
+            $script:CopiesAtGrant | Should-Be 1
             Test-Path $workFolder | Should-BeFalse
         }
 

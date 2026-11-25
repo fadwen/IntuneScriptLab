@@ -50,8 +50,14 @@ secret; that is a lab device you own, and the script's help says so.
 The module stores nothing. A `-Credential` is used to register the scheduled task: when the
 account has a signed-in session the task runs interactively in it and no password is passed;
 otherwise the password goes to the Task Scheduler for the life of the task, which is deleted at
-the end of the run. The run folder under `ProgramData\IntuneScriptLab\Runs` is granted to that
-account for the run and removed afterwards. Graph access is the session you already opened.
+the end of the run. Each run copies the script to a folder of its own,
+`ProgramData\IntuneScriptLabRun-<id>`, created already closed: SYSTEM, the Administrators group
+and the user who runs the harness have full control, and no other account can open it. Once the
+script is copied in, the run's account is granted Modify on what is in the folder and the rights
+to list it and add to it, but not to delete or rename the folder itself, so it cannot redirect the
+copy. The name is new for each run, so no other user can take it first, and
+a run is refused when something is already there under the name. The folder is removed after the
+run. Graph access is the session you already opened.
 
 ## Supported versions
 

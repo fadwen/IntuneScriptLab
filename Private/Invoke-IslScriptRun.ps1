@@ -96,22 +96,23 @@ function Invoke-IslScriptRun {
         $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    # Like IMECache: the script runs from a copy, so $PSScriptRoot is not the source folder
-    $runId = [guid]::NewGuid().ToString('N')
-    $cache = if ($Credential) {
-        Join-Path -Path $env:ProgramData -ChildPath "IntuneScriptLab\Runs\$runId"
-    } else {
-        Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
-    }
-    # The run folder and the copy are this function's own bookkeeping. The command that asked for
-    # the run has had its -WhatIf and its -Confirm answered before it called; with a preference
-    # still in effect here, the copy would be skipped and the host started on a file that is not
-    # there. For the same reason a copy that fails ends the function here: the catch below sees
-    # it only with -ErrorAction Stop
-    $scriptCopy = Join-Path -Path $cache -ChildPath "$Phase.ps1"
+    # Like IMECache: the script runs from a copy, so $PSScriptRoot is not the source folder. The
+    # run folder and the copy are this function's own bookkeeping. The command that asked for the
+    # run has had its -WhatIf and its -Confirm answered before it called; with a preference still
+    # in effect here, the copy would be skipped and the host started on a file that is not there.
+    # For the same reason a copy that fails ends the function here: the catch below sees it only
+    # with -ErrorAction Stop
+    $cache = $null
     try {
-        $null = New-Item -ItemType Directory -Path $cache -Force -ErrorAction Stop @script:IslInternal
+        # Another account's folder is under ProgramData, closed to other users (New-IslRunFolder)
+        $cache = New-IslRunFolder -AnotherAccount:([bool]$Credential)
+        $scriptCopy = Join-Path -Path $cache -ChildPath "$Phase.ps1"
         Copy-Item -LiteralPath $source -Destination $scriptCopy -ErrorAction Stop @script:IslInternal
+        # Only once the copy is in place: an account that could write to the folder before could
+        # put a link at the copy's name and send this elevated copy elsewhere
+        if ($Credential) {
+            Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
+        }
         $processSplat = @{
             FilePath = $hostInfo.Path
             Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptCopy`""
@@ -121,7 +122,6 @@ function Invoke-IslScriptRun {
             TimeoutSeconds = $TimeoutSeconds
         }
         if ($Credential) {
-            Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
             $processSplat.Credential = $Credential
             $processSplat.LogonType = $LogonType
         }
@@ -129,7 +129,9 @@ function Invoke-IslScriptRun {
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     } finally {
-        Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
+        if ($cache) {
+            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
+        }
     }
 
     [pscustomobject]@{

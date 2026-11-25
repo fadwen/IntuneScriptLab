@@ -63,7 +63,9 @@ Describe 'User context as another account' -Tag $script:UserContextTags -Skip:(-
 
     It 'maps the remediation flow as the account' {
         $markerName = "user-context-$([guid]::NewGuid().ToString('N')).marker"
-        $marker = Join-Path $env:ProgramData "IntuneScriptLab\$markerName"
+        # ProgramData itself, where every user may create a file, so that the test needs no folder
+        # prepared for it
+        $marker = Join-Path $env:ProgramData $markerName
         $detect = New-TestScript 'Detect.ps1' ("if (Test-Path '$marker') { 'present'; exit 0 } " +
             "else { 'missing'; exit 1 }") -Bom
         $remediate = New-TestScript 'Remediate.ps1' ("New-Item -ItemType File -Path '$marker' -Force | " +

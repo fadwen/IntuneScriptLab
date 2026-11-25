@@ -112,20 +112,21 @@ function Invoke-IslWin32ContentCommand {
             }
         }
     }
-    $runId = [guid]::NewGuid().ToString('N')
-    # Another account cannot reach the caller's temp folder; its copy lives under ProgramData
-    $cache = if ($asAccount) {
-        Join-Path -Path $env:ProgramData -ChildPath "IntuneScriptLab\Runs\$runId"
-    } else {
-        Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
-    }
-    $copy = Join-Path -Path $cache -ChildPath 'content'
+    $cache = $null
     try {
+        # Another account cannot reach the caller's temp folder; its copy lives under ProgramData,
+        # closed to other users (New-IslRunFolder)
+        $cache = New-IslRunFolder -AnotherAccount:$asAccount
+        $copy = Join-Path -Path $cache -ChildPath 'content'
         $null = New-Item -ItemType Directory -Path $copy -Force -ErrorAction Stop @script:IslInternal
         $contentItems = Join-Path -Path $source -ChildPath '*'
         $copySplat = @{ Path = $contentItems; Destination = $copy; Recurse = $true; Force = $true }
         Copy-Item @copySplat -ErrorAction Stop @script:IslInternal
-        if ($asAccount) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
+        # Only once the content is in place: an account that could write to the folder before
+        # could put a link at a copy's name and send this elevated copy elsewhere
+        if ($asAccount) {
+            Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
+        }
         $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
         $cmd = Join-Path -Path (Join-Path -Path $env:WINDIR -ChildPath $cmdFolder) -ChildPath 'cmd.exe'
         $processSplat = @{
@@ -142,7 +143,9 @@ function Invoke-IslWin32ContentCommand {
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     } finally {
-        Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
+        if ($cache) {
+            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
+        }
     }
 
     [pscustomobject]@{
