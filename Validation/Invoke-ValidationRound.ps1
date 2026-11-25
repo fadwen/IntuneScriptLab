@@ -705,8 +705,9 @@ function Invoke-Deploy {
             }
             $PSCmdlet.ThrowTerminatingError((New-ValidationErrorRecord @errorSplat))
         }
-        # A just-created group can 404 for a few seconds while Entra replicates it
-        for ($attempt = 1; $device; $attempt++) {
+        # A just-created group can 404 for a few seconds while Entra replicates it. Under -WhatIf
+        # there is no group to add the device to, and the rehearsal goes on to the policies
+        for ($attempt = 1; $device -and $groupId; $attempt++) {
             try {
                 $memberReply = Invoke-MgGraphRequest -Method GET -Uri "/v1.0/groups/$groupId/members?`$select=id"
                 $members = @($memberReply['value'] | ForEach-Object { $_['id'] })

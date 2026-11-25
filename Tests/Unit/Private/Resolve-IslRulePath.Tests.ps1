@@ -21,17 +21,16 @@ BeforeAll {
 
         .DESCRIPTION
             Calls Resolve-IslRulePath inside the module, where the private function is visible,
-            and passes the Boolean on as its -Check32BitOn64System switch, so that the tests can
-            give it positionally.
+            and passes -Check32 on as its -Check32BitOn64System switch.
 
         .PARAMETER Path
             The path as the rule states it, with any environment variables.
 
         .PARAMETER Check32
-            Resolves the path as a rule with Check32BitOn64System does. False by default.
+            Resolves the path as a rule with Check32BitOn64System does.
 
         .EXAMPLE
-            Resolve-RulePath '%ProgramFiles%\Vendor' $true
+            Resolve-RulePath '%ProgramFiles%\Vendor' -Check32
 
             Returns the path under Program Files (x86).
 
@@ -46,10 +45,10 @@ BeforeAll {
         param(
             [string]$Path,
 
-            [bool]$Check32 = $false
+            [switch]$Check32
         )
 
-        InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Check32 = $Check32 } {
+        InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Check32 = [bool]$Check32 } {
             Resolve-IslRulePath -Path $Path -Check32BitOn64System:$Check32
         }
     }
@@ -63,16 +62,17 @@ Describe 'Resolve-IslRulePath' -Tag 'Unit', 'Private' {
 
     It 'expands %ProgramFiles% and %CommonProgramFiles% to the (x86) folders in the 32-bit context' -Skip:(
         -not [Environment]::Is64BitOperatingSystem) {
-        Resolve-RulePath '%ProgramFiles%\Vendor' $true | Should-Be (Join-Path ${env:ProgramFiles(x86)} 'Vendor')
-        Resolve-RulePath '%CommonProgramFiles%\X' $true | Should-Be (Join-Path ${env:CommonProgramFiles(x86)} 'X')
+        Resolve-RulePath '%ProgramFiles%\Vendor' -Check32 | Should-Be (Join-Path ${env:ProgramFiles(x86)} 'Vendor')
+        Resolve-RulePath '%CommonProgramFiles%\X' -Check32 |
+            Should-Be (Join-Path ${env:CommonProgramFiles(x86)} 'X')
     }
 
     It 'expands other variables the same in both contexts, case-insensitively' {
         Resolve-RulePath '%WINDIR%\System32' | Should-Be (Join-Path $env:WINDIR 'System32')
-        Resolve-RulePath '%windir%\System32' $true | Should-Be (Join-Path $env:WINDIR 'System32')
+        Resolve-RulePath '%windir%\System32' -Check32 | Should-Be (Join-Path $env:WINDIR 'System32')
     }
 
     It 'leaves a literal path alone' {
-        Resolve-RulePath 'C:\ProgramData\App' $true | Should-Be 'C:\ProgramData\App'
+        Resolve-RulePath 'C:\ProgramData\App' -Check32 | Should-Be 'C:\ProgramData\App'
     }
 }
