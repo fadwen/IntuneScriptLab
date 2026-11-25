@@ -82,8 +82,9 @@ entries are carried over from the manifest's release notes.
   only that character, and the help build drops it.
 - `Examples/Invoke-IntuneScriptGate.ps1` writes its summary and its GitHub workflow commands as
   information records shown on the console, which the host writes to standard output as it did
-  `Write-Host`'s lines, and resolves each `-Path` as a literal path, so a folder name with
-  square brackets is found. The download of an Intune report export refuses a redirect. Registry
+  `Write-Host`'s lines, and resolves each `-Path` as a literal path: a folder name with
+  square brackets is found, and a wildcard such as `./Intune/*` is no longer expanded, so name
+  the folder instead. The download of an Intune report export refuses a redirect. Registry
   reads take literal paths, a version check compares the whole version, and the help of two
   functions describes the corrupted text in ASCII, as `docs/Rules.md` does with it (#69).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
