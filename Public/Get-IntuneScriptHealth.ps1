@@ -11,8 +11,10 @@ function Get-IntuneScriptHealth {
         [string[]]$Kind = @('Remediation', 'PlatformScript', 'Win32App'),
 
         [SupportsWildcards()]
+        [ValidateLength(0, 1000)]
         [string[]]$Name = @('*'),
 
+        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [string]$Path,

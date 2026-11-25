@@ -13,6 +13,7 @@ function Get-IntuneAgentTimeline {
         [ValidateSet('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor', 'All')]
         [string[]]$Log = @('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor'),
 
+        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [datetime]$After,

@@ -15,6 +15,7 @@ function Get-IntuneAgentLog {
         [string[]]$Log = @('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor'),
 
         [Parameter(ParameterSetName = 'Read')]
+        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [Parameter(ParameterSetName = 'Read')]

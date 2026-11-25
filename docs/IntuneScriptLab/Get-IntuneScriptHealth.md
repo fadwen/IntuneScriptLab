@@ -132,6 +132,7 @@ HelpMessage: ''
 ### -Id
 
 Policy ids to report on, in addition to -Name.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -218,6 +219,7 @@ HelpMessage: ''
 
 Policy display names to report on, wildcards allowed.
 Default: every policy.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

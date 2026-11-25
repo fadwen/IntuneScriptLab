@@ -206,6 +206,7 @@ HelpMessage: ''
 ### -ExcludeRule
 
 Skip these rules (wildcards allowed).
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -228,6 +229,7 @@ HelpMessage: ''
 
 Only run these rules (wildcards allowed), e.g.
 'IslExitCodeIssue'.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

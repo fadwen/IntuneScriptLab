@@ -205,6 +205,10 @@ $syntax = @(
     }
     @{ Id = 'FLT-X09'; Rule = '(device.deviceName -in ["A"] )' }
     @{ Id = 'FLT-X10'; Rule = '(device.manufacturer -eq "Microsoft Corporation")' }
+    # The longest rule the service takes, and one character more: one clause whose value
+    # pads the rule to 3,072 and 3,073 characters
+    @{ Id = 'FLT-X11'; Rule = '(device.deviceName -eq "' + ('a' * 3046) + '")' }
+    @{ Id = 'FLT-X12'; Rule = '(device.deviceName -eq "' + ('a' * 3047) + '")' }
 )
 
 # {name}, {name.lower}, {os}, {os3}, {model}, {model.lower}, {manufacturer.lower} stand for the device's values

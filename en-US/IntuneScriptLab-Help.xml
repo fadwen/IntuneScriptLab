@@ -1202,7 +1202,8 @@ script sets $ErrorActionPreference to Stop.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>Policy ids to compare, in addition to -Name.</maml:para>
+          <maml:para>Policy ids to compare, in addition to -Name.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -1241,7 +1242,8 @@ as NotInTenant.</maml:para>
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>Policy display names to compare, wildcards allowed.
-Default: every policy.</maml:para>
+Default: every policy.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -1988,7 +1990,8 @@ Get-IntuneAgentLog
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>One or more policy or app ids; keeps the entries whose message contains one of them.</maml:para>
+          <maml:para>One or more policy or app ids; keeps the entries whose message contains one of them.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -2244,7 +2247,8 @@ live agent is no obstacle; a copied log folder works with -Path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>Only the timelines whose own id is one of these. A line that merely mentions the id (a relationship report names two apps) does not add another timeline.</maml:para>
+          <maml:para>Only the timelines whose own id is one of these. A line that merely mentions the id (a relationship report names two apps) does not add another timeline.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -2622,7 +2626,8 @@ try or the script sets $ErrorActionPreference to Stop.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>Policy ids to report on, in addition to -Name.</maml:para>
+          <maml:para>Policy ids to report on, in addition to -Name.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -2664,7 +2669,8 @@ Default: all three.</maml:para>
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>Policy display names to report on, wildcards allowed.
-Default: every policy.</maml:para>
+Default: every policy.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -4721,7 +4727,8 @@ does the same for one script, and the settings key EnforceSignatureCheck = $true
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>ExcludeRule</maml:name>
         <maml:description>
-          <maml:para>Rule names (wildcards allowed) whose findings are not fixed.</maml:para>
+          <maml:para>Rule names (wildcards allowed) whose findings are not fixed.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -4731,7 +4738,8 @@ does the same for one script, and the settings key EnforceSignatureCheck = $true
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>IncludeRule</maml:name>
         <maml:description>
-          <maml:para>Rule names (wildcards allowed) whose findings are fixed; everything else is left alone.</maml:para>
+          <maml:para>Rule names (wildcards allowed) whose findings are fixed; everything else is left alone.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -4979,7 +4987,8 @@ the assignment reaches nobody.</maml:para>
 for the Windows 10 and later platform.
 Accepts pipeline input, and binds by property name
 so assignment filters read from Graph can be piped in. Several rules give one result each,
-piped or passed as an array. A rule that is empty or only whitespace is refused.</maml:para>
+piped or passed as an array. A rule that is empty or only whitespace is refused.
+A rule of more than 3,072 characters, the most the service accepts, is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5275,7 +5284,8 @@ script sets $ErrorActionPreference to Stop.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="4" aliases="none">
         <maml:name>ExcludeRule</maml:name>
         <maml:description>
-          <maml:para>Rule names (wildcards allowed) to skip.</maml:para>
+          <maml:para>Rule names (wildcards allowed) to skip.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5285,7 +5295,8 @@ script sets $ErrorActionPreference to Stop.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
         <maml:name>Id</maml:name>
         <maml:description>
-          <maml:para>Policy or app ids to include, instead of or in addition to -Name.</maml:para>
+          <maml:para>Policy or app ids to include, instead of or in addition to -Name.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5297,7 +5308,8 @@ script sets $ErrorActionPreference to Stop.</maml:para>
         <maml:description>
           <maml:para>Rule names (wildcards allowed) to run; everything else is skipped.
 Applies to the script
-rules and the deployment-level checks alike.</maml:para>
+rules and the deployment-level checks alike.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5329,7 +5341,8 @@ Default: all three.</maml:para>
         <maml:name>Name</maml:name>
         <maml:description>
           <maml:para>Display names to include, wildcards allowed.
-Default: every policy.</maml:para>
+Default: every policy.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5624,7 +5637,8 @@ one script, and the settings key EnforceSignatureCheck = $true for a folder.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
         <maml:name>ExcludeRule</maml:name>
         <maml:description>
-          <maml:para>Skip these rules (wildcards allowed).</maml:para>
+          <maml:para>Skip these rules (wildcards allowed).
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
@@ -5635,7 +5649,8 @@ one script, and the settings key EnforceSignatureCheck = $true for a folder.</ma
         <maml:name>IncludeRule</maml:name>
         <maml:description>
           <maml:para>Only run these rules (wildcards allowed), e.g.
-'IslExitCodeIssue'.</maml:para>
+'IslExitCodeIssue'.
+A value of more than 1,000 characters is refused.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>

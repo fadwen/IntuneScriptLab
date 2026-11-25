@@ -21,8 +21,10 @@ function Test-IntuneScript {
         [ValidateSet('Auto', 'x86', 'x64', 'arm64')]
         [string]$Architecture = 'Auto',
 
+        [ValidateLength(0, 1000)]
         [string[]]$IncludeRule,
 
+        [ValidateLength(0, 1000)]
         [string[]]$ExcludeRule,
 
         [ValidateSet('Information', 'Warning', 'Error')]

@@ -186,6 +186,7 @@ for the Windows 10 and later platform.
 Accepts pipeline input, and binds by property name
 so assignment filters read from Graph can be piped in. Several rules give one result each,
 piped or passed as an array. A rule that is empty or only whitespace is refused.
+A rule of more than 3,072 characters, the most the service accepts, is refused.
 
 ```yaml
 Type: System.String[]

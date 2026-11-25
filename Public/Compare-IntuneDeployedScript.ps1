@@ -16,8 +16,10 @@ function Compare-IntuneDeployedScript {
         [string[]]$Kind = @('Remediation', 'PlatformScript', 'Win32App'),
 
         [SupportsWildcards()]
+        [ValidateLength(0, 1000)]
         [string[]]$Name = @('*'),
 
+        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [object]$Settings
