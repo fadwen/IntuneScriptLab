@@ -140,6 +140,17 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
     }
 
     Context 'Another account' {
+        BeforeEach {
+            # The run folder goes under ProgramData, which New-IslRunFolder closes to other users:
+            # pointed at the test's own drive, so that the machine's folder is left as it is
+            $script:SavedProgramData = $env:ProgramData
+            $env:ProgramData = Join-Path $TestDrive "programdata-$([guid]::NewGuid().ToString('N'))"
+        }
+
+        AfterEach {
+            $env:ProgramData = $script:SavedProgramData
+        }
+
         It 'runs from a ProgramData cache the account is granted, and passes the credential through' {
             Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
