@@ -8,7 +8,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Repo = Join-Path $TestDrive 'repo'
     $null = New-Item -ItemType Directory -Path (Join-Path $script:Repo 'Remediations\My Widget') -Force
@@ -26,10 +31,6 @@ BeforeAll {
         param([string]$Path)
         Get-Content $Path -Raw | ConvertFrom-Json
     }
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Export-IntuneFindingSarif' -Tag 'Unit', 'Public' {

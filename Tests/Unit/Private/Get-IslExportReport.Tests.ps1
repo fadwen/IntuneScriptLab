@@ -7,7 +7,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
     # Writes a zip holding one CSV to the path Invoke-WebRequest was told to save to
@@ -23,10 +28,6 @@ BeforeAll {
     }
     $script:Csv = "ApplicationId,DisplayName,InstalledDeviceCount,FailedDeviceCount`r`n" +
         "app-a,Widget 2.0,4,1`r`napp-b,Widget 1.0,0,0`r`n"
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {

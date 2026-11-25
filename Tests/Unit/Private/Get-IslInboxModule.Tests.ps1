@@ -19,7 +19,12 @@ BeforeDiscovery {
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     $script:Table = @(InModuleScope IntuneScriptLab { Get-IslInboxModule })
 
     # Listed, and rightly, but not a folder Get-Module -ListAvailable finds: the engine's own module
@@ -68,10 +73,6 @@ BeforeAll {
         $script:HostModules = @($answer.Windows) + @($answer.Programs)
         $script:HostEngineModule = "$($answer.Engine)"
     }
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {

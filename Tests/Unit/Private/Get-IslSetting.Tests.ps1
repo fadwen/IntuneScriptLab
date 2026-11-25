@@ -7,7 +7,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     $script:Tree = Join-Path $TestDrive 'repo'
     $null = New-Item -ItemType Directory -Path (Join-Path $script:Tree 'Intune\Remediations\Widget') -Force
     $null = New-Item -ItemType Directory -Path (Join-Path $script:Tree 'Intune\Win32\App') -Force
@@ -41,10 +46,6 @@ BeforeAll {
             Get-IslSetting @splat
         }
     }
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-IslSetting' -Tag 'Unit', 'Private' {

@@ -87,6 +87,11 @@ entries are carried over from the manifest's release notes.
   the folder instead. The download of an Intune report export refuses a redirect. Registry
   reads take literal paths, a version check compares the whole version, and the help of two
   functions describes the corrupted text in ASCII, as `docs/Rules.md` does with it (#69).
+- The test files import the module once for a run, and only when the copy that is loaded is not
+  the one of the tree under test, and no longer remove it afterwards. The contract test still
+  imports it anew. The unit suites took 243 s and take about 115 s on the same computer; the
+  scan of the WhatIf test for unpinned calls looks each command up once and fell from 27 s to
+  7 s. The shared test helpers are advanced functions with full help and named output types (#70).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

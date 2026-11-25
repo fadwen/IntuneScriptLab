@@ -9,7 +9,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     # The joined lab device as the filter evaluator returned it (FLT-E01)
     $script:Joined = @{
         deviceName             = 'KRBETYP-AIEPVQ5'
@@ -28,10 +33,6 @@ BeforeAll {
     $script:Me = '(device.deviceName -eq "KRBETYP-AIEPVQ5")'
     $script:Nobody = '(device.deviceName -eq "nope")'
     $script:Registered = '(device.deviceTrustType -eq "Azure AD registered")'
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {

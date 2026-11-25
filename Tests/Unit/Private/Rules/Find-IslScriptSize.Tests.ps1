@@ -7,7 +7,12 @@
 
 BeforeAll {
     $script:ModuleRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-SizedScript {
@@ -15,10 +20,6 @@ BeforeAll {
         $line = '# ' + ('pad' * 33) + "`n"
         New-TestScript $Name (($line * [int][Math]::Ceiling($KB * 1024 / $line.Length)) + 'exit 0')
     }
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Find-IslScriptSize' -Tag 'Unit', 'Private', 'Rule' {

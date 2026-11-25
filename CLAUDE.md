@@ -166,6 +166,12 @@ Describe's `BeforeAll`. `Should-Invoke` for a call made in `BeforeAll` needs `-S
 failure message; a test that only passes in declaration order fails there first, and
 `-ShuffleSeed` runs that order again.
 
+A test file imports the module only when no copy is loaded or the loaded one is not this tree's,
+and none removes it; only `Module.Contract.Tests.ps1` imports it anew (TST-05). `Invoke-Tests.ps1`
+imports the module with `-Force` once before it starts Pester, so every file of a run tests the
+code as it is on disk. A file run on its own with `Invoke-Pester` keeps a copy that the session
+already loaded from this tree: after editing the module, import it once with `-Force` first.
+
 ### The MAML filename carries a capital H
 
 `en-US/IntuneScriptLab-Help.xml`, matching every `.EXTERNALHELP IntuneScriptLab-Help.xml` keyword

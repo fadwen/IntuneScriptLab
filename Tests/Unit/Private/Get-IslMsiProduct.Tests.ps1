@@ -8,7 +8,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
 
     $script:Code = '{0D0F9D9B-3F0E-4B2A-9C7B-ISLTEST00001}'
     $script:Key = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$($script:Code)"
@@ -26,7 +31,6 @@ BeforeAll {
 
 AfterAll {
     Remove-Item -Path $script:Key -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-IslMsiProduct' -Tag 'Unit', 'Private' {

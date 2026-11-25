@@ -8,7 +8,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Script = New-TestScript 'Detect-Thing.ps1' 'exit 0' -Bom
 
@@ -18,16 +23,12 @@ BeforeAll {
     }
 }
 
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
-}
-
 Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
 
     BeforeEach {
         # Echo the launch back so the test can read it, and record the cache folder
         Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-            ConvertTo-FakeRunResult @{
+            ConvertTo-FakeRunResult -TypeName IntuneScriptLab.ProcessResult -Member @{
                 ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::FromSeconds(1)
                 StdOut = "$FilePath|$Arguments|$WorkingDirectory|$WorkFolder|$Context|$TimeoutSeconds"
             }
@@ -99,7 +100,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
 
         It 'copies the run result through unchanged' {
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-                ConvertTo-FakeRunResult @{
+                ConvertTo-FakeRunResult -TypeName IntuneScriptLab.ProcessResult -Member @{
                     ExitCode = 4; TimedOut = $true; StdOut = 'o'; StdErr = 'e'; Duration = [timespan]::Zero
                 }
             }
@@ -115,7 +116,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
         It 'runs from a ProgramData cache the account is granted, and passes the credential through' {
             Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
-                ConvertTo-FakeRunResult @{
+                ConvertTo-FakeRunResult -TypeName IntuneScriptLab.ProcessResult -Member @{
                     ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::Zero
                     StdOut = "$WorkFolder|$($Credential.UserName)|$LogonType"
                     UserName = $Credential.UserName; LogonType = 'Interactive'

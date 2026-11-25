@@ -8,7 +8,12 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
@@ -62,10 +67,6 @@ BeforeAll {
         New-CmTraceLine -Time '08:40:30.0000000' -Message ('[PowerShell] User Id = 00000000-0000-0000-0000-' +
             "000000000000, Policy id = $($script:Script), policy result = Failed")
     )
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
