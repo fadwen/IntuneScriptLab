@@ -22,10 +22,10 @@ function Assert-BeIntuneApplicable {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    if ($Actual.Applicable) { return }
+    if ($received.Applicable) { return }
     $assert.Fail(
         'Expected the requirement to be met,<because> but Intune would report not applicable: <Reason>',
-        @{ Because = $Because; Reason = "$($Actual.Reason)" })
+        @{ Because = $Because; Reason = "$($received.Reason)" })
 }

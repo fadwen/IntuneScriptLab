@@ -22,10 +22,10 @@ function Assert-NotBeIntuneApplicable {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    if (-not $Actual.Applicable) { return }
+    if (-not $received.Applicable) { return }
     $assert.Fail(
         'Expected the requirement not to be met,<because> but <Reason>',
-        @{ Because = $Because; Reason = "$($Actual.Reason)" })
+        @{ Because = $Because; Reason = "$($received.Reason)" })
 }

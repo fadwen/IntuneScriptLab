@@ -25,18 +25,19 @@ function Assert-HaveIntuneStatus {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    $status = "$($Actual.Status)"
+    $status = "$($received.Status)"
     if ($status -eq $Expected) { return }
 
-    $detail = @()
-    foreach ($name in 'IntuneOutput', 'IntuneError') {
-        if ($Actual.PSObject.Properties[$name] -and $Actual.$name) { $detail += "${name}: $($Actual.$name)" }
-    }
-    if ($Actual.PSObject.Properties['Warnings'] -and $Actual.Warnings) {
-        $detail += "Warnings: $($Actual.Warnings -join ' | ')"
-    }
+    $detail = @(
+        foreach ($name in 'IntuneOutput', 'IntuneError') {
+            if ($received.PSObject.Properties[$name] -and $received.$name) { "${name}: $($received.$name)" }
+        }
+        if ($received.PSObject.Properties['Warnings'] -and $received.Warnings) {
+            "Warnings: $($received.Warnings -join ' | ')"
+        }
+    )
     $assert.Fail(
         'Expected status <expected>,<because> but Intune would report <Status>. <Detail>',
         @{ Expected = $Expected; Because = $Because; Status = $status; Detail = ($detail -join '. ') })

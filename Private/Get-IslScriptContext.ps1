@@ -135,26 +135,29 @@ function Get-IslScriptContext {
     $settingsSignatureCheck = Get-IslPropertyValue -InputObject $Settings -Name 'EnforceSignatureCheck'
 
     $typeSource = 'parameter'
+    $resolvedType = $ScriptType
     if ($ScriptType -eq 'Auto') {
-        if ($directive['ScriptType']) { $ScriptType = $directive['ScriptType']; $typeSource = 'directive' }
-        elseif ($settingsType) { $ScriptType = $settingsType; $typeSource = 'settings' }
-        else { $ScriptType = $inferredType; $typeSource = $inferredSource }
+        if ($directive['ScriptType']) { $resolvedType = $directive['ScriptType']; $typeSource = 'directive' }
+        elseif ($settingsType) { $resolvedType = $settingsType; $typeSource = 'settings' }
+        else { $resolvedType = $inferredType; $typeSource = $inferredSource }
     }
 
     # Intune's own defaults when nothing says otherwise. Portal defaults differ from API defaults
     # (Findings.md, "Graph API defaults"); these are the portal ones because that is what most
     # scripts get, and they are the more restrictive assumption for the rules.
+    $resolvedContext = $Context
     if ($Context -eq 'Auto') {
-        $Context = if ($directive['Context']) { $directive['Context'] }
+        $resolvedContext = if ($directive['Context']) { $directive['Context'] }
         elseif ($settingsContext) { $settingsContext }
-        elseif ($ScriptType -eq 'PlatformScript') { 'User' }   # portal default for platform scripts
+        elseif ($resolvedType -eq 'PlatformScript') { 'User' }   # portal default for platform scripts
         else { 'System' }
     }
+    $resolvedArchitecture = $Architecture
     if ($Architecture -eq 'Auto') {
-        $Architecture = if ($directive['Architecture']) { $directive['Architecture'] }
+        $resolvedArchitecture = if ($directive['Architecture']) { $directive['Architecture'] }
         elseif ($settingsArchitecture) { $settingsArchitecture }
-        elseif ($ScriptType -in 'Win32Detection', 'Win32Requirement') { 'x64' }  # 64-bit by default
-        else { 'x86' }                                                          # scripts/remediations: 32-bit
+        elseif ($resolvedType -in 'Win32Detection', 'Win32Requirement') { 'x64' }  # 64-bit by default
+        else { 'x86' }                                                            # scripts/remediations: 32-bit
     }
 
     $signatureCheck = if ($EnforceSignatureCheck -ne 'Auto') { $EnforceSignatureCheck -eq 'True' }
@@ -171,10 +174,10 @@ function Get-IslScriptContext {
         Tokens                = $tokens
         ParseErrors           = @($errors)
         Bytes                 = $bytes
-        ScriptType            = $ScriptType
+        ScriptType            = $resolvedType
         TypeSource            = $typeSource
-        Context               = $Context
-        Architecture          = $Architecture
+        Context               = $resolvedContext
+        Architecture          = $resolvedArchitecture
         EnforceSignatureCheck = $signatureCheck
     }
 }

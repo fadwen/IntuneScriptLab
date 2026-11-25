@@ -67,7 +67,8 @@ function Invoke-IntuneWin32AppTest {
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
     # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
     # host exists, and x64 elsewhere
-    if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
+    $runArchitecture = $Architecture
+    if (-not $runArchitecture) { $runArchitecture = Get-IslHostArchitecture }
 
     $argumentError = @{
         Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
@@ -142,7 +143,7 @@ function Invoke-IntuneWin32AppTest {
             '(Applicability 1011); assign the app to users')
     }
     $detectionSplat = @{
-        Architecture          = $Architecture
+        Architecture          = $runArchitecture
         Context               = $Context
         TimeoutSeconds        = $TimeoutSeconds
         EnforceSignatureCheck = $EnforceSignatureCheck
@@ -158,7 +159,7 @@ function Invoke-IntuneWin32AppTest {
     # The command line and the detection script are somebody's code and are about to run: -WhatIf
     # names them and runs nothing. The detections below are part of this one run, so they do not
     # ask again
-    $action = "Run the Win32 app flow for intent $Intent ($Context context, $Architecture): $command"
+    $action = "Run the Win32 app flow for intent $Intent ($Context context, $runArchitecture): $command"
     if (-not $PSCmdlet.ShouldProcess($ContentPath, $action)) {
         return
     }
@@ -346,7 +347,7 @@ function Invoke-IntuneWin32AppTest {
         PostDetection = if ($post) { $post.Script } else { $null }
         PostRules     = if ($post) { $post.Rules } else { @() }
         Warnings      = $warnings.ToArray()
-        Architecture  = $Architecture
+        Architecture  = $runArchitecture
         Context       = $Context
         RunAs         = $runAs
     }

@@ -30,8 +30,8 @@ function Assert-PassIntuneAnalysis {
     # A file, a folder, or a pipeline of either: every script found is analyzed and the failure
     # names each file
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
-    $paths = @(foreach ($item in @($Actual)) {
+    $received = $assert.Actual()
+    $paths = @(foreach ($item in @($received)) {
             if ($item -is [System.IO.FileSystemInfo]) { $item.FullName } else { "$item" }
         })
 

@@ -25,14 +25,14 @@ function Assert-HaveIntuneRunState {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    $state = "$($Actual.RunState)"
+    $state = "$($received.RunState)"
     if ($state -eq $Expected) { return }
-    $output = "$($Actual.ResultMessage)"
+    $output = "$($received.ResultMessage)"
     if ($output.Length -gt 300) { $output = $output.Substring(0, 300) + '...' }
     $assert.Fail(
         'Expected run state <expected>,<because> but got <State> (exit <ExitCode>). Output: <Output>',
-        @{ Expected = $Expected; Because = $Because; State = $state; ExitCode = $Actual.ExitCode
+        @{ Expected = $Expected; Because = $Because; State = $state; ExitCode = $received.ExitCode
            Output = $output })
 }

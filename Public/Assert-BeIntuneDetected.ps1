@@ -22,10 +22,10 @@ function Assert-BeIntuneDetected {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    if ($Actual.Detected) { return }
+    if ($received.Detected) { return }
     $assert.Fail(
         'Expected the app to be detected,<because> but Intune would report not detected: <Reason>',
-        @{ Because = $Because; Reason = "$($Actual.Reason)" })
+        @{ Because = $Because; Reason = "$($received.Reason)" })
 }

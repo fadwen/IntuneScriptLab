@@ -236,6 +236,6 @@ function Get-IntuneScriptHealth {
         }
     }
 
-    $reports
+    foreach ($report in $reports) { $report }
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
 }

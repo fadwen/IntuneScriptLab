@@ -68,9 +68,10 @@ function Get-IntuneAgentLog {
         }
     }
 
+    $logPaths = @($Path)
     if (-not $Path) {
         $programData = if ($env:ProgramData) { $env:ProgramData } else { 'C:\ProgramData' }
-        $Path = @(Join-Path -Path $programData -ChildPath 'Microsoft\IntuneManagementExtension\Logs')
+        $logPaths = @(Join-Path -Path $programData -ChildPath 'Microsoft\IntuneManagementExtension\Logs')
     }
     $filters = @{
         Agent         = 'IntuneManagementExtension*.log'
@@ -83,7 +84,7 @@ function Get-IntuneAgentLog {
     # are still read. A path that is not there is tested first and reported once: an error that
     # Resolve-Path raised and this command caught would also reach a caller's -ErrorVariable
     $unresolved = 0
-    $files = foreach ($item in $Path) {
+    $files = foreach ($item in $logPaths) {
         if (-not (Test-Path -LiteralPath $item)) {
             $unresolved++
             $recordSplat = @{
@@ -114,8 +115,8 @@ function Get-IntuneAgentLog {
     $files = @($files | Sort-Object -Unique)
     if (-not $files) {
         # When no path could be resolved, the errors have said so already
-        if ($unresolved -lt @($Path).Count) {
-            Write-Warning "No log files under $($Path -join ', ')"
+        if ($unresolved -lt @($logPaths).Count) {
+            Write-Warning "No log files under $($logPaths -join ', ')"
         }
         return
     }

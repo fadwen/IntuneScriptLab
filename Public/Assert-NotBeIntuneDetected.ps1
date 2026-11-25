@@ -22,11 +22,11 @@ function Assert-NotBeIntuneDetected {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    if (-not $Actual.Detected) { return }
+    if (-not $received.Detected) { return }
     $assert.Fail(
         ('Expected the app not to be detected,<because> but exit <ExitCode> with stdout <StdOut> counts as ' +
             'installed.'),
-        @{ Because = $Because; ExitCode = $Actual.ExitCode; StdOut = "$($Actual.StdOut)".Trim() })
+        @{ Because = $Because; ExitCode = $received.ExitCode; StdOut = "$($received.StdOut)".Trim() })
 }
