@@ -76,7 +76,8 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceTrustType -eq $null)'; Clauses = 1 }
             @{ Rule = '(device.osVersion -eq $null)'; Clauses = 1 }
             @{ Rule = '((device.deviceName -eq "A") or (device.deviceName -eq "B")) and (device.model -eq "C")'
-                Clauses = 3 }
+                Clauses = 3
+            }
             @{ Rule = "(device.deviceName`n  -eq   `"X`" )`n"; Clauses = 1 }
             @{ Rule = '(device.deviceOwnership -eq "Personal")'; Clauses = 1 }
             @{ Rule = '(device.operatingSystemSKU -eq "Enterprise")'; Clauses = 1 }
@@ -86,9 +87,11 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -in [""])'; Clauses = 1 }
             @{ Rule = '(device.deviceName -contains " ")'; Clauses = 1 }
             @{ Rule = '(device.deviceName -eq "A") and (device.deviceName -eq "B") or (device.deviceName -eq "C")'
-                Clauses = 3 }
+                Clauses = 3
+            }
             @{ Rule = '(device.deviceName -eq "X") and (device.deviceName -eq "Y") and (device.deviceName -eq "Z")'
-                Clauses = 3 }
+                Clauses = 3
+            }
             @{ Rule = '(device.model -Contains "X")'; Clauses = 1 }
             @{ Rule = '(device.deviceName -notContains "A")'; Clauses = 1 }
             @{ Rule = 'device.deviceName -eq "A" and device.model -eq "B"'; Clauses = 2 }
@@ -123,24 +126,33 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -eq 42)'; Message = '*the value 42 must be in double quotes*' }
             @{ Rule = '(device.deviceName -gt "X")'; Message = '*-gt is not allowed on device.deviceName*' }
             @{ Rule = '(device.operatingSystemVersion -startsWith "10.0")'
-                Message = '*-startsWith is not allowed on device.operatingSystemVersion*' }
+                Message = '*-startsWith is not allowed on device.operatingSystemVersion*'
+            }
             @{ Rule = '(device.osVersion -gt "10.0")'; Message = '*-gt is not allowed on device.osVersion*' }
             @{ Rule = '(device.cpuArchitecture -contains "arm")'
-                Message = '*-contains is not allowed on device.cpuArchitecture*' }
+                Message = '*-contains is not allowed on device.cpuArchitecture*'
+            }
             @{ Rule = '(device.cpuArchitecture -startsWith "arm")'
-                Message = '*-startsWith is not allowed on device.cpuArchitecture*' }
+                Message = '*-startsWith is not allowed on device.cpuArchitecture*'
+            }
             @{ Rule = '(device.deviceTrustType -contains "joined")'
-                Message = '*-contains is not allowed on device.deviceTrustType*' }
+                Message = '*-contains is not allowed on device.deviceTrustType*'
+            }
             @{ Rule = '(device.deviceOwnership -startsWith "Pers")'
-                Message = '*-startsWith is not allowed on device.deviceOwnership*' }
+                Message = '*-startsWith is not allowed on device.deviceOwnership*'
+            }
             @{ Rule = '(device.deviceOwnership -in ["Personal"])'
-                Message = '*-in is not allowed on device.deviceOwnership*' }
+                Message = '*-in is not allowed on device.deviceOwnership*'
+            }
             @{ Rule = '(device.operatingSystemVersion -in ["10.0.22000.1000"])'
-                Message = '*-in is not allowed on device.operatingSystemVersion*' }
+                Message = '*-in is not allowed on device.operatingSystemVersion*'
+            }
             @{ Rule = '(device.deviceName -startsWith $null)'
-                Message = '*$null is accepted with -eq and -ne only*' }
+                Message = '*$null is accepted with -eq and -ne only*'
+            }
             @{ Rule = '(device.enrollmentProfileName -contains $null)'
-                Message = '*$null is accepted with -eq and -ne only*' }
+                Message = '*$null is accepted with -eq and -ne only*'
+            }
             @{ Rule = '(device.operatingSystemVersion -eq $null)'; Message = '*cannot be compared with $null*' }
             @{ Rule = '(device.noSuchProperty -eq "X")'; Message = '*unknown property device.noSuchProperty*' }
             @{ Rule = '(device.isRooted -eq "True")'; Message = '*unknown property device.isRooted*' }
@@ -154,11 +166,13 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -ne "")'; Message = '*empty string is refused*' }
             @{ Rule = '(device.deviceName -startsWith "")'; Message = '*empty string is refused*' }
             @{ Rule = '(device.deviceName -eq "X") (device.model -eq "Y")'
-                Message = "*expected 'and' or 'or' before '('*" }
+                Message = "*expected 'and' or 'or' before '('*"
+            }
             @{ Rule = '(device.deviceName -eq "ab" "cd")'; Message = "*expected 'and', 'or' or ')'*found 'cd'*" }
             @{ Rule = '(device.deviceName -eq "X") // comment'; Message = "*expected 'and' or 'or' before '//'*" }
             @{ Rule = '(device.deviceName -eq "X") xor (device.model -eq "Y")'
-                Message = "*expected 'and' or 'or' before 'xor'*" }
+                Message = "*expected 'and' or 'or' before 'xor'*"
+            }
             # No escape exists (FLT-V44, FLT-V45): a backslash-quote or a doubled quote is named as such
             @{ Rule = '(device.deviceName -eq "say \"hi\"")'; Message = '*cannot be escaped*position 24*' }
             @{ Rule = '(device.deviceName -eq "say ""hi""")'; Message = '*cannot be escaped*position 24*' }
@@ -177,11 +191,14 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -notEquals "X")'; Message = '*-notEquals is refused*' }
             @{ Rule = '(device.deviceName -like "X")'; Message = "*unknown operator '-like'*" }
             @{ Rule = '(device.operatingSystemVersion -eq 10)'
-                Message = '*not a version of 2 to 4 numeric parts*' }
+                Message = '*not a version of 2 to 4 numeric parts*'
+            }
             @{ Rule = '(device.operatingSystemVersion -gt 10.0.22000.1000.5)'
-                Message = '*not a version of 2 to 4 numeric parts*' }
+                Message = '*not a version of 2 to 4 numeric parts*'
+            }
             @{ Rule = '(device.operatingSystemVersion -eq "ten")'
-                Message = '*not a version of 2 to 4 numeric parts*' }
+                Message = '*not a version of 2 to 4 numeric parts*'
+            }
             @{ Rule = '(device.deviceName -in [])'; Message = '*is empty*' }
             @{ Rule = '(device.deviceName -in ["A", $null])'; Message = '*list holds double-quoted strings only*' }
             @{ Rule = '(device.deviceName -in [A])'; Message = '*list holds double-quoted strings only*' }
@@ -190,7 +207,8 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
             @{ Rule = '(device.deviceName -eq ["A","B"])'; Message = '*-eq takes a single value*' }
             @{ Rule = '(device.deviceName -startsWith ["A"])'; Message = '*-startsWith takes a single value*' }
             @{ Rule = '(device.operatingSystemVersion -eq [10.0])'
-                Message = '*list holds double-quoted strings only*' }
+                Message = '*list holds double-quoted strings only*'
+            }
             @{ Rule = ''; Message = '*rule is empty*' }
             @{ Rule = '   '; Message = '*rule is empty*' }
             @{ Rule = 'and (device.deviceName -eq "X")'; Message = "*expected a clause before 'and'*" }
@@ -275,23 +293,31 @@ Describe 'ConvertFrom-IslFilterRule' -Tag 'Unit', 'Private' {
     Context 'Warnings' {
         It 'warns that <Rule> uses a value no Windows device reports' -ForEach @(
             @{ Rule = '(device.cpuArchitecture -eq "x64")'; Kind = 'NeverMatches'
-                Text = "*'x64'*device.cpuArchitecture*never matches*" }
+                Text = "*'x64'*device.cpuArchitecture*never matches*"
+            }
             @{ Rule = '(device.cpuArchitecture -in ["amd64", "x64"])'; Kind = 'NeverMatches'
-                Text = "*'x64'*never matches*" }
+                Text = "*'x64'*never matches*"
+            }
             @{ Rule = '(device.deviceTrustType -eq "Microsoft Entra joined")'; Kind = 'NeverMatches'
-                Text = "*'Microsoft Entra joined'*device.deviceTrustType*" }
+                Text = "*'Microsoft Entra joined'*device.deviceTrustType*"
+            }
             # -ne with a value nobody reports is true for every device, the opposite trap
             @{ Rule = '(device.deviceTrustType -ne "AzureADJoined")'; Kind = 'AlwaysMatches'
-                Text = "*'AzureADJoined'*matches every device*" }
+                Text = "*'AzureADJoined'*matches every device*"
+            }
             @{ Rule = '(device.deviceOwnership -eq "company")'; Kind = 'NeverMatches'
-                Text = "*'company'*Personal, Corporate, Unknown*" }
+                Text = "*'company'*Personal, Corporate, Unknown*"
+            }
             @{ Rule = '(device.operatingSystemSKU -eq "Windows Enterprise")'; Kind = 'NeverMatches'
-                Text = "*'Windows Enterprise'*" }
+                Text = "*'Windows Enterprise'*"
+            }
             # " " is accepted and trimmed to nothing, which every value contains (FLT-W27, FLT-Y03)
             @{ Rule = '(device.deviceName -contains " ")'; Kind = 'AlwaysMatches'
-                Text = "*' ' is only whitespace*matches every device*" }
+                Text = "*' ' is only whitespace*matches every device*"
+            }
             @{ Rule = '(device.model -contains "   ")'; Kind = 'AlwaysMatches'
-                Text = "*only whitespace*character 25 matches every device*" }
+                Text = "*only whitespace*character 25 matches every device*"
+            }
         ) {
             $parsed = ConvertFrom-Rule -Rule $Rule
             @($parsed.Warnings).Count | Should-Be 1

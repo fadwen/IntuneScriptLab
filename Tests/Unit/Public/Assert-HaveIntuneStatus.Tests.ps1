@@ -17,16 +17,16 @@ BeforeAll {
     }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Recurred = [pscustomobject]@{
-        PSTypeName   = 'IntuneScriptLab.RemediationResult'
-        Status       = 'Recurred'
+        PSTypeName = 'IntuneScriptLab.RemediationResult'
+        Status = 'Recurred'
         IntuneOutput = 'still broken'
-        IntuneError  = ''
-        Warnings     = @('Detection exited 2: Intune treats any non-zero exit as issue found')
+        IntuneError = ''
+        Warnings = @('Detection exited 2: Intune treats any non-zero exit as issue found')
     }
     $script:Installed = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.Win32AppResult'
-        Status     = 'Installed after install'
-        Warnings   = @()
+        Status = 'Installed after install'
+        Warnings = @()
     }
 }
 

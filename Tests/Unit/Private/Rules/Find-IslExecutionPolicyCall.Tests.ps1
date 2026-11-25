@@ -29,7 +29,7 @@ Describe 'Find-IslExecutionPolicyCall' -Tag 'Unit', 'Private', 'Rule' {
 
     It 'warns about any other scope, named or defaulted' {
         $body = "Set-ExecutionPolicy Unrestricted -Force`n" +
-            "Set-ExecutionPolicy -Scope 'CurrentUser' RemoteSigned`nexit 0"
+        "Set-ExecutionPolicy -Scope 'CurrentUser' RemoteSigned`nexit 0"
         $path = New-TestScript 'Detect-M.ps1' $body
         $findings = @(Get-RuleFinding $path IslExecutionPolicyCall)
         $findings.Count | Should-Be 2

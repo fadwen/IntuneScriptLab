@@ -25,7 +25,7 @@ Describe 'Remediation workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
         $detect = New-TestScript 'Detect.ps1' 'Write-Output "fine"; exit 0' -Bom
         $marker = Join-Path $TestDrive 'ran.txt'
         $testScriptSplat = @{
-            Bom     = $true
+            Bom = $true
             Content = "New-Item -ItemType File -Path '$marker' | Out-Null; exit 0"
         }
         $remediate = New-TestScript 'Remediate.ps1' @testScriptSplat

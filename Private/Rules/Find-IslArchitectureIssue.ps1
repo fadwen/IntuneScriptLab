@@ -47,37 +47,35 @@ function Find-IslArchitectureIssue {
         foreach ($literal in (Get-IslStringLiteral -Ast $ast)) {
             $value = $literal.Value
             if ($value -match ('(?i)^(HKLM:|Registry::HKEY_LOCAL_MACHINE|' +
-                'HKEY_LOCAL_MACHINE)\\SOFTWARE\\(?!WOW6432Node)')) {
+                    'HKEY_LOCAL_MACHINE)\\SOFTWARE\\(?!WOW6432Node)')) {
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = $severity
-                    Context  = $Context
-                    Extent   = $literal.Extent
-                    Message  = ('HKLM:\SOFTWARE is redirected to HKLM:\SOFTWARE\WOW6432Node in the 32-bit ' +
+                    Context = $Context
+                    Extent = $literal.Extent
+                    Message = ('HKLM:\SOFTWARE is redirected to HKLM:\SOFTWARE\WOW6432Node in the 32-bit ' +
                         "host$suffix. Run the script in 64-bit or open the key with RegistryView.Registry64")
                     Evidence = $evidence
                 }
                 New-IslFinding @findingSplat
-            }
-            elseif ($value -match '(?i)\\Program Files\\|^C:\\Program Files$') {
+            } elseif ($value -match '(?i)\\Program Files\\|^C:\\Program Files$') {
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = $severity
-                    Context  = $Context
-                    Extent   = $literal.Extent
-                    Message  = ("'Program Files' resolves to 'Program Files (x86)' via the 32-bit " +
+                    Context = $Context
+                    Extent = $literal.Extent
+                    Message = ("'Program Files' resolves to 'Program Files (x86)' via the 32-bit " +
                         "environment$suffix. Use `${env:ProgramW6432} or run in 64-bit")
                     Evidence = $evidence
                 }
                 New-IslFinding @findingSplat
-            }
-            elseif ($value -match '(?i)\\System32\\' -and $value -notmatch '(?i)SysWOW64|sysnative') {
+            } elseif ($value -match '(?i)\\System32\\' -and $value -notmatch '(?i)SysWOW64|sysnative') {
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = $severity
-                    Context  = $Context
-                    Extent   = $literal.Extent
-                    Message  = ("System32 is redirected to SysWOW64 in the 32-bit host$suffix. " +
+                    Context = $Context
+                    Extent = $literal.Extent
+                    Message = ("System32 is redirected to SysWOW64 in the 32-bit host$suffix. " +
                         'Use Sysnative or run in 64-bit')
                     Evidence = $evidence
                 }
@@ -91,13 +89,13 @@ function Find-IslArchitectureIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = $severity
-                Context  = $Context
-                Extent   = $variable.Extent
-                Message  = ("`$env:ProgramFiles is 'Program Files (x86)' in the 32-bit host$suffix. Use " +
+                Context = $Context
+                Extent = $variable.Extent
+                Message = ("`$env:ProgramFiles is 'Program Files (x86)' in the 32-bit host$suffix. Use " +
                     "`$env:ProgramW6432 for the 64-bit folder")
                 Evidence = $evidence
                 # ProgramW6432 is set in 32-bit and 64-bit processes alike on a 64-bit Windows
-                Fix      = @{ Replacement = ($variable.Extent.Text -replace '(?i)ProgramFiles', 'ProgramW6432') }
+                Fix = @{ Replacement = ($variable.Extent.Text -replace '(?i)ProgramFiles', 'ProgramW6432') }
             }
             New-IslFinding @findingSplat
         }
@@ -106,13 +104,13 @@ function Find-IslArchitectureIssue {
     # x64 and arm64 are both the native 64-bit host (System32); Sysnative is a WOW64-only alias
     if ($Context.Architecture -in 'x64', 'arm64' -and $text -match '(?i)sysnative') {
         $node = (Get-IslStringLiteral -Ast $ast | Where-Object { $_.Value -match '(?i)sysnative' } |
-            Select-Object -First 1)
+                Select-Object -First 1)
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $(if ($node) { $node.Extent } else { $ast.Extent })
-            Message  = 'Sysnative only exists for 32-bit processes; in the 64-bit host the path does not exist'
+            Context = $Context
+            Extent = $(if ($node) { $node.Extent } else { $ast.Extent })
+            Message = 'Sysnative only exists for 32-bit processes; in the 64-bit host the path does not exist'
             Evidence = ('64-bit host observed: System32\WindowsPowerShell\v1.0\powershell.exe, ' +
                 'Is64BitProcess=True ' +
                 '(PS-PROBE-SYS64); on ARM64 the native host has no Sysnative either (local survey)')

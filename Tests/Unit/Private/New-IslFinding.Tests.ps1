@@ -41,9 +41,9 @@ Describe 'New-IslFinding' -Tag 'Unit', 'Private' {
                 $islFindingSplat = @{
                     RuleName = 'IslTest'
                     Severity = 'Warning'
-                    Message  = 'msg'
-                    Extent   = $exit.Extent
-                    Context  = $scriptContext
+                    Message = 'msg'
+                    Extent = $exit.Extent
+                    Context = $scriptContext
                     Evidence = 'seen on a device'
                 }
                 $finding = New-IslFinding @islFindingSplat
@@ -65,8 +65,8 @@ Describe 'New-IslFinding' -Tag 'Unit', 'Private' {
                 $islFindingSplat = @{
                     RuleName = 'IslTest'
                     Severity = 'Information'
-                    Message  = 'm'
-                    Context  = $scriptContext
+                    Message = 'm'
+                    Context = $scriptContext
                 }
                 $finding = New-IslFinding @islFindingSplat
                 $finding.Line | Should-Be 0

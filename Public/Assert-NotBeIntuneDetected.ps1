@@ -29,6 +29,6 @@ function Assert-NotBeIntuneDetected {
     if (-not $received.Detected) { return }
     $assert.Fail(
         ('Expected the app not to be detected,<because> but exit <ExitCode> with stdout <StdOut> counts as ' +
-            'installed.'),
+        'installed.'),
         @{ Because = $Because; ExitCode = $received.ExitCode; StdOut = "$($received.StdOut)".Trim() })
 }

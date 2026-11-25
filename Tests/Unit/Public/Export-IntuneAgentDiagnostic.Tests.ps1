@@ -145,8 +145,7 @@ BeforeAll {
             $entry = $archive.Entries | Where-Object FullName -eq $Name
             $reader = [System.IO.StreamReader]::new($entry.Open())
             try { $reader.ReadToEnd() } finally { $reader.Dispose() }
-        }
-        finally { $archive.Dispose() }
+        } finally { $archive.Dispose() }
     }
     $script:Policy = 'bbf7e139-fe9d-4783-80df-627b8e084059'
     $script:Logs = Join-Path $TestDrive 'Logs'

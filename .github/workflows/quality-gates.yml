@@ -71,10 +71,6 @@ on:
 permissions:
   contents: read
 
-env:
-  # Style limit, STY-03 in .github/instructions/powershell-style.instructions.md
-  MAX_LINE_LENGTH: '115'
-
 jobs:
   tests:
     name: 'Tests and analysis'
@@ -95,37 +91,37 @@ jobs:
           Install-PSResource -Name PSScriptAnalyzer -Version 1.25.0 -Scope CurrentUser -TrustRepository
           $PSVersionTable | ConvertTo-Json -Depth 3
 
-      # The module, the kit, the build scripts and the tests are what is gated. The default
-      # rules at Error and Warning include the five of PSScriptAnalyzer's ScriptSecurity preset
-      # (plain-text passwords, user name and password parameters, ConvertTo-SecureString
-      # -AsPlainText, hard-coded computer names and PSCredential parameters), so this step is
-      # also the static analysis of a security gate. There is no credential scan and no
-      # dependency scan in this workflow: the module has no dependency, secret scanning is a
-      # repository setting, and whether a scanner belongs here is an open decision (#74).
-      - name: PSScriptAnalyzer and line length
+      # The module, the kit, the build scripts and the tests are what is gated, with the default
+      # rules and the layout rules of PSScriptAnalyzerSettings.psd1, the 115-character line
+      # (STY-03) among them. The default rules at Error and Warning include the five of
+      # PSScriptAnalyzer's ScriptSecurity preset (plain-text passwords, user name and password
+      # parameters, ConvertTo-SecureString -AsPlainText, hard-coded computer names and
+      # PSCredential parameters), so this step is also the static analysis of a security gate.
+      # There is no credential scan and no dependency scan in this workflow: the module has no
+      # dependency, and the credential scan is #127.
+      - name: PSScriptAnalyzer
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $folders = 'Public', 'Private', 'PSScriptAnalyzer', 'Examples', 'Build', 'Tests', 'Validation'
           $files = @(Get-ChildItem -Path $folders -Recurse -Include *.ps1, *.psm1, *.psd1 -File) +
               @(Get-Item ./IntuneScriptLab.psd1, ./IntuneScriptLab.psm1)
-          $issues = @($files | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Severity Error, Warning })
+          # The validation kit's three instruments keep the layout they ran with in the rounds
+          # that cite them (Validation/README.md), so they get the default rules only
+          $instruments = @('Probe.ps1', 'Win32Install.ps1', 'Fixtures.ps1' |
+              ForEach-Object { (Resolve-Path -LiteralPath "Validation/$_").Path })
+          $issues = @(foreach ($file in $files) {
+              $analyzerSplat = @{ Path = $file.FullName; Severity = 'Error', 'Warning' }
+              if ($file.FullName -notin $instruments) {
+                  $analyzerSplat['Settings'] = './PSScriptAnalyzerSettings.psd1'
+              }
+              Invoke-ScriptAnalyzer @analyzerSplat
+          })
           if ($issues) {
               $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
               throw "PSScriptAnalyzer reported $($issues.Count) issue(s)."
           }
-          $long = foreach ($file in $files) {
-              $number = 0
-              foreach ($line in [System.IO.File]::ReadAllLines($file.FullName)) {
-                  $number++
-                  if ($line.Length -gt [int]$env:MAX_LINE_LENGTH) { "$($file.FullName):$number ($($line.Length))" }
-              }
-          }
-          if ($long) {
-              $long | ForEach-Object { Write-Host "Long line: $_" }
-              throw "$(@($long).Count) line(s) exceed $env:MAX_LINE_LENGTH characters."
-          }
-          Write-Host "PSScriptAnalyzer clean, no line over $env:MAX_LINE_LENGTH characters, in $($files.Count) files."
+          Write-Host "PSScriptAnalyzer clean with PSScriptAnalyzerSettings.psd1 in $($files.Count) files."
 
       # Every suite, shuffled, with the 80% coverage gate. The reports are written before the
       # checks run, so a failed run still leaves both files to upload.

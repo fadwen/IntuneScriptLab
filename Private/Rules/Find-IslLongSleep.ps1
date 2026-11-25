@@ -45,32 +45,30 @@ function Find-IslLongSleep {
             $isParameter = $element.GetType().Name -eq 'CommandParameterAst'
             if ($isParameter -and $next -and $next.Extent.Text -match '^\d+$') {
                 if ('Seconds'.StartsWith($element.ParameterName,
-                    'OrdinalIgnoreCase')) { $seconds = [int]$next.Extent.Text }
+                        'OrdinalIgnoreCase')) { $seconds = [int]$next.Extent.Text }
                 elseif ('Milliseconds'.StartsWith($element.ParameterName,
-                    'OrdinalIgnoreCase')) { $seconds = [int]$next.Extent.Text / 1000 }
-            }
-            elseif ($i -eq 1 -and $element.Extent.Text -match '^\d+$') { $seconds = [int]$element.Extent.Text }
+                        'OrdinalIgnoreCase')) { $seconds = [int]$next.Extent.Text / 1000 }
+            } elseif ($i -eq 1 -and $element.Extent.Text -match '^\d+$') { $seconds = [int]$element.Extent.Text }
         }
         if ($null -eq $seconds) { continue }
         if ($seconds -ge $limitSeconds) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ("Sleeping $seconds s exceeds the $limitSeconds s timeout; the script is killed " +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ("Sleeping $seconds s exceeds the $limitSeconds s timeout; the script is killed " +
                     'before it finishes')
                 Evidence = $evidence
             }
             New-IslFinding @findingSplat
-        }
-        elseif ($seconds -ge 300) {
+        } elseif ($seconds -ge 300) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ("Sleeping $seconds s holds the agent: remediations run one at a time and the " +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ("Sleeping $seconds s holds the agent: remediations run one at a time and the " +
                     "whole script must finish within $limitSeconds s")
                 Evidence = $evidence
             }

@@ -17,7 +17,7 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     # Stands in for the Graph module in a calling script: every request fails
     $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
-        "throw [System.InvalidOperationException]::new('Graph is down') }"
+    "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     $group = @{ '@odata.type' = '#microsoft.graph.groupAssignmentTarget'; groupId = 'grp-devices' }
     $allDevices = @{ '@odata.type' = '#microsoft.graph.allDevicesAssignmentTarget' }
@@ -27,39 +27,48 @@ BeforeAll {
         deviceAndAppManagementAssignmentFilterId = 'flt-1'; deviceAndAppManagementAssignmentFilterType = 'include'
     }
     $script:Tenant = @{
-        remediations    = @(
+        remediations = @(
             @{ id = 'rem-a'; displayName = 'Fix-Widget'; runAsAccount = 'system'
-                lastModifiedDateTime = '2026-09-20T10:00:00Z'; assignments = @(@{ target = $filtered }) }
+                lastModifiedDateTime = '2026-09-20T10:00:00Z'; assignments = @(@{ target = $filtered })
+            }
             @{ id = 'rem-b'; displayName = 'Report-Only'; runAsAccount = 'user'
-                lastModifiedDateTime = '2026-09-21T10:00:00Z'; assignments = @() }
+                lastModifiedDateTime = '2026-09-21T10:00:00Z'; assignments = @()
+            }
         )
-        runSummaries    = @{
+        runSummaries = @{
             'rem-a' = @{ noIssueDetectedDeviceCount = 3; issueRemediatedDeviceCount = 1
                 detectionScriptErrorDeviceCount = 1; remediationScriptErrorDeviceCount = 0
                 issueDetectedDeviceCount = 2; issueReoccurredDeviceCount = 0; detectionScriptPendingDeviceCount = 0
-                detectionScriptNotApplicableDeviceCount = 0; lastScriptRunDateTime = '2026-09-28T07:17:04Z' }
+                detectionScriptNotApplicableDeviceCount = 0; lastScriptRunDateTime = '2026-09-28T07:17:04Z'
+            }
             'rem-b' = @{ noIssueDetectedDeviceCount = 0; issueRemediatedDeviceCount = 0
                 detectionScriptErrorDeviceCount = 0; remediationScriptErrorDeviceCount = 0
                 issueDetectedDeviceCount = 0; issueReoccurredDeviceCount = 0; detectionScriptPendingDeviceCount = 0
-                detectionScriptNotApplicableDeviceCount = 0; lastScriptRunDateTime = $null }
-            'ps-a'  = @{ successDeviceCount = 5; errorDeviceCount = 0 }
-            'ps-b'  = @{ successDeviceCount = 0; errorDeviceCount = 2 }
+                detectionScriptNotApplicableDeviceCount = 0; lastScriptRunDateTime = $null
+            }
+            'ps-a' = @{ successDeviceCount = 5; errorDeviceCount = 0 }
+            'ps-b' = @{ successDeviceCount = 0; errorDeviceCount = 2 }
         }
         platformScripts = @(
             @{ id = 'ps-a'; displayName = 'Set-Wallpaper'; runAsAccount = 'user'
-                assignments = @(@{ target = $allDevices }, @{ target = $exclusion }) }
+                assignments = @(@{ target = $allDevices }, @{ target = $exclusion })
+            }
             @{ id = 'ps-b'; displayName = 'Set-Proxy'; runAsAccount = 'system'
-                assignments = @(@{ target = $group }) }
+                assignments = @(@{ target = $group })
+            }
         )
-        apps            = @(
+        apps = @(
             @{ id = 'app-a'; displayName = 'Widget 2.0'; installExperience = @{ runAsAccount = 'system' }
-                assignments = @(@{ target = $group }) }
+                assignments = @(@{ target = $group })
+            }
             @{ id = 'app-b'; displayName = 'Widget 1.0'; installExperience = @{ runAsAccount = 'user' }
-                assignments = @(@{ target = $group }) }
+                assignments = @(@{ target = $group })
+            }
         )
-        install         = @(
+        install = @(
             [pscustomobject]@{ ApplicationId = 'app-a'; InstalledDeviceCount = '4'; FailedDeviceCount = '0'
-                PendingInstallDeviceCount = '1'; NotApplicableDeviceCount = '2' }
+                PendingInstallDeviceCount = '1'; NotApplicableDeviceCount = '2'
+            }
         )
     }
     function script:New-Finding {
@@ -123,7 +132,8 @@ BeforeAll {
     $script:Drift = @(
         [pscustomobject]@{ PolicyId = 'rem-a'; Role = 'detection'; State = 'InSync'; Detail = '' }
         [pscustomobject]@{ PolicyId = 'rem-a'; Role = 'remediation'; State = 'Drifted'
-            Detail = 'line endings LF locally, CRLF in the tenant' }
+            Detail = 'line endings LF locally, CRLF in the tenant'
+        }
         [pscustomobject]@{ PolicyId = 'ps-a'; Role = 'script'; State = 'InSync'; Detail = '' }
     )
 }

@@ -258,11 +258,20 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 ```powershell
 ./Tests/Invoke-Tests.ps1                           # every suite, shuffled; suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -CodeCoverage             # the same with the 80% coverage gate, as the tests job runs it
-Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
 ./Build/Build-Help.ps1                             # rebuild MAML after editing docs/
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule
 ./Build/Publish-Module.ps1 -WhatIf                 # full release rehearsal, publishes nothing
 ```
+
+The layout is the formatter's: `PSScriptAnalyzerSettings.psd1` holds the layout rules of the
+standards (brace placement, indentation, whitespace, the 115-character line), and
+`Invoke-Formatter -ScriptDefinition $text -Settings ./PSScriptAnalyzerSettings.psd1` lays a file out
+the way the `tests` job checks it. The formatter can leave a space at the end of a line where it
+moves a brace; the analysis reports that too. The job leaves the validation kit's three
+instruments, `Probe.ps1`, `Win32Install.ps1` and `Fixtures.ps1`, to the default rules: they keep
+the layout they ran with (`Validation/README.md`), so the recursive command above reports them and
+the job does not. Clear a stale `out/` from a release rehearsal before a recursive run.
 
 `Tests/Invoke-Tests.ps1` is the one way the suites are run: it fails when Pester's result is not
 `Passed` or when no tests ran, which a check of `FailedCount` alone does not. Run the unit suites

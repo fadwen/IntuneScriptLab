@@ -24,10 +24,10 @@ Describe 'Win32 app workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
     It 'reports Installed and skips the install when the detection passes' {
         $fixture = New-Win32Fixture 'a' 'exit 0' 'Write-Output "installed"; exit 0'
         $intuneWin32AppTestSplat = @{
-            DetectionPath  = $fixture.Detection
-            ContentPath    = $fixture.Content
+            DetectionPath = $fixture.Detection
+            ContentPath = $fixture.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
         $result.Status | Should-Be 'Installed'
@@ -42,10 +42,10 @@ Describe 'Win32 app workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
         $detectBody = "if (Test-Path '$($fixture.Marker)') { 'installed'; exit 0 } else { exit 1 }"
         Set-Win32FixtureScript -Fixture $fixture -InstallBody $installBody -DetectBody $detectBody
         $intuneWin32AppTestSplat = @{
-            DetectionPath  = $fixture.Detection
-            ContentPath    = $fixture.Content
+            DetectionPath = $fixture.Detection
+            ContentPath = $fixture.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
         $result.Status | Should-Be 'Installed after install'
@@ -60,10 +60,10 @@ Describe 'Win32 app workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
     It 'reports Not detected after install when the install succeeds but detection still fails (0x87D1041C)' {
         $fixture = New-Win32Fixture 'c' 'exit 0' 'exit 0'
         $intuneWin32AppTestSplat = @{
-            DetectionPath  = $fixture.Detection
-            ContentPath    = $fixture.Content
+            DetectionPath = $fixture.Detection
+            ContentPath = $fixture.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
         $result.Status | Should-Be 'Not detected after install'
@@ -73,18 +73,18 @@ Describe 'Win32 app workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
     It 'reports Install failed for an unmapped exit code and Retry for 1618' {
         $failed = New-Win32Fixture 'd' 'exit 7' 'exit 1'
         $intuneWin32AppTestSplat = @{
-            DetectionPath  = $failed.Detection
-            ContentPath    = $failed.Content
+            DetectionPath = $failed.Detection
+            ContentPath = $failed.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         (Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat).Status | Should-Be 'Install failed (exit 7)'
         $retry = New-Win32Fixture 'e' 'exit 1618' 'exit 1'
         $intuneWin32AppTestSplat2 = @{
-            DetectionPath  = $retry.Detection
-            ContentPath    = $retry.Content
+            DetectionPath = $retry.Detection
+            ContentPath = $retry.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         (Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat2).Status | Should-Be 'Retry'
     }
@@ -93,16 +93,16 @@ Describe 'Win32 app workflow' -Tag 'Integration', 'EndToEnd', 'Runtime' {
         $fixture = New-Win32Fixture 'f' 'exit 3010' 'exit 1'
         $detectBody = "if (Test-Path '$($fixture.Marker)') { 'installed'; exit 0 } else { exit 1 }"
         $win32FixtureScriptSplat = @{
-            Fixture     = $fixture
-            DetectBody  = $detectBody
+            Fixture = $fixture
+            DetectBody = $detectBody
             InstallBody = "Set-Content -Path '$($fixture.Marker)' -Value 1; exit 3010"
         }
         Set-Win32FixtureScript @win32FixtureScriptSplat
         $intuneWin32AppTestSplat = @{
-            DetectionPath  = $fixture.Detection
-            ContentPath    = $fixture.Content
+            DetectionPath = $fixture.Detection
+            ContentPath = $fixture.Content
             InstallCommand = $script:Install
-            Architecture   = 'x86'
+            Architecture = 'x86'
         }
         $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
         $result.Status | Should-Be 'Installed after install'

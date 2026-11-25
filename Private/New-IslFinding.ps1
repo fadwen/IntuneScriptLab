@@ -73,16 +73,16 @@ function New-IslFinding {
 
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.Finding'
-        RuleName   = $RuleName
-        Severity   = $Severity
-        Message    = $Message
+        RuleName = $RuleName
+        Severity = $Severity
+        Message = $Message
         ScriptPath = $Context.Path
-        Line       = if ($Extent) { $Extent.StartLineNumber } else { 0 }
-        Column     = if ($Extent) { $Extent.StartColumnNumber } else { 0 }
+        Line = if ($Extent) { $Extent.StartLineNumber } else { 0 }
+        Column = if ($Extent) { $Extent.StartColumnNumber } else { 0 }
         ScriptType = $Context.ScriptType
-        Text       = if ($Extent) { $Extent.Text } else { '' }
-        Evidence   = $Evidence
+        Text = if ($Extent) { $Extent.Text } else { '' }
+        Evidence = $Evidence
         Suppressed = $false
-        Fix        = $Fix
+        Fix = $Fix
     }
 }

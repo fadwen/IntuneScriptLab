@@ -44,14 +44,13 @@ function Find-IslSignatureIssue {
     $phrase = if ($Context.ScriptType -eq 'Win32Detection') { 'detection' } else { 'requirement' }
     $outcome = if ($Context.ScriptType -eq 'Win32Detection') {
         'the app is "not detected", the install runs and the app ends in 0x87D1041C'
-    }
-    else { 'the requirement is not met (observed for detection rules; assumed for requirement rules)' }
+    } else { 'the requirement is not met (observed for detection rules; assumed for requirement rules)' }
     $findingSplat = @{
         RuleName = $rule
         Severity = 'Error'
-        Context  = $Context
-        Extent   = $Context.Ast.Extent
-        Message  = ("Signature status $($signature.Status): with the signature check enforced the agent " +
+        Context = $Context
+        Extent = $Context.Ast.Extent
+        Message = ("Signature status $($signature.Status): with the signature check enforced the agent " +
             "does not run an unsigned $phrase script at all, and $outcome. Sign the script or turn the " +
             'check off on the rule')
         Evidence = ('Unsigned detection script with enforceSignatureCheck: no probe record, AgentExecutor ' +

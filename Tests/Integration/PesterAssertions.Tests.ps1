@@ -33,7 +33,7 @@ Describe 'Pester assertions on real results' -Tag 'Integration', 'EndToEnd', 'Ru
     It 'Should-BeIntuneDetected and Should-NotBeIntuneDetected read detection results' {
         $intuneDetectionTestSplat = @{
             Architecture = 'x86'
-            Path         = (New-TestScript 'yes.ps1' 'Write-Output "installed"; exit 0' -Bom)
+            Path = (New-TestScript 'yes.ps1' 'Write-Output "installed"; exit 0' -Bom)
         }
         Invoke-IntuneDetectionTest @intuneDetectionTestSplat | Should-BeIntuneDetected
         Invoke-IntuneDetectionTest -Architecture x86 -Path (New-TestScript 'no.ps1' 'exit 0' -Bom) |
@@ -43,17 +43,17 @@ Describe 'Pester assertions on real results' -Tag 'Integration', 'EndToEnd', 'Ru
     It 'Should-BeIntuneApplicable and Should-NotBeIntuneApplicable read requirement results' {
         $intuneRequirementTestSplat = @{
             Architecture = 'x86'
-            OutputType   = 'String'
-            Value        = 'ok'
-            Path         = (New-TestScript 'req-ok.ps1' 'Write-Output "ok"' -Bom)
+            OutputType = 'String'
+            Value = 'ok'
+            Path = (New-TestScript 'req-ok.ps1' 'Write-Output "ok"' -Bom)
         }
         Invoke-IntuneRequirementTest @intuneRequirementTestSplat | Should-BeIntuneApplicable
         $intuneRequirementTestSplat2 = @{
             Architecture = 'x86'
-            OutputType   = 'Integer'
-            Operator     = 'GreaterThan'
-            Value        = '3'
-            Path         = (New-TestScript 'req-bad.ps1' 'Write-Output "five"' -Bom)
+            OutputType = 'Integer'
+            Operator = 'GreaterThan'
+            Value = '3'
+            Path = (New-TestScript 'req-bad.ps1' 'Write-Output "five"' -Bom)
         }
         $result = Invoke-IntuneRequirementTest @intuneRequirementTestSplat2
         $result | Should-NotBeIntuneApplicable
@@ -64,7 +64,7 @@ Describe 'Pester assertions on real results' -Tag 'Integration', 'EndToEnd', 'Ru
     It 'Should-HaveIntuneRunState reads a platform script result and quotes its output on failure' {
         $intunePlatformScriptTestSplat = @{
             Architecture = 'x86'
-            Path         = (New-TestScript 'bad.ps1' 'Write-Error "broken"; exit 1' -Bom)
+            Path = (New-TestScript 'bad.ps1' 'Write-Error "broken"; exit 1' -Bom)
         }
         $result = Invoke-IntunePlatformScriptTest @intunePlatformScriptTestSplat
         $result | Should-HaveIntuneRunState 'Failed'

@@ -81,14 +81,14 @@ Describe 'Runtime harness launch' -Tag 'Integration', 'Runtime' {
     It 'reports the whole platform script output including Write-Host, and Failed on non-zero exit' {
         $intunePlatformScriptTestSplat = @{
             Architecture = 'x86'
-            Path         = (New-TestScript 'p1.ps1' "'out-1'; Write-Host 'host-2'; 'out-3'; exit 0" -Bom)
+            Path = (New-TestScript 'p1.ps1' "'out-1'; Write-Host 'host-2'; 'out-3'; exit 0" -Bom)
         }
         $ok = Invoke-IntunePlatformScriptTest @intunePlatformScriptTestSplat
         $ok.RunState | Should-Be 'Success'
         $ok.ResultMessage | Should-BeLikeString '*out-1*host-2*out-3*'
         $intunePlatformScriptTestSplat2 = @{
             Architecture = 'x86'
-            Path         = (New-TestScript 'p2.ps1' 'Write-Error "deliberate"; exit 1' -Bom)
+            Path = (New-TestScript 'p2.ps1' 'Write-Error "deliberate"; exit 1' -Bom)
         }
         $bad = Invoke-IntunePlatformScriptTest @intunePlatformScriptTestSplat2
         $bad.RunState | Should-Be 'Failed'
@@ -224,19 +224,19 @@ Describe 'Win32 requirement rules' -Tag 'Integration', 'Runtime' {
     It 'parses typed outputs: a version rule accepts 2.10.0 over 2.9.0 (W32-REQ-VER, W32-REQ-INT)' {
         $version = New-TestScript 'req-ver.ps1' 'Write-Output "2.10.0"' -Bom
         $intuneRequirementTestSplat = @{
-            Path         = $version
-            OutputType   = 'Version'
-            Operator     = 'GreaterThanOrEqual'
-            Value        = '2.9.0'
+            Path = $version
+            OutputType = 'Version'
+            Operator = 'GreaterThanOrEqual'
+            Value = '2.9.0'
             Architecture = 'x86'
         }
         (Invoke-IntuneRequirementTest @intuneRequirementTestSplat).Applicable | Should-BeTrue
         $integer = New-TestScript 'req-int.ps1' 'Write-Output 5' -Bom
         $intuneRequirementTestSplat2 = @{
-            Path         = $integer
-            OutputType   = 'Integer'
-            Operator     = 'GreaterThan'
-            Value        = '3'
+            Path = $integer
+            OutputType = 'Integer'
+            Operator = 'GreaterThan'
+            Value = '3'
             Architecture = 'x86'
         }
         (Invoke-IntuneRequirementTest @intuneRequirementTestSplat2).Applicable | Should-BeTrue

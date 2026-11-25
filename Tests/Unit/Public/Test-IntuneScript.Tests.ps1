@@ -215,7 +215,7 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
     Context 'Suppressions' {
         It 'drops a finding a header directive suppresses, and shows it with -IncludeSuppressed' {
             $body = "# IntuneScriptLab: ScriptType=Detection Suppress=IslLongSleep`n" +
-                "Start-Sleep -Seconds 4000`nRead-Host 'Continue?'`nexit 1"
+            "Start-Sleep -Seconds 4000`nRead-Host 'Continue?'`nexit 1"
             $path = New-TestScript 'Detect-Quiet.ps1' $body
             @(Test-IntuneScript -Path $path).RuleName | Should-NotContainCollection 'IslLongSleep'
             $all = @(Test-IntuneScript -Path $path -IncludeSuppressed)

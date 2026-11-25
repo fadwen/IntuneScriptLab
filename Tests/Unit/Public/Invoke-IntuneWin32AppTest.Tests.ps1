@@ -19,9 +19,11 @@ BeforeAll {
     $osArchitecture = "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
     $script:Native = if ($osArchitecture -eq 'Arm64') { 'arm64' } else { 'x64' }
     $script:FileRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'present.txt'
-        OperationType = 'exists' }
+        OperationType = 'exists'
+    }
     $script:MissingRule = @{ Type = 'File'; Path = 'C:\Fixtures'; FileOrFolderName = 'missing.txt'
-        OperationType = 'exists' }
+        OperationType = 'exists'
+    }
 }
 
 AfterAll {
@@ -56,7 +58,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 $env:ISL_TEST_INSTALLED = if ($Arguments -match 'uninstall') { '' } else { '1' }
             }
             [pscustomobject]@{ ExitCode = $code; TimedOut = $false; StdOut = "installer $code"; StdErr = ''
-                Duration = [timespan]::Zero }
+                Duration = [timespan]::Zero
+            }
         }
     }
 
@@ -72,14 +75,14 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 Should-Throw @missingDetection
             $intuneWin32AppTestSplat = @{
                 DetectionPath = $script:Fixture.Detection
-                ContentPath   = $script:Fixture.Content
+                ContentPath = $script:Fixture.Content
             }
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
                 Should-Throw -FullyQualifiedErrorId 'IntentCommandMissing,*' -ExceptionMessage '*-InstallCommand*'
             $intuneWin32AppTestSplat2 = @{
-                DetectionPath  = $script:Fixture.Detection
-                Intent         = 'Uninstall'
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                Intent = 'Uninstall'
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe'
             }
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat2 } |
@@ -88,8 +91,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'defaults to the 64-bit host this device has, as the portal does for Win32 detection' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -102,8 +105,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'fails when the content folder does not exist' {
             $missing = Join-Path $TestDrive 'nowhere'
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $missing
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $missing
                 InstallCommand = 'setup.exe'
             }
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
@@ -115,11 +118,11 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             $secure = [securestring]::new()
             foreach ($char in 'pw'.ToCharArray()) { $secure.AppendChar($char) }
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe'
-                Context        = 'System'
-                Credential     = [pscredential]::new('LAB\isl-user', $secure)
+                Context = 'System'
+                Credential = [pscredential]::new('LAB\isl-user', $secure)
             }
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
                 Should-Throw -FullyQualifiedErrorId 'CredentialWithSystemContext,*'
@@ -131,8 +134,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'reports Installed and never runs the installer when the detection already passes' {
             $env:ISL_TEST_INSTALLED = '1'
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -144,8 +147,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'installs through a 32-bit cmd.exe from a copy of the content, then detects' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -168,8 +171,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 }
             }
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -178,13 +181,13 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         }
 
         It 'maps the return codes: <Code> is <Status>' -ForEach @(
-            @{ Code = 7;    Status = 'Install failed (exit 7)' }
+            @{ Code = 7; Status = 'Install failed (exit 7)' }
             @{ Code = 1618; Status = 'Retry' }
             @{ Code = 1707; Status = 'Installed after install' }
         ) {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = "setup.exe /exit $Code"
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -193,8 +196,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'treats 3010 and 1641 as success with a pending reboot warning' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 3010'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -202,8 +205,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             $result.Warnings -join ' ' | Should-BeLikeString '*3010*softReboot*'
             $env:ISL_TEST_INSTALLED = ''
             $intuneWin32AppTestSplat2 = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 1641'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat2
@@ -212,10 +215,10 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'honours a custom return code table' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 7'
-                ReturnCodes    = @{ 7 = 'retry' }
+                ReturnCodes = @{ 7 = 'retry' }
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
             $result.Status | Should-Be 'Retry'
@@ -224,8 +227,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'warns that a user install context is never installed by a device-group assignment (W32-USER-INSTALL)' {
             $env:ISL_TEST_INSTALLED = '1'
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
                 InstallContext = 'User'
             }
@@ -236,8 +239,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'warns that powershell.exe in the install command is the 32-bit host' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -250,8 +253,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1'
             )
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'install.cmd'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -265,8 +268,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 'setup.exe /S'
             )
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = '"install.cmd" /quiet'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -275,9 +278,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'passes -EnforceSignatureCheck to every detection run' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath         = $script:Fixture.Detection
-                ContentPath           = $script:Fixture.Content
-                InstallCommand        = 'setup.exe /exit 0'
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
+                InstallCommand = 'setup.exe /exit 0'
                 EnforceSignatureCheck = $true
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -290,8 +293,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
     Context 'Detection rules (all must match)' {
         It 'counts the app installed when every rule is met and no script is given' {
             $intuneWin32AppTestSplat = @{
-                DetectionRule  = $script:FileRule, $script:FileRule
-                ContentPath    = $script:Fixture.Content
+                DetectionRule = $script:FileRule, $script:FileRule
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -306,8 +309,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
 
         It 'runs the install when one of two rules is not met, and says which (W32-MULTI-ONEFALSE)' {
             $intuneWin32AppTestSplat = @{
-                DetectionRule  = $script:FileRule, $script:MissingRule
-                ContentPath    = $script:Fixture.Content
+                DetectionRule = $script:FileRule, $script:MissingRule
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -320,9 +323,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'requires the script and the rules to agree when both are given' {
             $env:ISL_TEST_INSTALLED = '1'
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                DetectionRule  = $script:MissingRule
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                DetectionRule = $script:MissingRule
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -335,9 +338,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
     Context 'Uninstall intent (W32-UNINSTALL)' {
         It 'reports Not installed and runs nothing when the detection already fails' {
             $intuneWin32AppTestSplat = @{
-                DetectionPath    = $script:Fixture.Detection
-                Intent           = 'Uninstall'
-                ContentPath      = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                Intent = 'Uninstall'
+                ContentPath = $script:Fixture.Content
                 UninstallCommand = 'setup.exe /uninstall /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -349,9 +352,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'detects, runs the uninstall command from the content copy, and detects again: Uninstalled' {
             $env:ISL_TEST_INSTALLED = '1'
             $intuneWin32AppTestSplat = @{
-                DetectionPath    = $script:Fixture.Detection
-                Intent           = 'Uninstall'
-                ContentPath      = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                Intent = 'Uninstall'
+                ContentPath = $script:Fixture.Content
                 UninstallCommand = 'setup.exe /uninstall /exit 0'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -372,9 +375,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 }
             }
             $intuneWin32AppTestSplat = @{
-                DetectionPath    = $script:Fixture.Detection
-                Intent           = 'Uninstall'
-                ContentPath      = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                Intent = 'Uninstall'
+                ContentPath = $script:Fixture.Content
                 UninstallCommand = 'setup.exe /uninstall'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -385,9 +388,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'maps an uninstall exit code that is not a success code to Uninstall failed' {
             $env:ISL_TEST_INSTALLED = '1'
             $intuneWin32AppTestSplat = @{
-                DetectionPath    = $script:Fixture.Detection
-                Intent           = 'Uninstall'
-                ContentPath      = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                Intent = 'Uninstall'
+                ContentPath = $script:Fixture.Content
                 UninstallCommand = 'setup.exe /uninstall /exit 9'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -432,11 +435,12 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                     }
                 }
                 [pscustomobject]@{ ExitCode = $code; TimedOut = $false; StdOut = "installer $code"; StdErr = ''
-                    Duration = [timespan]::Zero }
+                    Duration = [timespan]::Zero
+                }
             }
             $script:ParentSplat = @{
-                DetectionPath  = $script:Parent.Detection
-                ContentPath    = $script:Parent.Content
+                DetectionPath = $script:Parent.Detection
+                ContentPath = $script:Parent.Content
                 InstallCommand = 'setup.exe /mark parent /needs child /exit 0'
             }
             $script:ChildApp = @{
@@ -617,9 +621,9 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 }
             }
             $intuneWin32AppTestSplat = @{
-                DetectionPath         = $script:Fixture.Detection
-                ContentPath           = $script:Fixture.Content
-                InstallCommand        = 'setup.exe'
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
+                InstallCommand = 'setup.exe'
                 InstallTimeoutSeconds = 1
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -633,8 +637,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
                 [pscustomobject]@{ Detected = $false; TimedOut = $true; ExitCode = $null; Reason = 'Timed out' }
             }
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe'
             }
             $result = Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat
@@ -647,10 +651,10 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             # detected and ran its command
             Mock Invoke-IntuneDetectionTest -ModuleName IntuneScriptLab { throw 'The host could not be started.' }
             $intuneWin32AppTestSplat = @{
-                DetectionPath    = $script:Fixture.Detection
-                ContentPath      = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 UninstallCommand = 'setup.exe /uninstall'
-                Intent           = 'Uninstall'
+                Intent = 'Uninstall'
             }
 
             { Invoke-IntuneWin32AppTest @intuneWin32AppTestSplat } |
@@ -661,8 +665,8 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
         It 'ends without the post-detection when the command cannot be started' {
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab { throw 'cmd.exe could not be started.' }
             $intuneWin32AppTestSplat = @{
-                DetectionPath  = $script:Fixture.Detection
-                ContentPath    = $script:Fixture.Content
+                DetectionPath = $script:Fixture.Detection
+                ContentPath = $script:Fixture.Content
                 InstallCommand = 'setup.exe'
             }
 

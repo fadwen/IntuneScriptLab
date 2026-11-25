@@ -36,30 +36,30 @@ function Get-IslCoreOnlyFeature {
         # Switch-Process is not here: PowerShell 7 has it on Linux and macOS only, so a script that
         # calls it fails on both Windows hosts. Get-ChildItem -FollowSymlink is not here either:
         # Windows PowerShell 5.0 already had it. Both were listed until the test below ran
-        Commands   = [string[]]@(
+        Commands = [string[]]@(
             'Get-Error', 'Join-String', 'Test-Json', 'ConvertFrom-Markdown', 'Get-Uptime', 'Remove-Alias',
             'Get-ExperimentalFeature', 'Get-MarkdownOption', 'Show-Markdown', 'ConvertTo-CliXml',
             'ConvertFrom-CliXml'
         )
         Parameters = @{
-            'ConvertFrom-Json'  = 'AsHashtable', 'Depth', 'NoEnumerate', 'DateKind'
-            'ConvertTo-Json'    = 'AsArray', 'EnumsAsStrings', 'EscapeHandling'
-            'Split-Path'        = 'LeafBase', 'Extension'
+            'ConvertFrom-Json' = 'AsHashtable', 'Depth', 'NoEnumerate', 'DateKind'
+            'ConvertTo-Json' = 'AsArray', 'EnumsAsStrings', 'EscapeHandling'
+            'Split-Path' = 'LeafBase', 'Extension'
             'Invoke-WebRequest' = 'SkipCertificateCheck', 'SkipHttpErrorCheck', 'Form', 'Resume',
             'Authentication', 'Token', 'AllowInsecureRedirect', 'RetryIntervalSec'
             'Invoke-RestMethod' = 'SkipCertificateCheck', 'SkipHttpErrorCheck', 'Form', 'Resume',
             'StatusCodeVariable', 'Authentication', 'Token', 'AllowInsecureRedirect', 'ResponseHeadersVariable'
-            'Select-String'     = 'Raw', 'Culture', 'NoEmphasis'
-            'Test-Connection'   = 'TargetName', 'TcpPort', 'Ping', 'Traceroute', 'IPv4', 'IPv6', 'Repeat'
-            'Get-Content'       = 'AsByteStream'
-            'Set-Content'       = 'AsByteStream'
-            'Add-Content'       = 'AsByteStream'
-            'Start-Process'     = 'Environment'
-            'Compress-Archive'  = 'PassThru'
-            'Import-Module'     = 'UseWindowsPowerShell', 'SkipEditionCheck'
+            'Select-String' = 'Raw', 'Culture', 'NoEmphasis'
+            'Test-Connection' = 'TargetName', 'TcpPort', 'Ping', 'Traceroute', 'IPv4', 'IPv6', 'Repeat'
+            'Get-Content' = 'AsByteStream'
+            'Set-Content' = 'AsByteStream'
+            'Add-Content' = 'AsByteStream'
+            'Start-Process' = 'Environment'
+            'Compress-Archive' = 'PassThru'
+            'Import-Module' = 'UseWindowsPowerShell', 'SkipEditionCheck'
         }
         # A parameter both hosts have, with a value only PowerShell 7 accepts
-        Values     = @{
+        Values = @{
             'Out-File' = @{ Encoding = [string[]]@('utf8NoBOM') }
         }
     }

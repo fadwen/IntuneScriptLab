@@ -34,9 +34,8 @@ function ConvertTo-IslAccount {
         $sid = ([System.Security.Principal.NTAccount]$Name).Translate($sidType)
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.Account'
-            Name       = $sid.Translate([System.Security.Principal.NTAccount]).Value
-            Sid        = $sid.Value
+            Name = $sid.Translate([System.Security.Principal.NTAccount]).Value
+            Sid = $sid.Value
         }
-    }
-    catch { Write-Verbose "Account name '$Name' not resolved: $($_.Exception.Message)" }
+    } catch { Write-Verbose "Account name '$Name' not resolved: $($_.Exception.Message)" }
 }

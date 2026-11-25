@@ -41,8 +41,7 @@ function Get-IslCredentialSource {
         if ($kind -eq 'ParenExpressionAst') { $node = $node.Pipeline }
         elseif ($kind -eq 'PipelineAst' -and @($node.PipelineElements).Count -eq 1) {
             $node = $node.PipelineElements[0]
-        }
-        elseif ($kind -eq 'CommandExpressionAst') { $node = $node.Expression }
+        } elseif ($kind -eq 'CommandExpressionAst') { $node = $node.Expression }
         else { $unwrapped = $true }
     }
     if (-not $node) { return }
@@ -63,14 +62,14 @@ function Get-IslCredentialSource {
                 }
                 $previous = if ($index -gt 0) { $elements[$index - 1] } else { $null }
                 $taken = $previous -and $previous.GetType().Name -eq 'CommandParameterAst' -and
-                    -not $previous.Argument
+                -not $previous.Argument
                 if (-not $taken) { $typeName = $element.Extent.Text; break }
             }
             if ("$typeName".Trim('''"') -match $credentialType) { return 'New-Object PSCredential' }
         }
         'InvokeMemberExpressionAst' {
             $onType = $node.Expression.GetType().Name -eq 'TypeExpressionAst' -and
-                $node.Expression.TypeName.FullName -match $credentialType
+            $node.Expression.TypeName.FullName -match $credentialType
             # A member named by a variable, as in [pscredential]::$m(), has no Value, and the
             # method it calls cannot be known from the script
             $namedMember = $node.Member.GetType().Name -eq 'StringConstantExpressionAst'

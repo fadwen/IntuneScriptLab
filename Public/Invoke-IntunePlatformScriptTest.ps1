@@ -47,10 +47,10 @@ function Invoke-IntunePlatformScriptTest {
             # Path is bound only here when it comes from the pipeline, so each script is named here
             Write-Verbose "Testing $scriptItem"
             $scriptRunSplat = @{
-                Path           = $scriptItem
-                Architecture   = $Architecture
-                Context        = $Context
-                Phase          = 'script'
+                Path = $scriptItem
+                Architecture = $Architecture
+                Context = $Context
+                Phase = 'script'
                 TimeoutSeconds = $TimeoutSeconds
             }
             if ($Credential) { $scriptRunSplat.Credential = $Credential }
@@ -91,20 +91,20 @@ function Invoke-IntunePlatformScriptTest {
             }
 
             [pscustomobject]@{
-                PSTypeName    = 'IntuneScriptLab.PlatformScriptResult'
-                RunState      = $runState
-                ExitCode      = $run.ExitCode
+                PSTypeName = 'IntuneScriptLab.PlatformScriptResult'
+                RunState = $runState
+                ExitCode = $run.ExitCode
                 ResultMessage = ($run.StdOut + $run.StdErr).TrimEnd("`r", "`n")
-                StdOut        = $run.StdOut
-                StdErr        = $run.StdErr
-                TimedOut      = $run.TimedOut
-                Duration      = $run.Duration
-                Warnings      = $warnings.ToArray()
-                Architecture  = $Architecture
-                Context       = $Context
-                RunAs         = $run.RunAs
-                Host          = $run.Host
-                ScriptPath    = $run.ScriptPath
+                StdOut = $run.StdOut
+                StdErr = $run.StdErr
+                TimedOut = $run.TimedOut
+                Duration = $run.Duration
+                Warnings = $warnings.ToArray()
+                Architecture = $Architecture
+                Context = $Context
+                RunAs = $run.RunAs
+                Host = $run.Host
+                ScriptPath = $run.ScriptPath
             }
         }
     }

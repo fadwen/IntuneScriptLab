@@ -50,12 +50,12 @@ Describe 'Test-IntuneWin32Requirement' -Tag 'Unit', 'Public' {
             $none.Applicability | Should-Be 0
             $none.PSObject.TypeNames | Should-ContainCollection 'IntuneScriptLab.ApplicabilityResult'
             $intuneWin32RequirementSplat = @{
-                Architecture           = 'x64', 'arm64'
-                MinimumWindowsRelease  = 'Windows11_24H2'
+                Architecture = 'x64', 'arm64'
+                MinimumWindowsRelease = 'Windows11_24H2'
                 MinimumFreeDiskSpaceMB = 1024
-                MinimumMemoryMB        = 4096
-                MinimumProcessors      = 2
-                MinimumCpuSpeedMHz     = 1000
+                MinimumMemoryMB = 4096
+                MinimumProcessors = 2
+                MinimumCpuSpeedMHz = 1000
             }
             $all = Test-IntuneWin32Requirement @intuneWin32RequirementSplat
             $all.Applicable | Should-BeTrue
@@ -75,8 +75,8 @@ Describe 'Test-IntuneWin32Requirement' -Tag 'Unit', 'Public' {
 
         It 'reports disk, memory and processor shortfalls with their codes: <Name> is <Code>' -ForEach @(
             @{ Name = 'MinimumFreeDiskSpaceMB'; Value = 100000000; Code = 1001; Text = 'Available disk space*' }
-            @{ Name = 'MinimumMemoryMB';        Value = 1000000;   Code = 1003; Text = 'Amount of RAM*' }
-            @{ Name = 'MinimumProcessors';      Value = 64;        Code = 1004; Text = 'Count of logical*' }
+            @{ Name = 'MinimumMemoryMB'; Value = 1000000; Code = 1003; Text = 'Amount of RAM*' }
+            @{ Name = 'MinimumProcessors'; Value = 64; Code = 1004; Text = 'Count of logical*' }
         ) {
             $splat = @{ $Name = $Value }
             $result = Test-IntuneWin32Requirement @splat
@@ -97,8 +97,8 @@ Describe 'Test-IntuneWin32Requirement' -Tag 'Unit', 'Public' {
 
         It 'reports the first failed check when several fail, and keeps every check' {
             $intuneWin32RequirementSplat = @{
-                Architecture       = 'x86'
-                MinimumMemoryMB    = 1000000
+                Architecture = 'x86'
+                MinimumMemoryMB = 1000000
                 MinimumCpuSpeedMHz = 9000
             }
             $result = Test-IntuneWin32Requirement @intuneWin32RequirementSplat

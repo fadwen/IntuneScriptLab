@@ -100,8 +100,7 @@ function Invoke-IslScriptRun {
     $runId = [guid]::NewGuid().ToString('N')
     $cache = if ($Credential) {
         Join-Path -Path $env:ProgramData -ChildPath "IntuneScriptLab\Runs\$runId"
-    }
-    else {
+    } else {
         Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
     }
     # The run folder and the copy are this function's own bookkeeping. The command that asked for
@@ -114,12 +113,12 @@ function Invoke-IslScriptRun {
         $null = New-Item -ItemType Directory -Path $cache -Force -ErrorAction Stop @script:IslInternal
         Copy-Item -LiteralPath $source -Destination $scriptCopy -ErrorAction Stop @script:IslInternal
         $processSplat = @{
-            FilePath         = $hostInfo.Path
-            Arguments        = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptCopy`""
+            FilePath = $hostInfo.Path
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptCopy`""
             WorkingDirectory = $WorkingDirectory
-            WorkFolder       = $cache
-            Context          = $Context
-            TimeoutSeconds   = $TimeoutSeconds
+            WorkFolder = $cache
+            Context = $Context
+            TimeoutSeconds = $TimeoutSeconds
         }
         if ($Credential) {
             Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
@@ -134,19 +133,19 @@ function Invoke-IslScriptRun {
     }
 
     [pscustomobject]@{
-        PSTypeName   = 'IntuneScriptLab.RunResult'
-        Phase        = $Phase
-        ScriptPath   = $source
-        Host         = $hostInfo.Path
+        PSTypeName = 'IntuneScriptLab.RunResult'
+        Phase = $Phase
+        ScriptPath = $source
+        Host = $hostInfo.Path
         Architecture = $Architecture
-        Context      = $Context
-        RunAs        = "$($run.UserName) ($($run.LogonType))"
-        UserName     = $run.UserName
-        LogonType    = $run.LogonType
-        ExitCode     = $run.ExitCode
-        TimedOut     = $run.TimedOut
-        StdOut       = $run.StdOut
-        StdErr       = $run.StdErr
-        Duration     = $run.Duration
+        Context = $Context
+        RunAs = "$($run.UserName) ($($run.LogonType))"
+        UserName = $run.UserName
+        LogonType = $run.LogonType
+        ExitCode = $run.ExitCode
+        TimedOut = $run.TimedOut
+        StdOut = $run.StdOut
+        StdErr = $run.StdErr
+        Duration = $run.Duration
     }
 }

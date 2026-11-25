@@ -42,12 +42,12 @@ function Get-IslDeviceFact {
     }
 
     [pscustomobject]@{
-        PSTypeName      = 'IntuneScriptLab.DeviceFact'
-        Architecture    = $architecture
-        Build           = $build
+        PSTypeName = 'IntuneScriptLab.DeviceFact'
+        Architecture = $architecture
+        Build = $build
         FreeDiskSpaceMB = [long][math]::Floor($drive.AvailableFreeSpace / 1MB)
-        MemoryMB        = if ($computer) { [long][math]::Floor($computer.TotalPhysicalMemory / 1MB) } else { 0 }
-        Processors      = [Environment]::ProcessorCount
-        CpuSpeedMHz     = if ($processor) { [int]$processor.MaxClockSpeed } else { 0 }
+        MemoryMB = if ($computer) { [long][math]::Floor($computer.TotalPhysicalMemory / 1MB) } else { 0 }
+        Processors = [Environment]::ProcessorCount
+        CpuSpeedMHz = if ($processor) { [int]$processor.MaxClockSpeed } else { 0 }
     }
 }

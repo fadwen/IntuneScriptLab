@@ -70,7 +70,7 @@ $result.Probes = @(foreach ($file in $probeFiles) {
             $record = $line | ConvertFrom-Json
             $record | Add-Member -NotePropertyName File -NotePropertyValue $file.BaseName -Force
             $record | Select-Object -Property File, Experiment, Phase, Time, User, SessionId, UserInteractive,
-                Cwd, ParentName
+            Cwd, ParentName
         }
     })
 $statePath = Join-Path -Path $base -ChildPath 'esp-state.jsonl'
@@ -151,7 +151,7 @@ $result.AutopilotDiag = @(Get-ItemProperty -LiteralPath $autopilotPath -ErrorAct
 
 $logs = 'C:\ProgramData\Microsoft\IntuneManagementExtension\Logs'
 $keywords = 'ESP|Esp|EnrollmentStatus|Sidecar|ISL-ESP|policies|After filter|Blocking|block|OOBE|IsDeviceInOobe|' +
-    'userless|Userless|DeviceSetup|AccountSetup|Enrollment|Autopilot|Flighting\] Key'
+'userless|Userless|DeviceSetup|AccountSetup|Enrollment|Autopilot|Flighting\] Key'
 foreach ($log in 'IntuneManagementExtension', 'AppWorkload', 'HealthScripts', 'AgentExecutor') {
     $file = Get-ChildItem -LiteralPath $logs -Filter "$log*.log" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime | Select-Object -Last 1
@@ -165,8 +165,7 @@ foreach ($log in 'IntuneManagementExtension', 'AppWorkload', 'HealthScripts', 'A
     $result["Log_$log"] = @($lines | ForEach-Object {
             if ($_ -match '<!\[LOG\[(.*?)\]LOG\]!><time="([^"]+)" date="([^"]+)"') {
                 "$($Matches[3]) $($Matches[2]) $($Matches[1])"
-            }
-            else { $_ }
+            } else { $_ }
         })
 }
 $result | ConvertTo-Json -Depth 5

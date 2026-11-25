@@ -125,7 +125,7 @@ BeforeAll {
     $inspect = "[HS] inspect hourly schedule for policy $($script:Policy): UTC = False, Interval = 1, Time = "
     $verdict = "[HS] the pre-remdiation detection script compliance result for $($script:Policy) is False"
     $detected = "[Win32App][DetectionActionHandler] Detection for policy with id: $($script:App) " +
-        'resulted in action status: Success and detection state: NotDetected.'
+    'resulted in action status: Success and detection state: NotDetected.'
     Write-TestLog $script:Logs 'IntuneManagementExtension-20260924-131114.log' @(
         New-CmTraceLine -Message '[PowerShell] Get 25 policies' -Time '12:38:00.0000000' -Date '9-24-2026'
     )
@@ -137,8 +137,8 @@ BeforeAll {
     Write-TestLog $script:Logs 'HealthScripts.log' @(
         New-CmTraceLine -Message $inspect -Time '08:40:13.0000000' -Component 'HealthScripts'
         $cmTraceLineSplat = @{
-            Message   = "[HS] Runner: script $($script:Policy) will try to execute now."
-            Time      = '08:45:14.0000000'
+            Message = "[HS] Runner: script $($script:Policy) will try to execute now."
+            Time = '08:45:14.0000000'
             Component = 'HealthScripts'
         }
         New-CmTraceLine @cmTraceLineSplat
@@ -242,11 +242,11 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
             @(Get-IntuneAgentLog -Path $script:Logs -Level Warning).Message |
                 Should-BeCollection @('Powershell execution is done, exitCode = 1')
             $window = @($intuneAgentLogSplat = @{
-                            Path   = $script:Logs
-                            After  = ([datetime]'2026-09-25 08:45:00')
-                            Before = ([datetime]'2026-09-25 08:45:26')
-                        }
-                        Get-IntuneAgentLog @intuneAgentLogSplat)
+                    Path = $script:Logs
+                    After = ([datetime]'2026-09-25 08:45:00')
+                    Before = ([datetime]'2026-09-25 08:45:26')
+                }
+                Get-IntuneAgentLog @intuneAgentLogSplat)
             $window.Message | Should-BeCollection @(
                 "[HS] Runner: script $($script:Policy) will try to execute now."
                 'Launch powershell executor in machine session'
@@ -295,8 +295,7 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
                 $entries = @(Get-IntuneAgentLog)
                 $entries.Count | Should-Be 1
                 $entries[0].Event | Should-Be 'ExecutorExit'
-            }
-            finally {
+            } finally {
                 $env:ProgramData = $programData
             }
         }

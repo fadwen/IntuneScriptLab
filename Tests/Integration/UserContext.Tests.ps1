@@ -56,8 +56,7 @@ Describe 'User context as another account' -Tag $script:UserContextTags -Skip:(-
             # The agent's user-context launch: the user's own session, UserInteractive true
             [int]$session | Should-NotBe 0
             $interactive | Should-Be 'True'
-        }
-        else {
+        } else {
             [int]$session | Should-Be 0
         }
     }
@@ -78,8 +77,7 @@ Describe 'User context as another account' -Tag $script:UserContextTags -Skip:(-
             $result.Status | Should-Be 'Fixed' -Because ($result.Remediation.StdErr + $result.IntuneError)
             $result.IntuneOutput | Should-Be 'missing'
             (Get-Acl -LiteralPath $marker).Owner | Should-BeLikeString "*\$($script:Account)"
-        }
-        finally {
+        } finally {
             Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
         }
     }

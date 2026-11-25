@@ -63,7 +63,7 @@ function New-IslFilterParser {
         Add-IslFilterParseError -Parser $parser -Message 'the rule is empty'
     }
     $tokenPattern = '\G(?:(?<ws>\s+)|(?<lparen>\()|(?<rparen>\))|(?<lbracket>\[)|(?<rbracket>\])|' +
-        '(?<comma>,)|"(?<string>[^"]*)"|(?<word>[^\s()\[\],"]+))'
+    '(?<comma>,)|"(?<string>[^"]*)"|(?<word>[^\s()\[\],"]+))'
     $regex = [regex]::new($tokenPattern)
     $offset = 0
     while (-not $parser.Error -and $offset -lt $Rule.Length) {

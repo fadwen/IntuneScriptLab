@@ -11,7 +11,7 @@ BeforeAll {
     $script:Builder = Join-Path $script:ModuleRoot 'Build\Build-RuleReference.ps1'
     $script:Generated = & $script:Builder -PassThru
     $script:Rules = @(Get-ChildItem (Join-Path $script:ModuleRoot 'Private\Rules\Find-Isl*.ps1') |
-        ForEach-Object { $_.BaseName -replace '^Find-', '' } | Sort-Object)
+            ForEach-Object { $_.BaseName -replace '^Find-', '' } | Sort-Object)
 }
 
 Describe 'Build-RuleReference' -Tag 'Unit' {
@@ -46,7 +46,7 @@ Describe 'Build-RuleReference' -Tag 'Unit' {
         foreach ($rule in $script:Rules) {
             $section = [regex]::Match($script:Generated, "(?s)## $rule\r?\n(.*?)(?=\r?\n## |\z)").Groups[1].Value
             $cited = $section -match '\b(REM|PS|W32|FLT|ESP|ASSIGN|PROBE)-[A-Z0-9-]+\b' -or
-                $section -match 'Microsoft Learn|host survey|ARM64 host'
+            $section -match 'Microsoft Learn|host survey|ARM64 host'
             $cited | Should-BeTrue -Because "$rule needs evidence that cites its source"
         }
     }

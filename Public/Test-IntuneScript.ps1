@@ -79,8 +79,7 @@ function Test-IntuneScript {
                 if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                     Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
                         ForEach-Object { $_.FullName }
-                }
-                else { $resolved.ProviderPath }
+                } else { $resolved.ProviderPath }
             }
         }
 
@@ -108,11 +107,11 @@ function Test-IntuneScript {
                 }
 
                 $scriptContextSplat = @{
-                    Path         = $file
-                    ScriptType   = $ScriptType
-                    Context      = $Context
+                    Path = $file
+                    ScriptType = $ScriptType
+                    Context = $Context
                     Architecture = $Architecture
-                    Settings     = $fileSettings
+                    Settings = $fileSettings
                 }
                 # Bound either way it is explicit: the pre-flight passes the policy's own false value
                 if ($PSBoundParameters.ContainsKey('EnforceSignatureCheck')) {
@@ -129,13 +128,13 @@ function Test-IntuneScript {
                 # Say what was assumed: the wrong type silently skips whole rule sets. The note obeys
                 # the rule filters, so -ExcludeRule IslAssumedContext silences it
                 $noteWanted = $scriptContext.TypeSource -notin 'parameter', 'settings', 'directive' -and
-                    (Test-IslRuleSelected -RuleName 'IslAssumedContext' @filters)
+                (Test-IslRuleSelected -RuleName 'IslAssumedContext' @filters)
                 if ($noteWanted) {
                     $findingSplat = @{
                         RuleName = 'IslAssumedContext'
                         Severity = 'Information'
-                        Context  = $scriptContext
-                        Message  = ("Analyzed as $($scriptContext.ScriptType) ($($scriptContext.TypeSource)), " +
+                        Context = $scriptContext
+                        Message = ("Analyzed as $($scriptContext.ScriptType) ($($scriptContext.TypeSource)), " +
                             "$($scriptContext.Context) context, $($scriptContext.Architecture): the portal " +
                             'defaults where nothing said otherwise; a deployment through the Graph API or IaC ' +
                             'gets 64-bit SYSTEM. Pass ' +

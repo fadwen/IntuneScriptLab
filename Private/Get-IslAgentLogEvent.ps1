@@ -46,7 +46,7 @@ function Get-IslAgentLogEvent {
             # IntuneManagementExtension.log: platform scripts and the remediation launches
             @{ Event = 'ScriptPolicyFetch'; Pattern = '\[PowerShell\] (?:Get|After filter, get) (\d+) policies' }
             @{
-                Event   = 'ScriptDownloadCount'
+                Event = 'ScriptDownloadCount'
                 Pattern = '\[PowerShell\] Policy \S+ for user \S+ has download count = (\d+)'
             }
             @{ Event = 'ScriptPolicyStart'; Pattern = '\[PowerShell\] Processing policy with id = (\S+)' }
@@ -57,24 +57,24 @@ function Get-IslAgentLogEvent {
             @{ Event = 'AgentStart'; Pattern = 'first check in on start' }
             @{ Event = 'UserlessCheckin'; Pattern = 'Userless session, skip UserToken for device check-in' }
             @{
-                Event   = 'ScriptEspPhase'
+                Event = 'ScriptEspPhase'
                 Pattern = 'Finished ESP phase check before kicking off PowerShell script\. ESP phase (\w+)'
             }
             @{
-                Event   = 'EspNontrackedCheckin'
+                Event = 'EspNontrackedCheckin'
                 Pattern = '\[Flighting\] Key: RunNontrackedAppsCheckinImmediatelyAfterEsp, found value: (\w+)'
             }
             # HealthScripts.log: remediations
             @{ Event = 'RemediationSchedule'; Pattern = '\[HS\] inspect (\w+) schedule for policy' }
             @{
-                Event   = 'RemediationQueued'
+                Event = 'RemediationQueued'
                 Pattern = '\[HS\] Runner : Job is queued and will be scheduled to run at (.+)$'
             }
             @{ Event = 'RemediationStart'; Pattern = '\[HS\] Runner: script \S+ will try to execute now' }
             @{
-                Event   = 'DetectionResult'
+                Event = 'DetectionResult'
                 Pattern = '\[HS\] the (pre|post)[- ]?rem\w*diation detection script compliance result for \S+ ' +
-                    'is (\w+)'
+                'is (\w+)'
             }
             @{ Event = 'RemediationReport'; Pattern = '\[HS\] new result = \{.*"Result":(\d+)' }
             # AppWorkload.log: Win32 apps
@@ -84,74 +84,74 @@ function Get-IslAgentLogEvent {
             # supersedence are processed as one subgraph, and their reports carry a ReportingImpact
             @{ Event = 'AppSubgraph'; Pattern = '\[V3Processor\] Processing subgraph with app ids: (.+)$' }
             @{
-                Event   = 'AppSubgraphSkipped'
+                Event = 'AppSubgraphSkipped'
                 Pattern = '\[V3Processor\] (Reevaluation interval is not expired|' +
-                    'All of the apps in the subgraph require user-context processing)'
+                'All of the apps in the subgraph require user-context processing)'
             }
             @{
-                Event   = 'AppRelationshipReport'
+                Event = 'AppRelationshipReport'
                 Pattern = 'Sending status to company portal based on report: \{"ApplicationId":"[^"]+",' +
-                    '"ResultantAppState":(\w+),"ReportingImpact":\{"DesiredState":(\d+),"Classification":(\d+),' +
-                    '"ConflictReason":(\d+),"ImpactingApps":\[\{"AppId":"([^"]+)"'
+                '"ResultantAppState":(\w+),"ReportingImpact":\{"DesiredState":(\d+),"Classification":(\d+),' +
+                '"ConflictReason":(\d+),"ImpactingApps":\[\{"AppId":"([^"]+)"'
             }
             @{ Event = 'AppDependencyToast'; Pattern = '-toast "ToastDependencyAppInstall"' }
             @{
-                Event   = 'AppNoIntent'
+                Event = 'AppNoIntent'
                 Pattern = 'because the app does not have available, required, or uninstall intent'
             }
             @{
-                Event   = 'AppDownload'
+                Event = 'AppDownload'
                 Pattern = '\[DownloadActionHandler\] Handler invoked for policy with id: \S+ and version: (\d+)'
             }
             @{
-                Event   = 'AppUserContextSkipped'
+                Event = 'AppUserContextSkipped'
                 Pattern = 'has user install context and this is a userless check-in'
             }
             @{
-                Event   = 'AppApplicability'
+                Event = 'AppApplicability'
                 Pattern = 'Applicability check for policy with id: \S+ resulted in action status: (\w+) and ' +
-                    'applicability state: (\w+)'
+                'applicability state: (\w+)'
             }
             @{
-                Event   = 'AppRequirementCheck'
+                Event = 'AppRequirementCheck'
                 Pattern = '\[Win32App\] (?:applicationRequirementMetadata|RequiredOSArchitecture).*' +
-                    '(?:applicability|skip check)[:.]? ?(\w*)'
+                '(?:applicability|skip check)[:.]? ?(\w*)'
             }
             @{ Event = 'AppRequirementScript'; Pattern = 'result of requirementMet: (\w+)' }
             @{
-                Event   = 'AppDetection'
+                Event = 'AppDetection'
                 Pattern = 'Detection for policy with id: \S+ resulted in action status: (\w+) and ' +
-                    'detection state: (\w+)'
+                'detection state: (\w+)'
             }
             @{
-                Event   = 'AppDetectionRule'
+                Event = 'AppDetectionRule'
                 Pattern = '(?:Checked (?:filePath|reg path|Powershell script)|Path doesn''t exists|' +
-                    'actualV\w+:).*applicationDetected: (\w+)'
+                'actualV\w+:).*applicationDetected: (\w+)'
             }
             @{ Event = 'AppExecution'; Pattern = 'Handler invoked with execution type: (\w+) for policy with id' }
             @{ Event = 'AppInstallExit'; Pattern = '\[Win32App\] lpExitCode (-?\d+)$' }
             @{ Event = 'AppInstallOutcome'; Pattern = '\[Win32App\] lpExitCode is defined as (\w+)' }
             @{
-                Event   = 'AppReport'
+                Event = 'AppReport'
                 Pattern = 'Sending status to company portal based on report: \{"ApplicationId":"[^"]+",' +
-                    '"ResultantAppState":(\w+)'
+                '"ResultantAppState":(\w+)'
             }
             # AppWorkload.log: the Enrollment Status Page (Findings, "The Enrollment Status Page")
             @{ Event = 'EspPhase'; Pattern = '\[Win32App\] The EspPhase: (\w+)' }
             @{
-                Event   = 'EspAppsSelected'
+                Event = 'EspAppsSelected'
                 Pattern = '\[ESPAppLockInProcessor\] Found (\d+) apps which need to be installed for current phase'
             }
             @{
-                Event   = 'EspAppRegistered'
+                Event = 'EspAppRegistered'
                 Pattern = '\[EspManager\] In EspPhase: (\w+)\. App \S+ has been registered.*App name: (.+?)\.?$'
             }
             @{
-                Event   = 'EspAppState'
+                Event = 'EspAppState'
                 Pattern = '\[EspManager\] Updating ESP tracked install status from (\w+) to (\w+) for application'
             }
             @{
-                Event   = 'EspPhaseComplete'
+                Event = 'EspPhaseComplete'
                 Pattern = '\[CheckDeviceAndAccountSetupStateWithWmi\] [Aa]ll apps completed for (\w+)'
             }
             @{ Event = 'EspComplete'; Pattern = 'ESP completed\. Triggering immediate app workload check-in' }
@@ -160,7 +160,7 @@ function Get-IslAgentLogEvent {
             @{ Event = 'ExecutorExit'; Pattern = '^Powershell exit code is (-?\d+)' }
             @{
                 # The line carries stdout and stderr together: "output = <out>, error = <err>"
-                Event   = 'ExecutorOutput'
+                Event = 'ExecutorOutput'
                 Pattern = '^write output done\. output = (.*?)(?:\r?\n?, error = (.*))?$'
             }
             @{ Event = 'ExecutorError'; Pattern = '^error from script =(.*)$' }
@@ -183,10 +183,10 @@ function Get-IslAgentLogEvent {
                 $null = $combined.Append("(?<$group>").Append($renamed.Pattern).Append(')')
                 $position++
                 [pscustomobject]@{
-                    Event    = $definition.Event
-                    Regex    = [regex]::new($definition.Pattern, $singleline)
-                    Needle   = if ($prefix.Length -ge 3) { $prefix } else { $null }
-                    Group    = $group
+                    Event = $definition.Event
+                    Regex = [regex]::new($definition.Pattern, $singleline)
+                    Needle = if ($prefix.Length -ge 3) { $prefix } else { $null }
+                    Group = $group
                     Captures = $renamed.Count
                 }
             })
@@ -231,12 +231,13 @@ function Get-IslAgentLogEvent {
 
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.AgentLogEvent'
-            Event      = $eventName
-            Detail     = $detail
-            Id         = $id
+            Event = $eventName
+            Detail = $detail
+            Id = $id
         }
     }
 }
+
 
 # The event table, compiled by the first call of Get-IslAgentLogEvent. It is assigned here so
 # that the test for it in the function reads a variable that exists, which strict mode requires.

@@ -170,8 +170,7 @@
         } finally {
             $process.Dispose()
         }
-    }
-    else {
+    } else {
         $runId = Split-Path -Path $WorkFolder -Leaf
         $outFile = Join-Path -Path $WorkFolder -ChildPath 'stdout.txt'
         $errFile = Join-Path -Path $WorkFolder -ChildPath 'stderr.txt'
@@ -186,16 +185,16 @@
         $taskName = "IntuneScriptLab-$runId"
         $action = New-ScheduledTaskAction -Execute $cmd -Argument $wrapper -WorkingDirectory $WorkingDirectory
         $taskSettingsSplat = @{
-            AllowStartIfOnBatteries    = $true
+            AllowStartIfOnBatteries = $true
             DontStopIfGoingOnBatteries = $true
-            StartWhenAvailable         = $true
-            ExecutionTimeLimit         = [TimeSpan]::FromSeconds($TimeoutSeconds + 60)
+            StartWhenAvailable = $true
+            ExecutionTimeLimit = [TimeSpan]::FromSeconds($TimeoutSeconds + 60)
         }
         $registerTaskSplat = @{
-            TaskName    = $taskName
-            Action      = $action
-            Settings    = New-ScheduledTaskSettingsSet @taskSettingsSplat
-            Force       = $true
+            TaskName = $taskName
+            Action = $action
+            Settings = New-ScheduledTaskSettingsSet @taskSettingsSplat
+            Force = $true
             ErrorAction = 'Stop'
         }
         if ($Context -eq 'System') {
@@ -205,8 +204,7 @@
             $registerTaskSplat.Principal = New-ScheduledTaskPrincipal @principalSplat
             $refusal = ('Context System registers a scheduled task that runs as SYSTEM, which this session ' +
                 'cannot do (run elevated)')
-        }
-        else {
+        } else {
             $userName = $Credential.UserName
             # The session is found by the account's SID when Windows resolves the name; an Entra
             # account's Windows name is neither the sign-in name nor a part of it. A name Windows
@@ -227,8 +225,7 @@
                 $principalName = if ($resolved) { $resolved.Name } else { $userName }
                 $principalSplat = @{ UserId = $principalName; LogonType = 'Interactive'; RunLevel = 'Limited' }
                 $registerTaskSplat.Principal = New-ScheduledTaskPrincipal @principalSplat
-            }
-            else {
+            } else {
                 # The scheduler takes an Entra account by its Windows name only, here too
                 $registerTaskSplat.User = if ($resolved) { $resolved.Name } else { $userName }
                 $registerTaskSplat.Password = $Credential.GetNetworkCredential().Password
@@ -241,8 +238,7 @@
         # agents, for one) that are not in Administrators yet can do this
         try {
             $null = Register-ScheduledTask @registerTaskSplat
-        }
-        catch {
+        } catch {
             $recordSplat = @{
                 Message = "${refusal}: $($_.Exception.Message)"
                 ErrorId = 'ScheduledTaskNotRegistered'
@@ -290,13 +286,11 @@
                     " ($($never)a stored-password task did not start for a Microsoft Entra account " +
                     'on the lab device, with or without the "Log on as a batch job" right; sign the ' +
                     'account in and run while it holds a session)'
-                }
-                elseif ($code -eq '0x80070569' -or ($code -eq '0x00041303' -and $logon -eq 'Password')) {
+                } elseif ($code -eq '0x80070569' -or ($code -eq '0x00041303' -and $logon -eq 'Password')) {
                     " ($($never)the account is not granted the ""Log on as a batch job"" right a " +
                     'stored-password task needs; grant it in the local security policy, or run while the ' +
                     'account holds a session)'
-                }
-                else { '' }
+                } else { '' }
                 $recordSplat = @{
                     Message = "The scheduled task for $userName did not start: $code$hint"
                     ErrorId = 'ScheduledTaskNotStarted'
@@ -310,8 +304,8 @@
                 Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
                 # Anything the task started carries the run id in its command line
                 $cimInstanceSplat = @{
-                    ClassName   = 'Win32_Process'
-                    Filter      = "CommandLine LIKE '%$runId%'"
+                    ClassName = 'Win32_Process'
+                    Filter = "CommandLine LIKE '%$runId%'"
                     ErrorAction = 'SilentlyContinue'
                 }
                 # Stopping the task has usually ended some of them, and ending one ends its
@@ -321,8 +315,7 @@
                     ForEach-Object {
                         Stop-IslProcessTree -ProcessId $_.ProcessId -Confirm:$false -WhatIf:$false
                     }
-            }
-            else {
+            } else {
                 # cmd writes the exit file before its own redirections are flushed; give it a moment
                 $settleUntil = (Get-Date).AddSeconds(5)
                 do {
@@ -334,8 +327,7 @@
         } catch {
             # The task that did not start, and a cleanup after a timeout that could not be run
             $PSCmdlet.ThrowTerminatingError($_)
-        }
-        finally {
+        } finally {
             # Of the task cmdlets used here only this one has -WhatIf. Under a preference the
             # task would be registered and started and then left behind
             Unregister-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue @script:IslInternal
@@ -343,28 +335,25 @@
         $stopwatch.Stop()
         $stdout = if (Test-Path -LiteralPath $outFile) {
             $oem.GetString([System.IO.File]::ReadAllBytes($outFile))
-        }
-        else { '' }
+        } else { '' }
         $stderr = if (Test-Path -LiteralPath $errFile) {
             $oem.GetString([System.IO.File]::ReadAllBytes($errFile))
-        }
-        else { '' }
+        } else { '' }
         $exitText = if (Test-Path -LiteralPath $exitFile) {
             (Get-Content -LiteralPath $exitFile -Raw).Trim()
-        }
-        else { '' }
+        } else { '' }
         $exitCode = if ($exitText -match '^-?\d+$') { [int]$exitText } else { $null }
     }
 
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.ProcessResult'
-        ExitCode  = if ($timedOut) { $null } else { $exitCode }
-        TimedOut  = $timedOut
-        StdOut    = $stdout
-        StdErr    = $stderr
-        Duration  = $stopwatch.Elapsed
-        Context   = $Context
-        UserName  = $userName
+        ExitCode = if ($timedOut) { $null } else { $exitCode }
+        TimedOut = $timedOut
+        StdOut = $stdout
+        StdErr = $stderr
+        Duration = $stopwatch.Elapsed
+        Context = $Context
+        UserName = $userName
         LogonType = $logon
     }
 }

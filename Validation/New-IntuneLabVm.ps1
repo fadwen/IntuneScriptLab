@@ -212,7 +212,7 @@ $session = (quser 2>$null) -match 'defaultuser0'
 
 
 if (-not $PSCmdlet.ShouldProcess("VM $VmId ($Name) from template $TemplateId on " +
-    "$ProxmoxHost", 'Create')) { return }
+        "$ProxmoxHost", 'Create')) { return }
 
 Write-Information -InformationAction Continue -MessageData "Cloning template $TemplateId to VM $VmId ($Name)..."
 Invoke-Qm "qm clone $TemplateId $VmId --name $Name" | Out-Null

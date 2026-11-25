@@ -90,21 +90,24 @@ Describe 'Get-IslFilterDeviceFact' -Tag 'Unit', 'Private' -Skip:(-not $script:On
         if ($operatingSystem.ProductType -eq 1) {
             # A workstation SKU is in the reference; a server (the CI runner) is not managed by Intune
             $fact.operatingSystemSKU | Should-NotMatchString '^\d+$'
-        }
-        else {
+        } else {
             $fact.operatingSystemSKU | Should-Be "$($operatingSystem.OperatingSystemSKU)"
         }
     }
 
     It 'maps the join type and infers the ownership: <Trust> / <Ownership>' -ForEach @(
         @{ Status = @('  AzureAdJoined : YES', '  DomainJoined : NO', '  WorkplaceJoined : NO')
-            Trust = 'Azure AD joined'; Ownership = 'Corporate' }
+            Trust = 'Azure AD joined'; Ownership = 'Corporate'
+        }
         @{ Status = @('  AzureAdJoined : YES', '  DomainJoined : YES', '  WorkplaceJoined : NO')
-            Trust = 'Hybrid Azure AD joined'; Ownership = 'Corporate' }
+            Trust = 'Hybrid Azure AD joined'; Ownership = 'Corporate'
+        }
         @{ Status = @('  AzureAdJoined : NO', '  DomainJoined : NO', '  WorkplaceJoined : YES')
-            Trust = 'Azure AD registered'; Ownership = 'Personal' }
+            Trust = 'Azure AD registered'; Ownership = 'Personal'
+        }
         @{ Status = @('  AzureAdJoined : NO', '  DomainJoined : NO', '  WorkplaceJoined : NO')
-            Trust = 'Unknown'; Ownership = 'Unknown' }
+            Trust = 'Unknown'; Ownership = 'Unknown'
+        }
         @{ Status = @(); Trust = 'Unknown'; Ownership = 'Unknown' }
     ) {
         $fact = Get-FactWithStatus -Status $Status

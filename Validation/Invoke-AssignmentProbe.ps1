@@ -168,22 +168,27 @@ $hourly = @{ '@odata.type' = '#microsoft.graph.deviceHealthScriptHourlySchedule'
 $past = (Get-Date).ToUniversalTime().AddHours(-2)
 $runOncePast = @{
     '@odata.type' = '#microsoft.graph.deviceHealthScriptRunOnceSchedule'; interval = 1; useUtc = $true
-    date          = $past.ToString('yyyy-MM-dd'); time = $past.ToString('HH:mm:ss')
+    date = $past.ToString('yyyy-MM-dd'); time = $past.ToString('HH:mm:ss')
 }
 $experiments = @(
     @{ Name = 'ASSIGN-NONE'; Question = 'A remediation with no assignment: delivered anywhere'; Assignments = @() }
     @{ Name = 'ASSIGN-EXCLONLY'; Question = 'Only an exclusion assignment: delivered anywhere'
-        Assignments = @(@{ target = $exclude; runRemediationScript = $true; runSchedule = $hourly }) }
+        Assignments = @(@{ target = $exclude; runRemediationScript = $true; runSchedule = $hourly })
+    }
     @{ Name = 'ASSIGN-INEX'; Question = 'Include and exclude of the same device group: delivered'
         Assignments = @(
             @{ target = $include; runRemediationScript = $true; runSchedule = $hourly }
-            @{ target = $exclude; runRemediationScript = $true; runSchedule = $hourly }) }
+            @{ target = $exclude; runRemediationScript = $true; runSchedule = $hourly })
+    }
     @{ Name = 'ASSIGN-PAST'; Question = 'Run-once schedule two hours in the past: run at fetch or never'
-        Assignments = @(@{ target = $include; runRemediationScript = $true; runSchedule = $runOncePast }) }
+        Assignments = @(@{ target = $include; runRemediationScript = $true; runSchedule = $runOncePast })
+    }
     @{ Name = 'ASSIGN-USERGRP'; Question = 'SYSTEM remediation assigned to a user group: runs where a member is'
-        Assignments = @(@{ target = $userTarget; runRemediationScript = $true; runSchedule = $hourly }) }
+        Assignments = @(@{ target = $userTarget; runRemediationScript = $true; runSchedule = $hourly })
+    }
     @{ Name = 'ASSIGN-PAST2'; Question = 'Run-once two hours in the past, on a device with a correct clock'
-        Assignments = @(@{ target = $secondTarget; runRemediationScript = $true; runSchedule = $runOncePast }) }
+        Assignments = @(@{ target = $secondTarget; runRemediationScript = $true; runSchedule = $runOncePast })
+    }
 )
 
 $listUri = "$beta/deviceManagement/deviceHealthScripts?`$select=id,displayName"
@@ -194,9 +199,9 @@ foreach ($exp in $experiments) {
     if ($found) { "exists $name $($found.id)"; continue }
     if (-not $PSCmdlet.ShouldProcess($name, 'Create remediation')) { continue }
     $body = @{
-        displayName              = $name; description = $exp.Question; publisher = 'IntuneScriptLab'
-        enforceSignatureCheck    = $false; runAs32Bit = $false; runAsAccount = 'system'
-        detectionScriptContent   = ConvertTo-Content -Body "Write-ProbeRecord $($exp.Name) detection; exit 1"
+        displayName = $name; description = $exp.Question; publisher = 'IntuneScriptLab'
+        enforceSignatureCheck = $false; runAs32Bit = $false; runAsAccount = 'system'
+        detectionScriptContent = ConvertTo-Content -Body "Write-ProbeRecord $($exp.Name) detection; exit 1"
         remediationScriptContent = ConvertTo-Content -Body "Write-ProbeRecord $($exp.Name) remediation; exit 0"
     }
     $policy = Invoke-MgGraphRequest -Method POST -Uri "$beta/deviceManagement/deviceHealthScripts" -Body $body

@@ -55,11 +55,11 @@ function Get-IntuneAgentTimeline {
         $steps = @($group.Group | Sort-Object Time, Log, Line | ForEach-Object {
                 [pscustomobject]@{
                     PSTypeName = 'IntuneScriptLab.AgentTimelineStep'
-                    Time       = $_.Time
-                    Log        = $_.Log
-                    Event      = $_.Event
-                    Detail     = $_.Detail
-                    Message    = $_.Message
+                    Time = $_.Time
+                    Log = $_.Log
+                    Event = $_.Event
+                    Detail = $_.Detail
+                    Message = $_.Message
                 }
             })
         # A rolled file is HealthScripts-20260925-101500: both date and time come off, or the name
@@ -81,16 +81,16 @@ function Get-IntuneAgentTimeline {
         $key = "$($group.Name)".ToLower()
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.AgentTimeline'
-            Id         = $group.Name
-            Name       = if ($names.ContainsKey($key)) { $names[$key] } else { $group.Name }
-            Kind       = $kind
-            Started    = $started
-            Ended      = $ended
-            Duration   = $ended - $started
-            Runs       = @($steps | Where-Object Event -in $launches).Count
-            Outcome    = $outcome
-            Steps      = $steps
-            Summary    = ($summaryParts -join ' > ')
+            Id = $group.Name
+            Name = if ($names.ContainsKey($key)) { $names[$key] } else { $group.Name }
+            Kind = $kind
+            Started = $started
+            Ended = $ended
+            Duration = $ended - $started
+            Runs = @($steps | Where-Object Event -in $launches).Count
+            Outcome = $outcome
+            Steps = $steps
+            Summary = ($summaryParts -join ' > ')
         }
     }
     $timelines | Sort-Object Started

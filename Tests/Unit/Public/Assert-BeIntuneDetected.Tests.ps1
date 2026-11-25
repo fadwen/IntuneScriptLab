@@ -16,17 +16,17 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Detected = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.DetectionResult'
-        Detected   = $true
-        Reason     = 'Exit 0 with stdout and no stderr'
-        ExitCode   = 0
-        StdOut     = 'installed'
+        Detected = $true
+        Reason = 'Exit 0 with stdout and no stderr'
+        ExitCode = 0
+        StdOut = 'installed'
     }
     $script:Missed = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.DetectionResult'
-        Detected   = $false
-        Reason     = 'Nothing on stdout: exit 0 alone is "not detected"'
-        ExitCode   = 0
-        StdOut     = ''
+        Detected = $false
+        Reason = 'Nothing on stdout: exit 0 alone is "not detected"'
+        ExitCode = 0
+        StdOut = ''
     }
 }
 

@@ -20,6 +20,7 @@ Import-Module (Join-Path -Path $PSScriptRoot -ChildPath '..\IntuneScriptLab.psd1
 
 $script:AnalysisCache = [hashtable]::Synchronized(@{})
 
+
 function Get-IslAnalysis {
     <#
     .SYNOPSIS
@@ -68,8 +69,7 @@ function Get-IslAnalysis {
     $sha = [System.Security.Cryptography.SHA256]::Create()
     try {
         $hash = [System.BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)))
-    }
-    finally { $sha.Dispose() }
+    } finally { $sha.Dispose() }
     $key = "definition|$($hash -replace '-', '')"
     if (-not $script:AnalysisCache.ContainsKey($key)) {
         $folder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'IntuneScriptLab'
@@ -78,13 +78,13 @@ function Get-IslAnalysis {
         try {
             [System.IO.File]::WriteAllText($temp, $text, [System.Text.UTF8Encoding]::new($true))
             $script:AnalysisCache[$key] = @(Test-IntuneScript -Path $temp -ErrorAction Stop)
-        }
-        finally {
+        } finally {
             Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
         }
     }
     $script:AnalysisCache[$key]
 }
+
 
 function Get-IslRuleRecord {
     <#
@@ -138,18 +138,18 @@ function Get-IslRuleRecord {
             $end = [System.Management.Automation.Language.ScriptPosition]::new($file, $endLine, $endColumn,
                 $lines[-1])
             [System.Management.Automation.Language.ScriptExtent]::new($start, $end)
-        }
-        else { $ScriptBlockAst.Extent }
+        } else { $ScriptBlockAst.Extent }
         $message = if ($finding.Evidence) { "$($finding.Message) [Observed: $($finding.Evidence)]" }
         else { $finding.Message }
         [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-            Message  = $message
-            Extent   = $extent
+            Message = $message
+            Extent = $extent
             RuleName = "Measure-$Rule"
             Severity = $finding.Severity
         }
     }
 }
+
 
 function Measure-IslPowerShell7Syntax {
     <#
@@ -187,6 +187,7 @@ function Measure-IslPowerShell7Syntax {
     Get-IslRuleRecord -Rule 'IslPowerShell7Syntax' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslEncodingIssue {
     <#
     .SYNOPSIS
@@ -222,6 +223,7 @@ function Measure-IslEncodingIssue {
     )
     Get-IslRuleRecord -Rule 'IslEncodingIssue' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslInteractiveCall {
     <#
@@ -259,6 +261,7 @@ function Measure-IslInteractiveCall {
     Get-IslRuleRecord -Rule 'IslInteractiveCall' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslExitCodeIssue {
     <#
     .SYNOPSIS
@@ -294,6 +297,7 @@ function Measure-IslExitCodeIssue {
     )
     Get-IslRuleRecord -Rule 'IslExitCodeIssue' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslOutputIssue {
     <#
@@ -331,6 +335,7 @@ function Measure-IslOutputIssue {
     Get-IslRuleRecord -Rule 'IslOutputIssue' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslContextIssue {
     <#
     .SYNOPSIS
@@ -366,6 +371,7 @@ function Measure-IslContextIssue {
     )
     Get-IslRuleRecord -Rule 'IslContextIssue' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslArchitectureIssue {
     <#
@@ -403,6 +409,7 @@ function Measure-IslArchitectureIssue {
     Get-IslRuleRecord -Rule 'IslArchitectureIssue' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslArm64Assumption {
     <#
     .SYNOPSIS
@@ -438,6 +445,7 @@ function Measure-IslArm64Assumption {
     )
     Get-IslRuleRecord -Rule 'IslArm64Assumption' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslRebootCommand {
     <#
@@ -475,6 +483,7 @@ function Measure-IslRebootCommand {
     Get-IslRuleRecord -Rule 'IslRebootCommand' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslRelativePath {
     <#
     .SYNOPSIS
@@ -510,6 +519,7 @@ function Measure-IslRelativePath {
     )
     Get-IslRuleRecord -Rule 'IslRelativePath' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslLongSleep {
     <#
@@ -547,6 +557,7 @@ function Measure-IslLongSleep {
     Get-IslRuleRecord -Rule 'IslLongSleep' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslSignatureIssue {
     <#
     .SYNOPSIS
@@ -582,6 +593,7 @@ function Measure-IslSignatureIssue {
     )
     Get-IslRuleRecord -Rule 'IslSignatureIssue' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslAssumedContext {
     <#
@@ -619,6 +631,7 @@ function Measure-IslAssumedContext {
     Get-IslRuleRecord -Rule 'IslAssumedContext' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslExecutionPolicyCall {
     <#
     .SYNOPSIS
@@ -654,6 +667,7 @@ function Measure-IslExecutionPolicyCall {
     )
     Get-IslRuleRecord -Rule 'IslExecutionPolicyCall' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 function Measure-IslModuleDependency {
     <#
@@ -691,6 +705,7 @@ function Measure-IslModuleDependency {
     Get-IslRuleRecord -Rule 'IslModuleDependency' -ScriptBlockAst $ScriptBlockAst
 }
 
+
 function Measure-IslScriptSize {
     <#
     .SYNOPSIS
@@ -726,6 +741,7 @@ function Measure-IslScriptSize {
     )
     Get-IslRuleRecord -Rule 'IslScriptSize' -ScriptBlockAst $ScriptBlockAst
 }
+
 
 Export-ModuleMember -Function @(
     'Measure-IslPowerShell7Syntax'

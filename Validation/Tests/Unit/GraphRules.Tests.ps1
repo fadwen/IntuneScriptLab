@@ -167,10 +167,10 @@ Describe 'Get-Win32AppRuleSet' -Tag 'Unit', 'Validation' {
 
     It 'turns the legacy Detection and Requirement keys into script rules through the encoder' {
         $experiment = @{
-            Name        = 'W32-REQ-BASE'
-            Detection   = 'exit 1'
-            Bom         = $true
-            RunAs32Bit  = $true
+            Name = 'W32-REQ-BASE'
+            Detection = 'exit 1'
+            Bom = $true
+            RunAs32Bit = $true
             Requirement = @{ Script = 'Write-Output ok'; RunAsAccount = 'user' }
         }
         $rules = @(Get-Win32AppRuleSet -Experiment $experiment -Encode $script:Encode)
@@ -193,9 +193,9 @@ Describe 'Get-Win32AppRuleSet' -Tag 'Unit', 'Validation' {
 
     It 'lists the detection script first, then DetectionRules, then RequirementRules' {
         $experiment = @{
-            Name             = 'W32-MIX'
-            Detection        = 'exit 1'
-            DetectionRules   = @(
+            Name = 'W32-MIX'
+            Detection = 'exit 1'
+            DetectionRules = @(
                 @{ Type = 'File'; Path = 'C:\F'; FileOrFolderName = 'a'; OperationType = 'exists' }
                 @{ Type = 'ProductCode'; ProductCode = '{1}' }
             )

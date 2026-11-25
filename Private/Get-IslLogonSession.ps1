@@ -48,10 +48,10 @@ function Get-IslLogonSession {
         $seen[$key] = $true
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.LogonSession'
-            UserName   = $userName
-            Domain     = Get-IslPropertyValue -InputObject $owner -Name 'Domain'
-            Sid        = $sid
-            Id         = [int]$shell.SessionId
+            UserName = $userName
+            Domain = Get-IslPropertyValue -InputObject $owner -Name 'Domain'
+            Sid = $sid
+            Id = [int]$shell.SessionId
         }
     }
 }

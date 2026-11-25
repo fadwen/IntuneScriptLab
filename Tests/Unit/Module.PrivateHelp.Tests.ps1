@@ -17,7 +17,7 @@ BeforeDiscovery {
     $rulesModule = Join-Path -Path $rulesFolder -ChildPath 'IntuneScriptLab.Rules.psm1'
     $privateFolder = Join-Path -Path $moduleRoot -ChildPath 'Private'
     $files = @(Get-ChildItem -LiteralPath $privateFolder -Recurse -Filter '*.ps1') +
-        @(Get-Item -LiteralPath $rulesModule)
+    @(Get-Item -LiteralPath $rulesModule)
     $script:Functions = foreach ($file in $files) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
         foreach ($function in $ast.FindAll($isFunction, $false)) {

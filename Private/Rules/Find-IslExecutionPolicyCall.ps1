@@ -52,20 +52,19 @@ function Find-IslExecutionPolicyCall {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('Set-ExecutionPolicy -Scope Process does nothing here: the agent already launches ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('Set-ExecutionPolicy -Scope Process does nothing here: the agent already launches ' +
                     'the script with -ExecutionPolicy Bypass')
                 Evidence = $evidence
             }
-        }
-        else {
+        } else {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ("Set-ExecutionPolicy with scope $scope changes the device's policy on every run and " +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ("Set-ExecutionPolicy with scope $scope changes the device's policy on every run and " +
                     'does nothing for this script, which the agent launches with -ExecutionPolicy Bypass. ' +
                     'Remove it')
                 Evidence = $evidence
@@ -75,7 +74,7 @@ function Find-IslExecutionPolicyCall {
         # it out would leave a broken statement with nothing to say so
         $pipeline = $command.Parent
         $alone = $pipeline.GetType().Name -eq 'PipelineAst' -and @($pipeline.PipelineElements).Count -eq 1 -and
-            $pipeline.Parent.GetType().Name -in 'NamedBlockAst', 'StatementBlockAst'
+        $pipeline.Parent.GetType().Name -in 'NamedBlockAst', 'StatementBlockAst'
         if ($alone) { $findingSplat.Fix = @{ Replacement = '' } }
         New-IslFinding @findingSplat
     }

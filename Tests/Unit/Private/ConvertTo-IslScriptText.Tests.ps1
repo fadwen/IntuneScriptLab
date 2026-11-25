@@ -19,7 +19,7 @@ Describe 'ConvertTo-IslScriptText' -Tag 'Unit', 'Private' {
     It 'leaves the byte order mark out of the text and reports it' {
         $result = InModuleScope IntuneScriptLab {
             $bytes = [System.Text.UTF8Encoding]::new($true).GetPreamble() +
-                [System.Text.Encoding]::UTF8.GetBytes('exit 0')
+            [System.Text.Encoding]::UTF8.GetBytes('exit 0')
             ConvertTo-IslScriptText -Bytes $bytes
         }
 

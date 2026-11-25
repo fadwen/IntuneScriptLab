@@ -91,14 +91,14 @@ Describe 'Get-IslVariableCredentialSource' -Tag 'Unit', 'Private' {
 
     It 'names every way the script builds the credential' {
         $text = "if (`$a) { `$cred = Import-Clixml .\c.xml } else { `$cred = [pscredential]::new(`$u, `$p) }`n" +
-            'Get-Credential -Credential $cred'
+        'Get-Credential -Credential $cred'
 
         Get-Source -Text $text | Should-BeCollection @('Import-Clixml, [pscredential]::new()')
     }
 
     It 'takes a typed parameter and a scope prefix' {
         $text = "param([pscredential]`$Cred)`n`$script:Cred = Import-Clixml .\c.xml`n" +
-            'Get-Credential -Credential $Cred'
+        'Get-Credential -Credential $Cred'
 
         Get-Source -Text $text | Should-BeCollection @('Import-Clixml, a [pscredential] parameter')
     }

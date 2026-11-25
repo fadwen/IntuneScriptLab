@@ -33,8 +33,8 @@ function Invoke-IntuneRemediationTest {
 
     $warnings = [System.Collections.Generic.List[string]]::new()
     $scriptRunSplat = @{
-        Architecture   = $Architecture
-        Context        = $Context
+        Architecture = $Architecture
+        Context = $Context
         TimeoutSeconds = $TimeoutSeconds
     }
     if ($Credential) {
@@ -53,7 +53,7 @@ function Invoke-IntuneRemediationTest {
     # The scripts are somebody's code and are about to run: -WhatIf names them and runs nothing
     $action = if ($RemediationPath) {
         "Run as a remediation ($Context context, $Architecture): the detection, then $RemediationPath " +
-            'when the detection reports an issue, then the detection again'
+        'when the detection reports an issue, then the detection again'
     } else {
         "Run as a detection-only remediation ($Context context, $Architecture)"
     }
@@ -69,19 +69,16 @@ function Invoke-IntuneRemediationTest {
 
         if ($pre.TimedOut) {
             $status = 'TimedOut'
-        }
-        elseif ($pre.ExitCode -eq 0) {
+        } elseif ($pre.ExitCode -eq 0) {
             $status = 'Without issues'
-        }
-        else {
+        } else {
             if ($pre.ExitCode -ne 1) {
                 $warnings.Add("Detection exited $($pre.ExitCode): Intune treats any non-zero exit as " +
                     "'issue found' (observed with 2 and -1); use 1 to be explicit")
             }
             if (-not $RemediationPath) {
                 $status = 'Issue detected (no remediation script)'
-            }
-            else {
+            } else {
                 $remediation = Invoke-IslScriptRun -Path $RemediationPath -Phase 'remediate' @scriptRunSplat
                 # Anything on the remediation's stderr is a script error to the agent, whatever the exit
                 # code: RemediationStatus 3, Graph scriptError, no post-detection (REM-STDERR-EXIT0)
@@ -93,8 +90,7 @@ function Invoke-IntuneRemediationTest {
                     $warnings.Add('Remediation exited 0 but wrote to stderr: Intune reports the run as a script ' +
                         'error (Failed, Graph scriptError) with the error text attached, and skips the ' +
                         'post-detection. Silence the error or exit non-zero on purpose')
-                }
-                else {
+                } else {
                     $post = Invoke-IslScriptRun -Path $DetectionPath -Phase 'detect' @scriptRunSplat
                     $status = if ($post.TimedOut) { 'TimedOut' }
                     elseif ($post.ExitCode -eq 0) { 'Fixed' }
@@ -107,38 +103,47 @@ function Invoke-IntuneRemediationTest {
     }
 
     $intune = Get-IslIntuneOutput -StdOut $pre.StdOut -StdErr $pre.StdErr
-    if ($intune.DroppedLines -gt 0) { $warnings.Add("Detection wrote $($intune.DroppedLines + 1) lines; Intune " +
-        'reports only the last one') }
-    if ($intune.OutputTruncated) { $warnings.Add('Detection output exceeds 2,048 characters; Intune keeps the ' +
-        'last 2,048') }
-    if ($intune.ErrorTruncated) { $warnings.Add('Detection error output exceeds 2,048 characters; Intune keeps ' +
-        'the last 2,048') }
-    if ($pre.StdOut -match '[^\x00-\x7F]') { $warnings.Add('Non-ASCII in output: Intune reports it through the ' +
-        'OEM code page (see IntuneOutput for the effect)') }
-    if ($status -eq 'Without issues' -and $pre.StdErr) { $warnings.Add('Detection wrote to stderr but exited 0; ' +
-        'Intune shows the error text but still reports "without issues"') }
+    if ($intune.DroppedLines -gt 0) {
+        $warnings.Add("Detection wrote $($intune.DroppedLines + 1) lines; Intune " +
+            'reports only the last one')
+    }
+    if ($intune.OutputTruncated) {
+        $warnings.Add('Detection output exceeds 2,048 characters; Intune keeps the ' +
+            'last 2,048')
+    }
+    if ($intune.ErrorTruncated) {
+        $warnings.Add('Detection error output exceeds 2,048 characters; Intune keeps ' +
+            'the last 2,048')
+    }
+    if ($pre.StdOut -match '[^\x00-\x7F]') {
+        $warnings.Add('Non-ASCII in output: Intune reports it through the ' +
+            'OEM code page (see IntuneOutput for the effect)')
+    }
+    if ($status -eq 'Without issues' -and $pre.StdErr) {
+        $warnings.Add('Detection wrote to stderr but exited 0; ' +
+            'Intune shows the error text but still reports "without issues"')
+    }
 
     $postIntune = if ($post) { Get-IslIntuneOutput -StdOut $post.StdOut -StdErr $post.StdErr } else { $null }
     $remIntune = if ($remediation) {
         Get-IslIntuneOutput -StdOut $remediation.StdOut -StdErr $remediation.StdErr
-    }
-    else { $null }
+    } else { $null }
 
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
     [pscustomobject]@{
-        PSTypeName         = 'IntuneScriptLab.RemediationResult'
-        Status             = $status
-        IntuneOutput       = $intune.Output
-        IntuneError        = $intune.Error
-        RemediationOutput  = if ($remIntune) { $remIntune.Output } else { $null }
-        PostOutput         = if ($postIntune) { $postIntune.Output } else { $null }
-        PreDetection       = $pre
-        Remediation        = $remediation
-        PostDetection      = $post
-        Warnings           = $warnings.ToArray()
-        Architecture       = $Architecture
-        Context            = $Context
-        RunAs              = $pre.RunAs
-        Host               = $pre.Host
+        PSTypeName = 'IntuneScriptLab.RemediationResult'
+        Status = $status
+        IntuneOutput = $intune.Output
+        IntuneError = $intune.Error
+        RemediationOutput = if ($remIntune) { $remIntune.Output } else { $null }
+        PostOutput = if ($postIntune) { $postIntune.Output } else { $null }
+        PreDetection = $pre
+        Remediation = $remediation
+        PostDetection = $post
+        Warnings = $warnings.ToArray()
+        Architecture = $Architecture
+        Context = $Context
+        RunAs = $pre.RunAs
+        Host = $pre.Host
     }
 }

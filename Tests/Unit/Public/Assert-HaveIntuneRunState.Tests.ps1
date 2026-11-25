@@ -16,15 +16,15 @@ BeforeAll {
     }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Ok = [pscustomobject]@{
-        PSTypeName    = 'IntuneScriptLab.PlatformScriptResult'
-        RunState      = 'Success'
-        ExitCode      = 0
+        PSTypeName = 'IntuneScriptLab.PlatformScriptResult'
+        RunState = 'Success'
+        ExitCode = 0
         ResultMessage = 'done'
     }
     $script:Bad = [pscustomobject]@{
-        PSTypeName    = 'IntuneScriptLab.PlatformScriptResult'
-        RunState      = 'Failed'
-        ExitCode      = 1
+        PSTypeName = 'IntuneScriptLab.PlatformScriptResult'
+        RunState = 'Failed'
+        ExitCode = 1
         ResultMessage = 'broken: ' + ('x' * 400)
     }
 }

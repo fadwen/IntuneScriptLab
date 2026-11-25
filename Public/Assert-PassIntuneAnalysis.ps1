@@ -55,6 +55,6 @@ function Assert-PassIntuneAnalysis {
         }) -join "`n"
     $assert.Fail(
         'Expected no Test-IntuneScript findings at <MinimumSeverity> or above,<because> but got ' +
-            '<Count>:' + "`n" + '<List>',
+        '<Count>:' + "`n" + '<List>',
         @{ Because = $Because; MinimumSeverity = $MinimumSeverity; Count = $findings.Count; List = $list })
 }

@@ -38,15 +38,13 @@
         $key = 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage'
         $value = (Get-ItemProperty -LiteralPath $key -Name $valueName -ErrorAction Stop).$valueName
         if ($value -match '^\d+$') { $codePage = [int]$value }
-    }
-    catch { Write-Verbose "$valueName not readable from the registry, assuming $codePage" }
+    } catch { Write-Verbose "$valueName not readable from the registry, assuming $codePage" }
 
     # Windows PowerShell has the code pages built in and no provider type to register
     if ('System.Text.CodePagesEncodingProvider' -as [type]) {
         try {
             [System.Text.Encoding]::RegisterProvider([System.Text.CodePagesEncodingProvider]::Instance)
-        }
-        catch { Write-Verbose "Code page provider not registered: $($_.Exception.Message)" }
+        } catch { Write-Verbose "Code page provider not registered: $($_.Exception.Message)" }
     }
 
     try { [System.Text.Encoding]::GetEncoding($codePage) }

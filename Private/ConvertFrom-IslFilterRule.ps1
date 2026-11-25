@@ -81,10 +81,10 @@ function ConvertFrom-IslFilterRule {
 
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.FilterRule'
-        Rule       = $Rule
-        Error      = $parser.Error
-        Tree       = if ($parser.Error) { $null } else { $tree }
-        Clauses    = if ($parser.Error) { @() } else { $parser.Clauses.ToArray() }
-        Warnings   = if ($parser.Error) { @() } else { $parser.Warnings.ToArray() }
+        Rule = $Rule
+        Error = $parser.Error
+        Tree = if ($parser.Error) { $null } else { $tree }
+        Clauses = if ($parser.Error) { @() } else { $parser.Clauses.ToArray() }
+        Warnings = if ($parser.Error) { @() } else { $parser.Warnings.ToArray() }
     }
 }

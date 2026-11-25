@@ -78,17 +78,17 @@ function Test-IntuneWin32Rule {
         'ProductCode' { if ($Operator) { 'Version' } else { 'Exists' } }
     }
     $result = [pscustomobject]@{
-        PSTypeName           = 'IntuneScriptLab.RuleResult'
-        Met                  = $false
-        Kind                 = $kind
-        RuleType             = $RuleType
-        Target               = ''
-        Operation            = $operation
-        Operator             = $Operator
-        Value                = $Value
-        Actual               = $null
+        PSTypeName = 'IntuneScriptLab.RuleResult'
+        Met = $false
+        Kind = $kind
+        RuleType = $RuleType
+        Target = ''
+        Operation = $operation
+        Operator = $Operator
+        Value = $Value
+        Actual = $null
         Check32BitOn64System = [bool]$Check32BitOn64System
-        Reason               = ''
+        Reason = ''
     }
     $needsValue = $operation -notin 'Exists', 'DoesNotExist'
     if ($needsValue -and -not $Operator) {
@@ -119,12 +119,11 @@ function Test-IntuneWin32Rule {
                     # W32-FILE-NOTEXIST-FALSE), so it is reported as it would be on the device
                     $result.Reason = if ($exists) {
                         ("$target exists, and the agent reports a file DoesNotExist $($RuleType.ToLower()) " +
-                            'rule on a present file as an invalid rule (0x87D30004, W32-FILE-NOTEXIST-FALSE)')
-                    }
-                    else {
+                        'rule on a present file as an invalid rule (0x87D30004, W32-FILE-NOTEXIST-FALSE)')
+                    } else {
                         ("$target is absent, but the agent evaluates a file DoesNotExist " +
-                            "$($RuleType.ToLower()) rule as not met even then (W32-FILE-NOTEXIST); use a " +
-                            'registry DoesNotExist rule or a script instead')
+                        "$($RuleType.ToLower()) rule as not met even then (W32-FILE-NOTEXIST); use a " +
+                        'registry DoesNotExist rule or a script instead')
                     }
                 }
                 default {
@@ -142,7 +141,7 @@ function Test-IntuneWin32Rule {
                                 break
                             }
                             $fileVersion = '{0}.{1}.{2}.{3}' -f $info.FileMajorPart, $info.FileMinorPart,
-                                $info.FileBuildPart, $info.FilePrivatePart
+                            $info.FileBuildPart, $info.FilePrivatePart
                             $comparisonSplat = @{
                                 Actual = $fileVersion; Expected = $Value; Type = 'Version'; Operator = $Operator
                             }
@@ -160,7 +159,7 @@ function Test-IntuneWin32Rule {
                             $result.Actual = "$sizeMb"
                             $result.Met = $comparison.Met
                             $result.Reason = "Size $($item.Length) bytes is $sizeMb MiB rounded down: " +
-                                $comparison.Reason
+                            $comparison.Reason
                         }
                         default {
                             $stamp = if ($operation -eq 'ModifiedDate') { $item.LastWriteTimeUtc }
@@ -204,8 +203,7 @@ function Test-IntuneWin32Rule {
                 $keyExists = $null -ne $key
                 $valueExists = $keyExists -and $ValueName -and ($key.GetValueNames() -contains $ValueName)
                 $data = if ($valueExists) { $key.GetValue($ValueName) } else { $null }
-            }
-            finally {
+            } finally {
                 if ($key -and $key -ne $base) { $key.Dispose() }
                 if ($base) { $base.Dispose() }
             }
@@ -217,12 +215,12 @@ function Test-IntuneWin32Rule {
                 'Exists' {
                     $result.Met = $present
                     $result.Reason = "The $what $(if ($present) { 'exists' } else { 'does not exist' }) " +
-                        "in the $viewLabel"
+                    "in the $viewLabel"
                 }
                 'DoesNotExist' {
                     $result.Met = -not $present
                     $result.Reason = "The $what $(if ($present) { 'exists' } else { 'does not exist' }) " +
-                        "in the $viewLabel (registry DoesNotExist is evaluated, W32-REG-KEY-NOTEXIST)"
+                    "in the $viewLabel (registry DoesNotExist is evaluated, W32-REG-KEY-NOTEXIST)"
                 }
                 default {
                     if (-not $ValueName) {
@@ -257,7 +255,7 @@ function Test-IntuneWin32Rule {
             if (-not $Operator) {
                 $result.Met = $true
                 $result.Reason = "$($product.DisplayName) $($product.DisplayVersion) is installed " +
-                    "($($product.View))"
+                "($($product.View))"
                 break
             }
             $comparisonSplat = @{
@@ -266,7 +264,7 @@ function Test-IntuneWin32Rule {
             $comparison = Compare-IslRuleValue @comparisonSplat
             $result.Met = $comparison.Met
             $result.Reason = "$($product.DisplayName) is installed ($($product.View)); version " +
-                $comparison.Reason
+            $comparison.Reason
         }
     }
 

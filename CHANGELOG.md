@@ -98,6 +98,10 @@ entries are carried over from the manifest's release notes.
   about each. The three badges that showed typed-in text are gone. The workflow example and
   `Examples/intune-script-gate.yml` set `$ErrorActionPreference = 'Stop'` before they call the
   gate script (#72).
+- The source is laid out as the PowerShell standards ask, and CI checks it with
+  `PSScriptAnalyzerSettings.psd1`: `else`, `catch` and `finally` follow the closing brace,
+  hashtables are not padded to line up, and functions have two blank lines around them. The
+  shipped `Examples/` change in layout only (#73).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

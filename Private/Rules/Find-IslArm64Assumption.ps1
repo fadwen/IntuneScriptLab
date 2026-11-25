@@ -38,7 +38,7 @@ function Find-IslArm64Assumption {
     $ast = $Context.Ast
     $evidence = ('Windows 11 ARM64 host survey: System32 PowerShell is native ARM64 ' +
         ('(PROCESSOR_ARCHITECTURE=ARM64, Is64BitProcess=True), SysWOW64 is x86 (PROCESSOR_ARCHITEW6432=ARM64), ' +
-            'Program Files (Arm) exists, no x64 PowerShell host'))
+        'Program Files (Arm) exists, no x64 PowerShell host'))
     $literals = @(Get-IslStringLiteral -Ast $ast)
 
     # 'AMD64' compared against the architecture variables
@@ -46,9 +46,9 @@ function Find-IslArm64Assumption {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $literal.Extent
-            Message  = ("'AMD64' does not match on Windows on ARM (the value is ARM64), so a 64-bit " +
+            Context = $Context
+            Extent = $literal.Extent
+            Message = ("'AMD64' does not match on Windows on ARM (the value is ARM64), so a 64-bit " +
                 'check built on it takes the 32-bit branch. Test [Environment]::Is64BitProcess or ' +
                 "match 'ARM64|AMD64'")
             Evidence = $evidence
@@ -57,7 +57,7 @@ function Find-IslArm64Assumption {
         # would match nothing at all
         $parent = $literal.Parent
         $matched = $parent.GetType().Name -eq 'BinaryExpressionAst' -and
-            "$($parent.Operator)" -in 'Imatch', 'Inotmatch', 'Cmatch', 'Cnotmatch' -and $parent.Right -eq $literal
+        "$($parent.Operator)" -in 'Imatch', 'Inotmatch', 'Cmatch', 'Cnotmatch' -and $parent.Right -eq $literal
         if ($matched) {
             $findingSplat.Fix = @{ Replacement = $literal.Extent.Text.Replace($literal.Value, 'ARM64|AMD64') }
         }
@@ -66,14 +66,14 @@ function Find-IslArm64Assumption {
 
     # x64-specific installers or download URLs
     foreach ($literal in ($literals | Where-Object { $_.Value -match ('(?i)(x86_64|amd64|win64|' +
-        '[_\-./]x64[_\-./]|' +
-        '[_\-./]x64$)') -and $_.Value -match '(?i)https?://|\.(msi|exe|zip|msix|appx)$' })) {
+                    '[_\-./]x64[_\-./]|' +
+                    '[_\-./]x64$)') -and $_.Value -match '(?i)https?://|\.(msi|exe|zip|msix|appx)$' })) {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Information'
-            Context  = $Context
-            Extent   = $literal.Extent
-            Message  = ('x64-specific package: on an ARM64 device this installs the emulated x64 build, or ' +
+            Context = $Context
+            Extent = $literal.Extent
+            Message = ('x64-specific package: on an ARM64 device this installs the emulated x64 build, or ' +
                 'fails if the installer checks the CPU. Prefer an ARM64 or architecture-neutral package ' +
                 'when one exists')
             Evidence = $evidence
@@ -84,14 +84,14 @@ function Find-IslArm64Assumption {
     # Enumerating Program Files and Program Files (x86) misses Program Files (Arm)
     $text = $ast.Extent.Text
     if ($text -match ('(?i)Program Files ' +
-        '\(x86\)|ProgramFiles\(x86\)') -and $text -notmatch '(?i)Program Files \(Arm\)|ProgramFiles\(Arm\)') {
+            '\(x86\)|ProgramFiles\(x86\)') -and $text -notmatch '(?i)Program Files \(Arm\)|ProgramFiles\(Arm\)') {
         $node = $literals | Where-Object { $_.Value -match '(?i)Program Files \(x86\)' } | Select-Object -First 1
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Information'
-            Context  = $Context
-            Extent   = $(if ($node) { $node.Extent } else { $ast.Extent })
-            Message  = ("Program Files (x86) is checked but not 'Program Files (Arm)', where ARM64 " +
+            Context = $Context
+            Extent = $(if ($node) { $node.Extent } else { $ast.Extent })
+            Message = ("Program Files (x86) is checked but not 'Program Files (Arm)', where ARM64 " +
                 "devices can keep 32-bit ARM apps (`${env:ProgramFiles(Arm)})")
             Evidence = $evidence
         }

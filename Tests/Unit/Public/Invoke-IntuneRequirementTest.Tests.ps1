@@ -77,10 +77,10 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
                 ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = "2.10.0`r`n"; StdErr = '' }
             }
             $intuneRequirementTestSplat = @{
-                Path       = $script:Script
+                Path = $script:Script
                 OutputType = 'Version'
-                Operator   = 'GreaterThanOrEqual'
-                Value      = '2.9.0'
+                Operator = 'GreaterThanOrEqual'
+                Value = '2.9.0'
             }
             $result = Invoke-IntuneRequirementTest @intuneRequirementTestSplat
             $result.Applicable | Should-BeTrue
@@ -107,11 +107,11 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
                 }
             }
             $intuneRequirementTestSplat = @{
-                Path           = $script:Script
-                OutputType     = 'Integer'
-                Operator       = 'GreaterThan'
-                Value          = '3'
-                Architecture   = 'x86'
+                Path = $script:Script
+                OutputType = 'Integer'
+                Operator = 'GreaterThan'
+                Value = '3'
+                Architecture = 'x86'
                 TimeoutSeconds = 9
             }
             $result = Invoke-IntuneRequirementTest @intuneRequirementTestSplat

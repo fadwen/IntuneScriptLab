@@ -98,15 +98,15 @@ function Find-IslModuleDependency {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $_['Extent']
-            Message  = ("$how names $name, which is not in-box under the agent's SYSTEM session. It must be " +
+            Context = $Context
+            Extent = $_['Extent']
+            Message = ("$how names $name, which is not in-box under the agent's SYSTEM session. It must be " +
                 'installed machine-wide (Program Files\WindowsPowerShell\Modules) before the script runs; a ' +
                 '#Requires for a missing module stops the script before it starts (exit 1, ' +
                 'ScriptRequiresMissingModules) and a detection failing that way still runs the remediation')
             Evidence = $pathEvidence + '; a #Requires -Modules for a module the device lacks exited 1 without ' +
-                'running, the remediation ran anyway, and Graph reported detectionState fail, remediationState ' +
-                'remediationFailed (REM-REQUIRES-MODULE)'
+            'running, the remediation ran anyway, and Graph reported detectionState fail, remediationState ' +
+            'remediationFailed (REM-REQUIRES-MODULE)'
         }
         New-IslFinding @findingSplat
     }
@@ -116,9 +116,9 @@ function Find-IslModuleDependency {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $command.Extent
-            Message  = ("$($command.GetCommandName()) inside the script installs from the gallery as SYSTEM on " +
+            Context = $Context
+            Extent = $command.Extent
+            Message = ("$($command.GetCommandName()) inside the script installs from the gallery as SYSTEM on " +
                 'every device that runs it. Without the NuGet provider it waits on a prompt nobody can answer ' +
                 'until the 60-minute timeout, and every other remediation on the device waits behind it. Ship ' +
                 'the module with the content or install it once with a separate policy')

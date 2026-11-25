@@ -11,12 +11,13 @@ $script:IslAstIndex = [System.Runtime.CompilerServices.ConditionalWeakTable[obje
 # delegate is the key selector for Enumerable.ToLookup, which keeps each group in source order.
 $script:IslAstNodeType = [System.Management.Automation.Language.Ast]
 $script:IslAstCollectorType =
-    [System.Collections.Concurrent.BlockingCollection[System.Management.Automation.Language.Ast]]
+[System.Collections.Concurrent.BlockingCollection[System.Management.Automation.Language.Ast]]
 $script:IslAstGetType = [System.Delegate]::CreateDelegate(
     [System.Func[System.Management.Automation.Language.Ast, type]], [object].GetMethod('GetType'))
 $script:IslAstToLookup = ([System.Linq.Enumerable].GetMethods() |
         Where-Object { $_.Name -eq 'ToLookup' -and $_.GetParameters().Count -eq 2 } |
         Select-Object -First 1).MakeGenericMethod($script:IslAstNodeType, [type])
+
 
 function Get-IslAstIndex {
     <#
@@ -80,8 +81,8 @@ function Get-IslAstIndex {
     }
     $index = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.AstIndex'
-        ByType     = $byType
-        ByCommand  = $byCommand
+        ByType = $byType
+        ByCommand = $byCommand
     }
     $script:IslAstIndex.Add($Ast, $index)
     $index

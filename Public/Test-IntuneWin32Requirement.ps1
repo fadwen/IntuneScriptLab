@@ -34,11 +34,11 @@ function Test-IntuneWin32Requirement {
     if ($Architecture) {
         $checkSplat = @{
             Requirement = 'Architecture'
-            Met         = $device.Architecture -in $Architecture
-            Actual      = $device.Architecture
-            Expected    = $Architecture -join ', '
-            Code        = 1000
-            Details     = 'Device architecture (e.g. x86/amd64) is not applicable for the application.'
+            Met = $device.Architecture -in $Architecture
+            Actual = $device.Architecture
+            Expected = $Architecture -join ', '
+            Code = 1000
+            Details = 'Device architecture (e.g. x86/amd64) is not applicable for the application.'
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
     }
@@ -50,11 +50,11 @@ function Test-IntuneWin32Requirement {
         }
         $checkSplat = @{
             Requirement = 'MinimumWindowsRelease'
-            Met         = $device.Build -ge $required
-            Actual      = "build $($device.Build)"
-            Expected    = "$MinimumWindowsRelease (build $required)"
-            Code        = $null
-            Details     = ('The operating system release is below the configured minimum (portal text and ' +
+            Met = $device.Build -ge $required
+            Actual = "build $($device.Build)"
+            Expected = "$MinimumWindowsRelease (build $required)"
+            Code = $null
+            Details = ('The operating system release is below the configured minimum (portal text and ' +
                 'device code not observed)')
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
@@ -62,44 +62,44 @@ function Test-IntuneWin32Requirement {
     if ($MinimumFreeDiskSpaceMB) {
         $checkSplat = @{
             Requirement = 'MinimumFreeDiskSpaceMB'
-            Met         = $device.FreeDiskSpaceMB -ge $MinimumFreeDiskSpaceMB
-            Actual      = $device.FreeDiskSpaceMB
-            Expected    = $MinimumFreeDiskSpaceMB
-            Code        = 1001
-            Details     = 'Available disk space on the target device is less than the configured minimum.'
+            Met = $device.FreeDiskSpaceMB -ge $MinimumFreeDiskSpaceMB
+            Actual = $device.FreeDiskSpaceMB
+            Expected = $MinimumFreeDiskSpaceMB
+            Code = 1001
+            Details = 'Available disk space on the target device is less than the configured minimum.'
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumMemoryMB) {
         $checkSplat = @{
             Requirement = 'MinimumMemoryMB'
-            Met         = $device.MemoryMB -ge $MinimumMemoryMB
-            Actual      = $device.MemoryMB
-            Expected    = $MinimumMemoryMB
-            Code        = 1003
-            Details     = 'Amount of RAM on the target device is less than the configured minimum.'
+            Met = $device.MemoryMB -ge $MinimumMemoryMB
+            Actual = $device.MemoryMB
+            Expected = $MinimumMemoryMB
+            Code = 1003
+            Details = 'Amount of RAM on the target device is less than the configured minimum.'
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumProcessors) {
         $checkSplat = @{
             Requirement = 'MinimumProcessors'
-            Met         = $device.Processors -ge $MinimumProcessors
-            Actual      = $device.Processors
-            Expected    = $MinimumProcessors
-            Code        = 1004
-            Details     = 'Count of logical processors on the target device is less than the configured minimum.'
+            Met = $device.Processors -ge $MinimumProcessors
+            Actual = $device.Processors
+            Expected = $MinimumProcessors
+            Code = 1004
+            Details = 'Count of logical processors on the target device is less than the configured minimum.'
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
     }
     if ($MinimumCpuSpeedMHz) {
         $checkSplat = @{
             Requirement = 'MinimumCpuSpeedMHz'
-            Met         = $device.CpuSpeedMHz -ge $MinimumCpuSpeedMHz
-            Actual      = $device.CpuSpeedMHz
-            Expected    = $MinimumCpuSpeedMHz
-            Code        = $null
-            Details     = ('The CPU speed is below the configured minimum (portal text and device code not ' +
+            Met = $device.CpuSpeedMHz -ge $MinimumCpuSpeedMHz
+            Actual = $device.CpuSpeedMHz
+            Expected = $MinimumCpuSpeedMHz
+            Code = $null
+            Details = ('The CPU speed is below the configured minimum (portal text and device code not ' +
                 'observed)')
         }
         $checks.Add((New-IslRequirementCheck @checkSplat))
@@ -109,14 +109,13 @@ function Test-IntuneWin32Requirement {
     $first = if ($failed.Count) { $failed[0] } else { $null }
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name): $($checks.Count) checks, $($failed.Count) failed"
     [pscustomobject]@{
-        PSTypeName    = 'IntuneScriptLab.ApplicabilityResult'
-        Applicable    = ($failed.Count -eq 0)
-        Details       = if ($first) { $first.Details } else { '' }
+        PSTypeName = 'IntuneScriptLab.ApplicabilityResult'
+        Applicable = ($failed.Count -eq 0)
+        Details = if ($first) { $first.Details } else { '' }
         Applicability = if ($first) { $first.Applicability } else { 0 }
-        Reason        = if ($first) {
+        Reason = if ($first) {
             "$($first.Requirement): $($first.Actual) against $($first.Expected); Intune reports Not applicable"
-        }
-        else { "Every requirement is met ($($checks.Count) checked); the detection runs next" }
-        Checks        = $checks.ToArray()
+        } else { "Every requirement is met ($($checks.Count) checked); the detection runs next" }
+        Checks = $checks.ToArray()
     }
 }

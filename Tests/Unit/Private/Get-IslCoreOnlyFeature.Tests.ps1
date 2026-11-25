@@ -9,7 +9,7 @@
 
 BeforeDiscovery {
     $script:BothHosts = [bool](Get-Command powershell.exe -ErrorAction SilentlyContinue) -and
-        [bool](Get-Command pwsh.exe -ErrorAction SilentlyContinue)
+    [bool](Get-Command pwsh.exe -ErrorAction SilentlyContinue)
 }
 
 BeforeAll {
@@ -36,7 +36,7 @@ BeforeAll {
             $command = Get-Command -Name $entry.Command -ErrorAction SilentlyContinue
             foreach ($parameter in $entry.Parameters) {
                 $result.Parameters["$($entry.Command) -$parameter"] =
-                    [bool]($command -and $command.Parameters.ContainsKey($parameter))
+                [bool]($command -and $command.Parameters.ContainsKey($parameter))
             }
         }
         foreach ($entry in $table.Values) {
@@ -44,22 +44,22 @@ BeforeAll {
             $set = @()
             if ($command -and $command.Parameters.ContainsKey($entry.Parameter)) {
                 $set = @($command.Parameters[$entry.Parameter].Attributes |
-                    Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] } |
-                    ForEach-Object { $_.ValidValues })
+                        Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] } |
+                        ForEach-Object { $_.ValidValues })
             }
             foreach ($value in $entry.Values) {
                 $result.Values["$($entry.Command) -$($entry.Parameter) $value"] =
-                    if ($set.Count) { [bool]($set -contains $value) } else { [bool]$command }
+                if ($set.Count) { [bool]($set -contains $value) } else { [bool]$command }
             }
         }
         $result | ConvertTo-Json -Depth 4 -Compress
     }
     $flat = [pscustomobject]@{
-        Commands   = @($script:Table.Commands)
+        Commands = @($script:Table.Commands)
         Parameters = @(foreach ($command in $script:Table.Parameters.Keys) {
                 @{ Command = $command; Parameters = @($script:Table.Parameters[$command]) }
             }) + @(@{ Command = 'ForEach-Object'; Parameters = @('Parallel') })
-        Values     = @(foreach ($command in $script:Table.Values.Keys) {
+        Values = @(foreach ($command in $script:Table.Values.Keys) {
                 foreach ($parameter in $script:Table.Values[$command].Keys) {
                     $values = @($script:Table.Values[$command][$parameter])
                     @{ Command = $command; Parameter = $parameter; Values = $values }
@@ -109,7 +109,7 @@ BeforeAll {
     }
     # Discovery-time variables do not reach the run, so the lookup is repeated here
     $script:BothHosts = [bool](Get-Command powershell.exe -ErrorAction SilentlyContinue) -and
-        [bool](Get-Command pwsh.exe -ErrorAction SilentlyContinue)
+    [bool](Get-Command pwsh.exe -ErrorAction SilentlyContinue)
     if ($script:BothHosts) {
         $script:Desktop = Get-HostAnswer 'powershell.exe' $encoded
         $script:Core = Get-HostAnswer 'pwsh.exe' $encoded

@@ -19,7 +19,7 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     # Stands in for the Graph module in a calling script: every request fails
     $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
-        "throw [System.InvalidOperationException]::new('Graph is down') }"
+    "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:Get-ByteArray {
         <#
@@ -190,37 +190,44 @@ BeforeAll {
     $script:DirectiveDetect = "# IntuneScriptLab: Context=User`r`n$($script:Detect)"
 
     $script:Tenant = @{
-        remediations    = @(
+        remediations = @(
             @{ id = 'rem-a'; displayName = 'Fix-Widget'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; lastModifiedDateTime = '2026-09-20T10:00:00Z'
                 detectionScriptContent = ConvertTo-Base64 $script:Detect -Bom
-                remediationScriptContent = ConvertTo-Base64 $script:Remediate -Bom }
+                remediationScriptContent = ConvertTo-Base64 $script:Remediate -Bom
+            }
             @{ id = 'rem-b'; displayName = 'Report-Only'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; detectionScriptContent = ConvertTo-Base64 $script:Detect -Bom
-                remediationScriptContent = $null }
+                remediationScriptContent = $null
+            }
             @{ id = 'rem-c'; displayName = 'Ctx-Check'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false
                 detectionScriptContent = ConvertTo-Base64 $script:DirectiveDetect -Bom
-                remediationScriptContent = $null }
+                remediationScriptContent = $null
+            }
         )
         platformScripts = @(
             @{ id = 'ps-a'; displayName = 'Set-Wallpaper'; runAsAccount = 'user'; runAs32Bit = $true
-                enforceSignatureCheck = $false; scriptContent = ConvertTo-Base64 $script:Wallpaper -Bom }
+                enforceSignatureCheck = $false; scriptContent = ConvertTo-Base64 $script:Wallpaper -Bom
+            }
             @{ id = 'ps-b'; displayName = 'Dup'; runAsAccount = 'system'; runAs32Bit = $false
-                enforceSignatureCheck = $false; scriptContent = ConvertTo-Base64 $script:Wallpaper -Bom }
+                enforceSignatureCheck = $false; scriptContent = ConvertTo-Base64 $script:Wallpaper -Bom
+            }
         )
-        apps            = @(
+        apps = @(
             @{
                 id = 'app-a'; displayName = 'Widget: 2.0'; lastModifiedDateTime = '2026-09-21T10:00:00Z'
                 detectionRules = @(
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
                         scriptContent = ConvertTo-Base64 $script:AppDetect -Bom
-                        enforceSignatureCheck = $false; runAs32Bit = $false }
+                        enforceSignatureCheck = $false; runAs32Bit = $false
+                    }
                 )
                 requirementRules = @(
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptRequirement'
                         scriptContent = ConvertTo-Base64 $script:Requirement -Bom
-                        runAsAccount = 'system'; runAs32Bit = $false; enforceSignatureCheck = $false }
+                        runAsAccount = 'system'; runAs32Bit = $false; enforceSignatureCheck = $false
+                    }
                 )
             }
             @{
@@ -396,8 +403,8 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
         It 'takes local files from -Map by role, relative to -Path, and reports an entry with no policy' {
             $map = @{
                 'Fix-Widget' = @{ Detection = 'Remediations\Fix-Widget\Detect.ps1'; Remediation = 'nowhere.ps1' }
-                'Dup'        = 'Scripts\Dup.ps1'
-                'Gone'       = 'Scripts\gone.ps1'
+                'Dup' = 'Scripts\Dup.ps1'
+                'Gone' = 'Scripts\gone.ps1'
             }
             $compareSplat = @{ Path = $script:Root; Map = $map; Kind = 'Remediation', 'PlatformScript' }
             $results = @(Compare-IntuneDeployedScript @compareSplat)

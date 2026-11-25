@@ -56,8 +56,8 @@ Describe 'Get-IslHostPath' -Tag 'Unit', 'Private' {
     Context 'Error Handling' {
         It 'refuses the 64-bit host this CPU does not have and names the right one' {
             $failure = { InModuleScope IntuneScriptLab -Parameters @{ Missing = $script:Missing } {
-                Get-IslHostPath -Architecture $Missing
-            } } | Should-Throw
+                    Get-IslHostPath -Architecture $Missing
+                } } | Should-Throw
             $failure.Exception.Message | Should-BeLikeString "*-Architecture $($script:Native)*"
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'HostArchitectureUnavailable,*'
         }

@@ -78,17 +78,17 @@ BeforeAll {
     $lines = @(
         New-CmTraceLine -Message $runner -Time '08:45:14.1234567'
         $cmTraceLineSplat = @{
-            Message   = "error from script =At C:\detect.ps1:60 char:35`r`n+ throw 'x'`r`n+ ~~~"
-            Time      = '08:45:19.5000000'
-            Type      = 3
+            Message = "error from script =At C:\detect.ps1:60 char:35`r`n+ throw 'x'`r`n+ ~~~"
+            Time = '08:45:19.5000000'
+            Type = 3
             Component = 'AgentExecutor'
-            Thread    = 1
+            Thread = 1
         }
         New-CmTraceLine @cmTraceLineSplat
         $cmTraceLineSplat2 = @{
             Message = '[HS] the pre-remdiation detection script compliance result is False'
-            Time    = '08:45:26.987+000'
-            Type    = 2
+            Time = '08:45:26.987+000'
+            Type = 2
         }
         New-CmTraceLine @cmTraceLineSplat2
     )
@@ -144,8 +144,7 @@ Describe 'ConvertFrom-IslCmTraceLog' -Tag 'Unit', 'Private' {
                     ConvertFrom-IslCmTraceLog -Path $Path
                 })
             $entries.Count | Should-Be 3
-        }
-        finally {
+        } finally {
             $writer.Dispose()
         }
     }

@@ -88,10 +88,10 @@ function Get-IslHostPath {
     }
 
     [pscustomobject]@{
-        PSTypeName     = 'IntuneScriptLab.Host'
-        Architecture   = $Architecture
-        Path           = $path
+        PSTypeName = 'IntuneScriptLab.Host'
+        Architecture = $Architecture
+        Path = $path
         OSArchitecture = $osArchitecture
-        Emulated       = ($Architecture -eq 'x86' -and $osArchitecture -eq 'Arm64')
+        Emulated = ($Architecture -eq 'x86' -and $osArchitecture -eq 'Arm64')
     }
 }

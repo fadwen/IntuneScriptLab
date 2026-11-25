@@ -219,7 +219,7 @@ function Compare-IntuneDeployedScript {
         $orphan = [pscustomobject]@{ displayName = "$key"; id = ''; lastModifiedDateTime = $null }
         $orphanSplat = @{
             PolicyKind = ''; Policy = $orphan; Role = 'policy'; State = 'NotInTenant'; LocalPath = "$first"
-            Detail     = "no policy named '$key' among the kinds compared ($($Kind -join ', '))"
+            Detail = "no policy named '$key' among the kinds compared ($($Kind -join ', '))"
         }
         ConvertTo-IslDriftResult @orphanSplat
     }

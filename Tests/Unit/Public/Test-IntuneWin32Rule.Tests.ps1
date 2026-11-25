@@ -27,7 +27,7 @@ BeforeAll {
     $null = New-Item -ItemType Directory -Path $script:Fixtures -Force
     [IO.File]::WriteAllText((Join-Path $script:Fixtures 'present.txt'), 'present')
     (Get-Item (Join-Path $script:Fixtures 'present.txt')).LastWriteTimeUtc =
-        [datetime]::new(2024, 6, 15, 12, 0, 0, [DateTimeKind]::Utc)
+    [datetime]::new(2024, 6, 15, 12, 0, 0, [DateTimeKind]::Utc)
     $stream = [IO.File]::Create((Join-Path $script:Fixtures 'big.bin'))
     try { $stream.SetLength(2MB) } finally { $stream.Dispose() }
     $notepad = Join-Path $env:WINDIR 'System32\notepad.exe'
@@ -95,9 +95,9 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
     Context 'File rules' {
         It 'is met by a present file and not by a missing one (W32-FILE-EXISTS, W32-FILE-MISSING)' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'present.txt'
-                FileOperation    = 'Exists'
+                FileOperation = 'Exists'
             }
             $met = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $met.Met | Should-BeTrue
@@ -105,9 +105,9 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
             $met.RuleType | Should-Be 'Detection'
             $met.PSObject.TypeNames | Should-ContainCollection 'IntuneScriptLab.RuleResult'
             $intuneWin32RuleSplat2 = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'missing.txt'
-                FileOperation    = 'Exists'
+                FileOperation = 'Exists'
             }
             $miss = Test-IntuneWin32Rule @intuneWin32RuleSplat2
             $miss.Met | Should-BeFalse
@@ -116,18 +116,18 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
         It 'reports DoesNotExist as never met, the way the agent behaves (W32-FILE-NOTEXIST, -FALSE)' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'missing.txt'
-                FileOperation    = 'DoesNotExist'
+                FileOperation = 'DoesNotExist'
             }
             $absent = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $absent.Met | Should-BeFalse
             $absent.Reason | Should-BeLikeString '*absent, but the agent*not met even then*'
             $intuneWin32RuleSplat2 = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'present.txt'
-                FileOperation    = 'DoesNotExist'
-                RuleType         = 'Requirement'
+                FileOperation = 'DoesNotExist'
+                RuleType = 'Requirement'
             }
             $present = Test-IntuneWin32Rule @intuneWin32RuleSplat2
             $present.Met | Should-BeFalse
@@ -137,32 +137,32 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
         It 'compares the file version as a version (W32-FILE-VER-GE, W32-FILE-VER-LT)' -Skip:(
             -not $script:HasVersioned) {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'versioned.exe'
-                FileOperation    = 'Version'
-                Operator         = 'GreaterThanOrEqual'
-                Value            = '9.0'
+                FileOperation = 'Version'
+                Operator = 'GreaterThanOrEqual'
+                Value = '9.0'
             }
             $ge = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $ge.Met | Should-BeTrue
             $ge.Actual | Should-MatchString '^\d+\.\d+\.\d+\.\d+$'
             $intuneWin32RuleSplat2 = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'versioned.exe'
-                FileOperation    = 'Version'
-                Operator         = 'LessThan'
-                Value            = '9.0'
+                FileOperation = 'Version'
+                Operator = 'LessThan'
+                Value = '9.0'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat2).Met | Should-BeFalse
         }
 
         It 'is not met by a file without a version resource' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'present.txt'
-                FileOperation    = 'Version'
-                Operator         = 'GreaterThan'
-                Value            = '1.0'
+                FileOperation = 'Version'
+                Operator = 'GreaterThan'
+                Value = '1.0'
             }
             $result = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $result.Met | Should-BeFalse
@@ -171,53 +171,53 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
         It 'measures size in whole MiB rounded down (W32-FILE-SIZE-EQ, W32-FILE-SIZE-GT)' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'big.bin'
-                FileOperation    = 'SizeInMB'
-                Operator         = 'Equal'
-                Value            = '2'
+                FileOperation = 'SizeInMB'
+                Operator = 'Equal'
+                Value = '2'
             }
             $eq = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $eq.Met | Should-BeTrue
             $eq.Actual | Should-Be '2'
             $intuneWin32RuleSplat2 = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'big.bin'
-                FileOperation    = 'SizeInMB'
-                Operator         = 'GreaterThan'
-                Value            = '2'
+                FileOperation = 'SizeInMB'
+                Operator = 'GreaterThan'
+                Value = '2'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat2).Met | Should-BeFalse
         }
 
         It 'compares the modified date in UTC (W32-FILE-DATE-GT, W32-FILE-DATE-LT)' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'present.txt'
-                FileOperation    = 'ModifiedDate'
-                Operator         = 'GreaterThan'
-                Value            = '2024-01-01T00:00:00Z'
+                FileOperation = 'ModifiedDate'
+                Operator = 'GreaterThan'
+                Value = '2024-01-01T00:00:00Z'
             }
             $gt = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $gt.Met | Should-BeTrue
             $gt.Actual | Should-BeLikeString '2024-06-15T12:00:00*'
             $intuneWin32RuleSplat2 = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'present.txt'
-                FileOperation    = 'ModifiedDate'
-                Operator         = 'LessThan'
-                Value            = '2024-01-01T00:00:00Z'
+                FileOperation = 'ModifiedDate'
+                Operator = 'LessThan'
+                Value = '2024-01-01T00:00:00Z'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat2).Met | Should-BeFalse
         }
 
         It 'is not met for a comparison on a missing file' {
             $intuneWin32RuleSplat = @{
-                Path             = $script:Fixtures
+                Path = $script:Fixtures
                 FileOrFolderName = 'missing.bin'
-                FileOperation    = 'SizeInMB'
-                Operator         = 'Equal'
-                Value            = '2'
+                FileOperation = 'SizeInMB'
+                Operator = 'Equal'
+                Value = '2'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat).Reason |
                 Should-BeLikeString '*does not exist, so the SizeInMB rule*'
@@ -226,18 +226,18 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
         It 'expands %ProgramFiles% in the 32-bit context with the switch (W32-FILE-PF-32, -64)' -Skip:(
             -not [Environment]::Is64BitOperatingSystem) {
             $intuneWin32RuleSplat = @{
-                Path                 = '%ProgramFiles%'
-                FileOrFolderName     = 'Common Files'
-                FileOperation        = 'Exists'
+                Path = '%ProgramFiles%'
+                FileOrFolderName = 'Common Files'
+                FileOperation = 'Exists'
                 Check32BitOn64System = $true
             }
             $result = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $result.Target | Should-Be (Join-Path ${env:ProgramFiles(x86)} 'Common Files')
             $result.Check32BitOn64System | Should-BeTrue
             $intuneWin32RuleSplat2 = @{
-                Path             = '%ProgramFiles%'
+                Path = '%ProgramFiles%'
                 FileOrFolderName = 'Common Files'
-                FileOperation    = 'Exists'
+                FileOperation = 'Exists'
             }
             $default = Test-IntuneWin32Rule @intuneWin32RuleSplat2
             $default.Target | Should-Be (Join-Path $env:ProgramFiles 'Common Files')
@@ -259,19 +259,19 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
         It 'compares strings case-insensitively (W32-REG-STR-EQ, W32-REG-STR-CASE, W32-REG-STR-NE)' {
             $intuneWin32RuleSplat = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Name'
+                KeyPath = $script:KeyPath
+                ValueName = 'Name'
                 RegistryOperation = 'String'
-                Operator          = 'Equal'
-                Value             = 'intunescriptlab'
+                Operator = 'Equal'
+                Value = 'intunescriptlab'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat).Met | Should-BeTrue
             $intuneWin32RuleSplat2 = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Name'
+                KeyPath = $script:KeyPath
+                ValueName = 'Name'
                 RegistryOperation = 'String'
-                Operator          = 'Equal'
-                Value             = 'other'
+                Operator = 'Equal'
+                Value = 'other'
             }
             $ne = Test-IntuneWin32Rule @intuneWin32RuleSplat2
             $ne.Met | Should-BeFalse
@@ -280,64 +280,64 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
         It 'compares integers from a DWORD and from a REG_SZ (W32-REG-INT-GT, W32-REG-INT-ONSZ)' {
             $intuneWin32RuleSplat = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Build'
+                KeyPath = $script:KeyPath
+                ValueName = 'Build'
                 RegistryOperation = 'Integer'
-                Operator          = 'GreaterThan'
-                Value             = '40'
+                Operator = 'GreaterThan'
+                Value = '40'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat).Met | Should-BeTrue
             $intuneWin32RuleSplat2 = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Build'
+                KeyPath = $script:KeyPath
+                ValueName = 'Build'
                 RegistryOperation = 'Integer'
-                Operator          = 'GreaterThan'
-                Value             = '50'
+                Operator = 'GreaterThan'
+                Value = '50'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat2).Met | Should-BeFalse
             $intuneWin32RuleSplat3 = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'BuildText'
+                KeyPath = $script:KeyPath
+                ValueName = 'BuildText'
                 RegistryOperation = 'Integer'
-                Operator          = 'GreaterThan'
-                Value             = '40'
+                Operator = 'GreaterThan'
+                Value = '40'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat3).Met | Should-BeTrue
         }
 
         It 'compares a REG_SZ version as a version (W32-REG-VER-GE, W32-REG-VER-LT)' {
             $intuneWin32RuleSplat = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Version'
+                KeyPath = $script:KeyPath
+                ValueName = 'Version'
                 RegistryOperation = 'Version'
-                Operator          = 'GreaterThanOrEqual'
-                Value             = '9.0'
+                Operator = 'GreaterThanOrEqual'
+                Value = '9.0'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat).Met | Should-BeTrue
             $intuneWin32RuleSplat2 = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Version'
+                KeyPath = $script:KeyPath
+                ValueName = 'Version'
                 RegistryOperation = 'Version'
-                Operator          = 'LessThan'
-                Value             = '9.0'
+                Operator = 'LessThan'
+                Value = '9.0'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat2).Met | Should-BeFalse
         }
 
         It 'is not met when the value is missing, and needs a value name for a comparison' {
             $intuneWin32RuleSplat = @{
-                KeyPath           = $script:KeyPath
-                ValueName         = 'Nope'
+                KeyPath = $script:KeyPath
+                ValueName = 'Nope'
                 RegistryOperation = 'String'
-                Operator          = 'Equal'
-                Value             = 'x'
+                Operator = 'Equal'
+                Value = 'x'
             }
             (Test-IntuneWin32Rule @intuneWin32RuleSplat).Reason | Should-BeLikeString '*value does not exist*'
             $intuneWin32RuleSplat2 = @{
-                KeyPath           = $script:KeyPath
+                KeyPath = $script:KeyPath
                 RegistryOperation = 'String'
-                Operator          = 'Equal'
-                Value             = 'x'
+                Operator = 'Equal'
+                Value = 'x'
             }
             { Test-IntuneWin32Rule @intuneWin32RuleSplat2 } |
                 Should-Throw -FullyQualifiedErrorId 'RuleValueNameMissing,*' -ExceptionMessage '*-ValueName*'
@@ -347,20 +347,20 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
             -not [Environment]::Is64BitOperatingSystem) {
             $keyPath = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion'
             $intuneWin32RuleSplat = @{
-                KeyPath           = $keyPath
-                ValueName         = 'ProgramFilesDir'
+                KeyPath = $keyPath
+                ValueName = 'ProgramFilesDir'
                 RegistryOperation = 'String'
-                Operator          = 'Equal'
-                Value             = $env:ProgramFiles
+                Operator = 'Equal'
+                Value = $env:ProgramFiles
             }
             $view64 = Test-IntuneWin32Rule @intuneWin32RuleSplat
             $view64.Met | Should-BeTrue
             $intuneWin32RuleSplat2 = @{
-                KeyPath              = $keyPath
-                ValueName            = 'ProgramFilesDir'
-                RegistryOperation    = 'String'
-                Operator             = 'Equal'
-                Value                = ${env:ProgramFiles(x86)}
+                KeyPath = $keyPath
+                ValueName = 'ProgramFilesDir'
+                RegistryOperation = 'String'
+                Operator = 'Equal'
+                Value = ${env:ProgramFiles(x86)}
                 Check32BitOn64System = $true
             }
             $view32 = Test-IntuneWin32Rule @intuneWin32RuleSplat2

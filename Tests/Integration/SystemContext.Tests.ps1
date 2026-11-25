@@ -46,16 +46,16 @@ Describe 'SYSTEM context' -Tag 'Integration', 'SystemIntegration', 'Runtime', 'E
         $detect = New-TestScript 'Detect.ps1' ("if (Test-Path '$marker') { 'present'; exit 0 } " +
             "else { 'missing'; exit 1 }") -Bom
         $testScriptSplat = @{
-            Bom     = $true
+            Bom = $true
             Content = "New-Item -ItemType File -Path '$marker' | Out-Null; exit 0"
         }
         $remediate = New-TestScript 'Remediate.ps1' @testScriptSplat
         $intuneRemediationTestSplat = @{
-            DetectionPath   = $detect
+            DetectionPath = $detect
             RemediationPath = $remediate
-            Architecture    = 'x86'
-            Context         = 'System'
-            TimeoutSeconds  = 120
+            Architecture = 'x86'
+            Context = 'System'
+            TimeoutSeconds = 120
         }
         $result = Invoke-IntuneRemediationTest @intuneRemediationTestSplat
         $result.Status | Should-Be 'Fixed'
