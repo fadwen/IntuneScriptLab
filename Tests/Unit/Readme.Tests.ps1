@@ -38,8 +38,14 @@ BeforeDiscovery {
             $assignments = $ast.FindAll({ param($node) $node -is "$astTypes.AssignmentStatementAst" }, $true)
             foreach ($assignment in $assignments) {
                 $left = $assignment.Left
-                $name = if ($left -is "$astTypes.MemberExpressionAst") { "$($left.Member)" }
-                elseif ($left -is "$astTypes.IndexExpressionAst") { $left.Index.SafeGetValue() }
+                $name = $null
+                if ($left -is "$astTypes.MemberExpressionAst") {
+                    $name = "$($left.Member)"
+                } elseif ($left -is "$astTypes.IndexExpressionAst" -and
+                    $left.Index -is "$astTypes.StringConstantExpressionAst") {
+                    # Only a constant index names a key; $seen[$name] could be anything
+                    $name = $left.Index.Value
+                }
                 if ($name -eq 'Fix') {
                     $assignment.Right
                 }
