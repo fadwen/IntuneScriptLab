@@ -37,64 +37,63 @@ function Find-IslModuleDependency {
         'killed at the 60-minute timeout (detectionState scriptError) while every remediation queued behind ' +
         'it waited (REM-INSTALL-MODULE)')
 
-    # Each module named that is not in-box: what names it, and where
-    $missing = [System.Collections.Generic.List[hashtable]]::new()
-
-    # A script without a #Requires line has no requirements object at all
-    $requirements = $Context.Ast.ScriptRequirements
-    $requiredModules = @()
-    if ($null -ne $requirements) {
-        $requiredModules = @($requirements.RequiredModules | Where-Object { $_ })
-    }
-    foreach ($required in $requiredModules) {
-        if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name "$($required.Name)")) {
-            $missing.Add(@{ Name = $required.Name; Extent = $Context.Ast.Extent; How = '#Requires -Modules' })
+    # Each scan writes an entry for a module that is not in-box: what names it, and where. Each entry
+    # becomes a finding as it arrives, so the finding is written as soon as it is found, and its text
+    # is in one place, where Build-RuleReference reads it.
+    & {
+        # A script without a #Requires line has no requirements object at all
+        $requirements = $Context.Ast.ScriptRequirements
+        $requiredModules = @()
+        if ($null -ne $requirements) {
+            $requiredModules = @($requirements.RequiredModules | Where-Object { $_ })
         }
-    }
-    foreach ($using in (Find-IslAstNode -Ast $Context.Ast -TypeName UsingStatementAst -Where {
-                param($node) "$($node.UsingStatementKind)" -eq 'Module'
-            })) {
-        $name = if ($using.Name) { $using.Name.Value } else { "$($using.ModuleSpecification.Extent.Text)" }
-        if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $name)) {
-            $missing.Add(@{ Name = $name; Extent = $using.Extent; How = 'using module' })
-        }
-    }
-    foreach ($command in (Find-IslCommand -Ast $Context.Ast -Name 'Import-Module', 'ipmo')) {
-        $elements = $command.CommandElements
-        $names = for ($i = 1; $i -lt $elements.Count; $i++) {
-            $element = $elements[$i]
-            if ($element.GetType().Name -eq 'CommandParameterAst') {
-                $isName = 'Name'.StartsWith($element.ParameterName, 'OrdinalIgnoreCase')
-                if ($isName -and $i + 1 -lt $elements.Count) {
-                    $i++
-                    $elements[$i]
-                }
-                continue
-            }
-            if ($i -eq 1) { $element }
-        }
-        foreach ($nameElement in @($names)) {
-            $literals = if ($nameElement.GetType().Name -eq 'ArrayLiteralAst') { $nameElement.Elements }
-            else { @($nameElement) }
-            foreach ($literal in $literals) {
-                if ($literal.GetType().Name -ne 'StringConstantExpressionAst') { continue }
-                if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $literal.Value)) {
-                    $missing.Add(@{ Name = $literal.Value; Extent = $command.Extent; How = 'Import-Module' })
-                }
+        foreach ($required in $requiredModules) {
+            if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name "$($required.Name)")) {
+                @{ Name = $required.Name; Extent = $Context.Ast.Extent; How = '#Requires -Modules' }
             }
         }
-    }
-
-    foreach ($entry in $missing) {
-        $name = $entry['Name']
-        $how = $entry['How']
-        $extent = $entry['Extent']
+        foreach ($using in (Find-IslAstNode -Ast $Context.Ast -TypeName UsingStatementAst -Where {
+                    param($node) "$($node.UsingStatementKind)" -eq 'Module'
+                })) {
+            $name = if ($using.Name) { $using.Name.Value } else { "$($using.ModuleSpecification.Extent.Text)" }
+            if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $name)) {
+                @{ Name = $name; Extent = $using.Extent; How = 'using module' }
+            }
+        }
+        foreach ($command in (Find-IslCommand -Ast $Context.Ast -Name 'Import-Module', 'ipmo')) {
+            $elements = $command.CommandElements
+            $names = for ($i = 1; $i -lt $elements.Count; $i++) {
+                $element = $elements[$i]
+                if ($element.GetType().Name -eq 'CommandParameterAst') {
+                    $isName = 'Name'.StartsWith($element.ParameterName, 'OrdinalIgnoreCase')
+                    if ($isName -and $i + 1 -lt $elements.Count) {
+                        $i++
+                        $elements[$i]
+                    }
+                    continue
+                }
+                if ($i -eq 1) { $element }
+            }
+            foreach ($nameElement in @($names)) {
+                $literals = if ($nameElement.GetType().Name -eq 'ArrayLiteralAst') { $nameElement.Elements }
+                else { @($nameElement) }
+                foreach ($literal in $literals) {
+                    if ($literal.GetType().Name -ne 'StringConstantExpressionAst') { continue }
+                    if (-not (Test-IslInboxModuleName -InboxModule $inbox -Name $literal.Value)) {
+                        @{ Name = $literal.Value; Extent = $command.Extent; How = 'Import-Module' }
+                    }
+                }
+            }
+        }
+    } | ForEach-Object {
+        $name = $_['Name']
+        $how = $_['How']
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
             Context  = $Context
-            Extent   = $extent
-            Message  = ("$How names $Name, which is not in-box under the agent's SYSTEM session. It must be " +
+            Extent   = $_['Extent']
+            Message  = ("$how names $name, which is not in-box under the agent's SYSTEM session. It must be " +
                 'installed machine-wide (Program Files\WindowsPowerShell\Modules) before the script runs; a ' +
                 '#Requires for a missing module stops the script before it starts (exit 1, ' +
                 'ScriptRequiresMissingModules) and a detection failing that way still runs the remediation')

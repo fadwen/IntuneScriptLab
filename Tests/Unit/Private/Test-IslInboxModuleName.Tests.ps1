@@ -10,12 +10,6 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1')
     }
 
-    # The syntax tree of a script given as text
-    function script:ConvertTo-Ast {
-        param([string]$Text)
-        [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
-    }
-
     function script:Test-Name {
         param([string]$Name)
         InModuleScope IntuneScriptLab -Parameters @{ Name = $Name } {
