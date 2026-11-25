@@ -256,7 +256,8 @@ entries are carried over from the manifest's release notes.
   files, so another user of the machine could change the script that then ran as the account, or
   the output the harness read back. Each run now copies to a folder of its own,
   `ProgramData\IntuneScriptLabRun-<id>`, created with an access list for SYSTEM, the Administrators
-  group, the caller and the run's account only; something already there under the name refuses
+  group and the caller only; the run's account is granted Modify on what is in it once the copy
+  is there, and no Delete on the folder itself. Something already there under the name refuses
   the run with `RunFolderUnsafe`.
 - `Repair-IntuneScript` replaced the non-ASCII characters of a script saved in an ANSI code page
   with U+FFFD, and wrote that back, on a host whose system code page is UTF-8 ("Use Unicode UTF-8
