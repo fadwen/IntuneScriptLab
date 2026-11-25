@@ -31,6 +31,7 @@ Describe 'Get-IslCredentialSource' -Tag 'Unit', 'Private' {
 
     It 'reads <Text> as <Expected>' -ForEach @(
         @{ Text = '[pscredential]::new($user, $secure)'; Expected = '[pscredential]::new()' }
+        @{ Text = '[pscredential]::"new"($user, $secure)'; Expected = '[pscredential]::new()' }
         @{
             Text = '[System.Management.Automation.PSCredential]::new($user, $secure)'
             Expected = '[pscredential]::new()'
@@ -55,6 +56,8 @@ Describe 'Get-IslCredentialSource' -Tag 'Unit', 'Private' {
         @{ Text = '$other.Credential' }
         @{ Text = 'New-Object System.Net.WebClient' }
         @{ Text = "'LAB\user'" }
+        @{ Text = '[pscredential]::$m($user, $secure)' }
+        @{ Text = '[pscredential]::"$m"($user, $secure)' }
     ) {
         Get-Source -Text $Text | Should-BeCollection @()
     }

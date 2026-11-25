@@ -17,6 +17,12 @@ AfterAll {
 
 Describe 'Find-IslInteractiveCall' -Tag 'Unit', 'Private', 'Rule' {
 
+    It 'reports nothing for a method named by a variable, which it cannot know' {
+        $text = "`$m = 'ReadLine'`n`$value = [Console]::`$m()`n`$host.UI.`$m()`nexit 0"
+        $path = New-TestScript 'Detect-D.ps1' $text
+        @(Get-RuleFinding $path IslInteractiveCall) | Should-BeCollection @()
+    }
+
     It 'flags Read-Host, Pause and console reads as errors' {
         $path = New-TestScript 'Detect-I.ps1' "`$a = Read-Host 'x'`nPause`n[Console]::ReadKey()`nexit 0"
         $findings = @(Get-RuleFinding $path IslInteractiveCall)
@@ -93,6 +99,8 @@ Describe 'Find-IslInteractiveCall' -Tag 'Unit', 'Private', 'Rule' {
         @{ Script = "param(`$Credential)`n`$Credential = Import-Clixml x`nGet-Credential `$Credential" }
         @{ Script = "`$c = Import-Clixml x | Select-Object -First 1`nGet-Credential `$c" }
         @{ Script = "`$c = Get-Thing`nGet-Credential `$c" }
+        @{ Script = "`$m = 'new'`nGet-Credential -Credential ([pscredential]::`$m(`$u, `$p))" }
+        @{ Script = "`$m = 'new'`n`$c = [pscredential]::`$m(`$u, `$p)`nGet-Credential `$c" }
         @{ Script = "`$c = New-Object -ComObject Shell.Application`nGet-Credential `$c" }
         @{ Script = "`$c = [string]`$x`nGet-Credential `$c" }
         @{ Script = 'Get-Credential $never' }

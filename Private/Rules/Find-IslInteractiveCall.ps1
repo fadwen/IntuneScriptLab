@@ -89,7 +89,10 @@ function Find-IslInteractiveCall {
 
     $hostPrompts = Find-IslAstNode -Ast $ast -TypeName InvokeMemberExpressionAst -Where {
         param($node)
-        $member = "$($node.Member.Value)"
+        # A member named by a variable, as in $host.UI.$m(), has no Value: which method it calls
+        # cannot be known from the script
+        if ($node.Member.GetType().Name -ne 'StringConstantExpressionAst') { return $false }
+        $member = $node.Member.Value
         ($member -in 'ReadLine', 'ReadKey', 'Prompt', 'PromptForChoice', 'PromptForCredential') -and
         ($node.Expression.Extent.Text -match '(?i)console|host|RawUI|\bUI\b')
     }
