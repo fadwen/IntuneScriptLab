@@ -42,6 +42,9 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- CI checks the anchors and relative links of the README and the other Markdown with
+  `Build/Test-MarkdownLink.ps1`, in the `help` job on Linux, where a link that differs from its
+  file in case fails as it does on GitHub (#137).
 - `Export-IntuneAgentDiagnostic` lists the modules loaded in the session, with their versions and
   folders, in `Device\system.txt`; a folder under the user's profile is written from
   `%USERPROFILE%` (#133).

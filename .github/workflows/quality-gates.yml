@@ -255,6 +255,13 @@ jobs:
         shell: pwsh
         run: ./Build/Build-Help.ps1 -ValidateOnly
 
+      # The documentation gate (CIC-14): every anchor of the README and the other Markdown names a
+      # heading, and every relative link names a file that exists. On Linux, as here, a link whose
+      # case differs from the file's fails as it does on GitHub.
+      - name: Check Markdown links
+        shell: pwsh
+        run: ./Build/Test-MarkdownLink.ps1
+
       # Rebuild from the committed Markdown and compare against the committed MAML. If they
       # differ, someone edited docs/ without running the build - and .EXTERNALHELP means
       # users would be served the stale content rather than falling back to anything correct.
