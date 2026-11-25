@@ -60,17 +60,6 @@ function Export-IntuneFindingSarif {
     }
 
     end {
-        function Get-ArtifactLocation {
-            param([string]$FilePath)
-            if ($FilePath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $relative = $FilePath.Substring($rootPath.Length).TrimStart('\', '/')
-                $segments = $relative -split '[\\/]' | ForEach-Object { [System.Uri]::EscapeDataString($_) }
-                return [ordered]@{ uri = ($segments -join '/'); uriBaseId = '%SRCROOT%' }
-            }
-            # Outside the root: an absolute file URI, with no base to resolve against
-            [ordered]@{ uri = ([System.Uri]::new($FilePath)).AbsoluteUri }
-        }
-
         $ruleIndex = [ordered]@{}
         $rules = [System.Collections.Generic.List[object]]::new()
         foreach ($name in @($all | ForEach-Object { $_.RuleName } | Sort-Object -Unique)) {
@@ -127,7 +116,7 @@ function Export-IntuneFindingSarif {
                 $result.locations = @(
                     [ordered]@{
                         physicalLocation = [ordered]@{
-                            artifactLocation = Get-ArtifactLocation -FilePath $scriptPath
+                            artifactLocation = ConvertTo-IslSarifLocation -FilePath $scriptPath -RootPath $rootPath
                             region           = $region
                         }
                     }
