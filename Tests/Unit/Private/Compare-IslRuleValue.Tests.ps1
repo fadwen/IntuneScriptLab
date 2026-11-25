@@ -15,7 +15,34 @@ BeforeAll {
     }
 
     function Compare-Value {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs Compare-IslRuleValue inside the module with the given parameters.
+
+        .DESCRIPTION
+            Compare-IslRuleValue is private, so the test reaches it through InModuleScope and splats
+            the hashtable onto it there.
+
+        .PARAMETER Parameters
+            The parameters of Compare-IslRuleValue by name: Actual, Expected, Type and Operator.
+
+        .EXAMPLE
+            Compare-Value @{ Actual = 5; Expected = '3'; Type = 'Integer'; Operator = 'GreaterThan' }
+
+            Returns the comparison of 5 with 3 as integers.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RuleComparison. The result of the comparison.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RuleComparison')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ P = $Parameters } { Compare-IslRuleValue @P }
     }
 }

@@ -14,7 +14,44 @@ BeforeAll {
     }
 
     function script:Select-Candidate {
-        param([object[]]$Candidate, [int]$RuleCount, [int]$Index)
+        <#
+        .SYNOPSIS
+            Selects the candidates of one script rule with Select-IslRuleCandidate.
+
+        .DESCRIPTION
+            Runs the module's private Select-IslRuleCandidate inside the module and returns the
+            candidates it gave for the rule as an array.
+
+        .PARAMETER Candidate
+            The local candidates found for the app's script rules.
+
+        .PARAMETER RuleCount
+            The number of script rules the app has.
+
+        .PARAMETER Index
+            The index of the rule the candidates are selected for.
+
+        .EXAMPLE
+            Select-Candidate -Candidate @('a', 'b') -RuleCount 2 -Index 1
+
+            Returns 'b', the candidate at the rule's own index.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. Each candidate selected for the rule.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [object[]]$Candidate,
+
+            [int]$RuleCount,
+
+            [int]$Index
+        )
+
         $scope = @{ Candidate = $Candidate; RuleCount = $RuleCount; Index = $Index }
         InModuleScope IntuneScriptLab -Parameters $scope {
             @(Select-IslRuleCandidate -Candidate $Candidate -RuleCount $RuleCount -Index $Index)

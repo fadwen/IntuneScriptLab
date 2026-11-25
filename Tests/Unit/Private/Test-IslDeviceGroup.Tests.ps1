@@ -22,7 +22,44 @@ BeforeAll {
     }
 
     function script:Test-Group {
-        param([string]$GroupId, [hashtable]$State, [switch]$SkipGroupLookup)
+        <#
+        .SYNOPSIS
+            Tests whether a group holds devices with the module's private function.
+
+        .DESCRIPTION
+            Calls Test-IslDeviceGroup inside the module, where the private function is visible,
+            with the lookup state that the tests share between calls to check the cache.
+
+        .PARAMETER GroupId
+            The id of the group.
+
+        .PARAMETER State
+            The lookup state, a hashtable with Cache and Blocked.
+
+        .PARAMETER SkipGroupLookup
+            Passes -SkipGroupLookup on, so that no group is looked up.
+
+        .EXAMPLE
+            Test-Group -GroupId 'devices' -State @{ Cache = @{}; Blocked = $false }
+
+            Returns whether the group devices holds devices.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. The answer of Test-IslDeviceGroup.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [string]$GroupId,
+
+            [hashtable]$State,
+
+            [switch]$SkipGroupLookup
+        )
+
         $scope = @{ GroupId = $GroupId; State = $State; Skip = $SkipGroupLookup }
         InModuleScope IntuneScriptLab -Parameters $scope {
             Test-IslDeviceGroup -GroupId $GroupId -State $State -SkipGroupLookup:$Skip

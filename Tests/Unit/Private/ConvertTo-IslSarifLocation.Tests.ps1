@@ -15,7 +15,39 @@ BeforeAll {
     }
 
     function ConvertTo-Location {
-        param([string]$FilePath, [string]$RootPath)
+        <#
+        .SYNOPSIS
+            Converts a path to its SARIF artifactLocation with the private function.
+
+        .DESCRIPTION
+            ConvertTo-IslSarifLocation is private, so the test reaches it through InModuleScope.
+
+        .PARAMETER FilePath
+            The path of the analyzed file.
+
+        .PARAMETER RootPath
+            The root that a relative URI is taken from. An empty string stands for the file system
+            root of Linux.
+
+        .EXAMPLE
+            ConvertTo-Location 'C:\repo\Detect.ps1' 'C:\repo'
+
+            Returns the location of Detect.ps1 relative to C:\repo.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Specialized.OrderedDictionary. The uri and, below the root, uriBaseId.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Collections.Specialized.OrderedDictionary])]
+        param(
+            [string]$FilePath,
+
+            [string]$RootPath
+        )
+
         $parameters = @{ FilePath = $FilePath; RootPath = $RootPath }
         $scope = @{ Parameters = $parameters }
         InModuleScope IntuneScriptLab -Parameters $scope { ConvertTo-IslSarifLocation @Parameters }

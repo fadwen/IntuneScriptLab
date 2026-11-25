@@ -15,7 +15,41 @@ BeforeAll {
 
     # An assignment as Graph returns it, a dictionary
     function script:New-Assignment {
-        param([string]$Type, [string]$FilterType)
+        <#
+        .SYNOPSIS
+            Builds an assignment of a tenant policy with a target of the given type.
+
+        .DESCRIPTION
+            Returns a hashtable shaped like an assignment in a Graph reply. When a filter type is
+            given, the target also carries the filter id filter-1 and that filter type.
+
+        .PARAMETER Type
+            The type of the target without its #microsoft.graph. prefix, such as
+            groupAssignmentTarget.
+
+        .PARAMETER FilterType
+            The filter type of the target, such as include or none. Left out, the target has no
+            filter.
+
+        .EXAMPLE
+            New-Assignment -Type 'allDevicesAssignmentTarget' -FilterType 'include'
+
+            Returns an assignment to all devices with an include filter.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The assignment, with its target.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string]$Type,
+
+            [string]$FilterType
+        )
+
         $target = @{ '@odata.type' = "#microsoft.graph.$Type" }
         if ($FilterType) {
             $target['deviceAndAppManagementAssignmentFilterId'] = 'filter-1'
@@ -25,7 +59,34 @@ BeforeAll {
     }
 
     function script:Get-Summary {
-        param([object[]]$Assignment)
+        <#
+        .SYNOPSIS
+            Gets the summary Get-IslAssignmentSummary gives for a set of assignments.
+
+        .DESCRIPTION
+            Wraps the assignments in a policy with the id p and calls the private function inside
+            the module with it.
+
+        .PARAMETER Assignment
+            The assignments of the policy, as New-Assignment returns them.
+
+        .EXAMPLE
+            Get-Summary -Assignment @(New-Assignment -Type 'allDevicesAssignmentTarget')
+
+            Returns the summary of a policy assigned to all devices.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.AssignmentSummary. What Get-IslAssignmentSummary returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.AssignmentSummary')]
+        param(
+            [object[]]$Assignment
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Assignment = $Assignment } {
             Get-IslAssignmentSummary -Policy @{ id = 'p'; assignments = $Assignment }
         }

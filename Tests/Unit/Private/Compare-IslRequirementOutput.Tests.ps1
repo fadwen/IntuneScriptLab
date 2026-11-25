@@ -17,7 +17,36 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function Compare-Output {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs Compare-IslRequirementOutput with defaults for the run fields left out.
+
+        .DESCRIPTION
+            Fills StdOut, StdErr, ExitCode and TimedOut with the values of a clean run that wrote
+            nothing, lays the given parameters over them and calls the private function inside the
+            module, so that a test states only the fields it is about.
+
+        .PARAMETER Parameters
+            Parameters of Compare-IslRequirementOutput, such as the rule's OutputType, Operator
+            and Value and the run's StdOut.
+
+        .EXAMPLE
+            Compare-Output @{ StdOut = "5`r`n"; OutputType = 'Integer'; Operator = 'Equal'; Value = '5' }
+
+            Returns the verdict for a run that wrote 5, compared as an integer.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RequirementVerdict. The verdict of the comparison.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RequirementVerdict')]
+        param(
+            [hashtable]$Parameters
+        )
+
         $defaults = @{ StdOut = ''; StdErr = ''; ExitCode = 0; TimedOut = $false }
         foreach ($key in $Parameters.Keys) { $defaults[$key] = $Parameters[$key] }
         InModuleScope IntuneScriptLab -Parameters @{ P = $defaults } {
@@ -26,7 +55,40 @@ BeforeAll {
     }
     # A string rule "equal ok", the round-4 baseline, with the output under test
     function Compare-Ok {
-        param([string]$StdOut, [hashtable]$More = @{})
+        <#
+        .SYNOPSIS
+            Compares run output with the string rule that expects 'ok'.
+
+        .DESCRIPTION
+            Builds a String rule with the operator Equal and the value 'ok', lays any further
+            fields over it and passes it to Compare-Output, for the tests of how the output of a
+            run is read.
+
+        .PARAMETER StdOut
+            The text the requirement script wrote to stdout.
+
+        .PARAMETER More
+            Fields that replace or add to the rule and the run, such as ExitCode or Operator.
+
+        .EXAMPLE
+            Compare-Ok "ok`r`n" @{ ExitCode = 1 }
+
+            Returns the verdict for a run that wrote ok and ended with exit code 1.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RequirementVerdict. The verdict of the comparison.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RequirementVerdict')]
+        param(
+            [string]$StdOut,
+
+            [hashtable]$More = @{}
+        )
+
         $rule = @{ StdOut = $StdOut; OutputType = 'String'; Operator = 'Equal'; Value = 'ok' }
         foreach ($key in $More.Keys) { $rule[$key] = $More[$key] }
         Compare-Output $rule

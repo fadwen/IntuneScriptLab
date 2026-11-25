@@ -63,8 +63,56 @@ BeforeAll {
         )
     }
     function script:New-Finding {
-        param([string]$PolicyId, [string]$Severity, [string]$Rule, [string]$Message)
-        [pscustomobject]@{ PolicyId = $PolicyId; Severity = $Severity; RuleName = $Rule; Message = $Message }
+        <#
+        .SYNOPSIS
+            Creates a finding of the pre-flight for one policy of the fake tenant.
+
+        .DESCRIPTION
+            Gives an object with the members of a pre-flight finding that the health report reads,
+            so that the mocked pre-flight can return findings for chosen policies.
+
+        .PARAMETER PolicyId
+            The id of the policy the finding is about.
+
+        .PARAMETER Severity
+            The severity of the finding, such as Warning or Error.
+
+        .PARAMETER Rule
+            The name of the rule that reported the finding.
+
+        .PARAMETER Message
+            The message of the finding.
+
+        .EXAMPLE
+            New-Finding 'rem-a' 'Warning' 'IslEncodingIssue' 'UTF-8 without a BOM'
+
+            Creates a warning about the encoding of the policy rem-a.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.Finding. PolicyId, Severity, RuleName and Message.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.Finding')]
+        param(
+            [string]$PolicyId,
+
+            [string]$Severity,
+
+            [string]$Rule,
+
+            [string]$Message
+        )
+
+        [pscustomobject]@{
+            PSTypeName = 'IntuneScriptLab.Test.Finding'
+            PolicyId = $PolicyId
+            Severity = $Severity
+            RuleName = $Rule
+            Message = $Message
+        }
     }
     $script:Findings = @(
         New-Finding 'rem-a' 'Warning' 'IslEncodingIssue' 'UTF-8 without a BOM'

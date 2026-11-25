@@ -14,7 +14,39 @@ BeforeAll {
     }
 
     function script:Compare-Pair {
-        param([string]$Actual, [string]$Expected)
+        <#
+        .SYNOPSIS
+            Compares two version texts with the module's private Compare-IslFilterVersion.
+
+        .DESCRIPTION
+            Runs Compare-IslFilterVersion inside the module, where the private function is visible,
+            and returns what it gave as an array, so that a test can count an order that is missing.
+
+        .PARAMETER Actual
+            The version text of the device.
+
+        .PARAMETER Expected
+            The version text of the filter rule.
+
+        .EXAMPLE
+            Compare-Pair -Actual '10.0.26100' -Expected '10.0.22631'
+
+            Returns 1, because the device version is the later one.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Int32. -1, 0 or 1, or nothing when either text is not a version.
+        #>
+        [CmdletBinding()]
+        [OutputType([int])]
+        param(
+            [string]$Actual,
+
+            [string]$Expected
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Actual = $Actual; Expected = $Expected } {
             @(Compare-IslFilterVersion -Actual $Actual -Expected $Expected)
         }

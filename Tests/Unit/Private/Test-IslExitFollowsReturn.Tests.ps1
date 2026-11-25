@@ -13,14 +13,67 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
 
-    # The syntax tree of a script given as text
     function script:ConvertTo-Ast {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts the text of a script to its syntax tree.
+
+        .DESCRIPTION
+            Parses the text with the PowerShell parser and ignores its tokens and errors, so that a
+            test can hand a node of the tree to the function under test.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            ConvertTo-Ast "return 'ok'"
+
+            Returns the syntax tree of the one-line script.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.ScriptBlockAst. The syntax tree of the script.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.ScriptBlockAst])]
+        param(
+            [string]$Text
+        )
+
         [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
     }
 
     function script:Test-FollowingExit {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Tests whether an exit with another code follows the first return of a script.
+
+        .DESCRIPTION
+            Finds the first return statement in the script and runs Test-IslExitFollowsReturn
+            inside the module on it.
+
+        .PARAMETER Text
+            The text of a script that holds a return statement.
+
+        .EXAMPLE
+            Test-FollowingExit -Text "return 'missing'`nexit 1"
+
+            Returns True.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. Whether such an exit follows the return.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [string]$Text
+        )
+
         $return = (ConvertTo-Ast $Text).Find({
                 param($node) $node -is [System.Management.Automation.Language.ReturnStatementAst]
             }, $true)

@@ -37,12 +37,72 @@ BeforeAll {
     # -File carries the script's exit code out as the process exit code on both hosts; a switch
     # cannot be negated that way, so the quiet run uses -Command (and expects exit 0 anyway)
     function script:Invoke-GateFile {
-        param([string[]]$Arguments)
+        <#
+        .SYNOPSIS
+            Runs the gate script with -File in a child host and returns its exit code.
+
+        .DESCRIPTION
+            Starts the host that runs the tests on Invoke-IntuneScriptGate.ps1 with -File, so that
+            the script's exit code becomes the process exit code, and collects stdout and stderr
+            together as text.
+
+        .PARAMETER Arguments
+            The arguments for the gate script, one element for each parameter name and value.
+
+        .EXAMPLE
+            Invoke-GateFile -Arguments @('-Path', $script:Scripts, '-FailOn', 'None')
+
+            Runs the gate on the script folder and returns its exit code and the lines it wrote.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.GateRun. An object with ExitCode and Output, the lines as strings.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.GateRun')]
+        param(
+            [string[]]$Arguments
+        )
+
         $output = & $script:HostExe -NoProfile -NonInteractive -File $script:Gate @Arguments 2>&1
-        [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = @($output | ForEach-Object { "$_" }) }
+        [pscustomobject]@{
+            PSTypeName = 'IntuneScriptLab.Test.GateRun'
+            ExitCode = $LASTEXITCODE
+            Output = @($output | ForEach-Object { "$_" })
+        }
     }
     function script:Invoke-GateCommand {
-        param([string]$Arguments)
+        <#
+        .SYNOPSIS
+            Runs the gate script with -Command in a child host and returns its output.
+
+        .DESCRIPTION
+            Starts the host that runs the tests with -Command and the gate script called on the
+            given argument text. Unlike -File, -Command can pass a negated switch such as
+            -Annotate:$false. Stdout and stderr come back together as text.
+
+        .PARAMETER Arguments
+            The argument text for the gate script, as it would be typed after the script path.
+
+        .EXAMPLE
+            Invoke-GateCommand -Arguments "-Path '$($script:Scripts)' -FailOn None -Annotate:`$false"
+
+            Runs the gate without annotations and returns the lines it wrote.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. One string for each line the gate wrote.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Arguments
+        )
+
         $output = & $script:HostExe -NoProfile -NonInteractive -Command "& '$($script:Gate)' $Arguments" 2>&1
         @($output | ForEach-Object { "$_" })
     }

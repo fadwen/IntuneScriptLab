@@ -15,12 +15,66 @@ BeforeAll {
 
     # The syntax tree of a script given as text
     function script:ConvertTo-Ast {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts PowerShell text into its syntax tree.
+
+        .DESCRIPTION
+            Parses the text with the PowerShell parser and returns the tree, so that a test can
+            pick the node it hands to the function under test. Parse errors are not returned.
+
+        .PARAMETER Text
+            The PowerShell text to parse.
+
+        .EXAMPLE
+            ConvertTo-Ast 'return 1'
+
+            Returns the syntax tree of a script that holds one return statement.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.ScriptBlockAst. The tree of the text.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.ScriptBlockAst])]
+        param(
+            [string]$Text
+        )
+
         [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
     }
 
     function script:Get-Replacement {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Gets the replacement Get-IslReturnReplacement gives for the return in a text.
+
+        .DESCRIPTION
+            Parses the text, finds its first return statement, searching nested script blocks too,
+            and calls the private function inside the module with it.
+
+        .PARAMETER Text
+            PowerShell text that holds a return statement.
+
+        .EXAMPLE
+            Get-Replacement -Text 'return 1'
+
+            Returns the text that replaces the return statement.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. What Get-IslReturnReplacement returns.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text
+        )
+
         $return = (ConvertTo-Ast $Text).Find({
                 param($node) $node -is [System.Management.Automation.Language.ReturnStatementAst]
             }, $true)

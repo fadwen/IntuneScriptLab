@@ -30,7 +30,34 @@ BeforeAll {
     )
 
     function Get-ModulePath {
-        param([string]$ModulePath)
+        <#
+        .SYNOPSIS
+            Gets the module path Get-IslDesktopModulePath gives for a given one.
+
+        .DESCRIPTION
+            Calls the private function inside the module with the module path the test builds, in
+            place of the session's own.
+
+        .PARAMETER ModulePath
+            The module path, with its folders separated by semicolons.
+
+        .EXAMPLE
+            Get-ModulePath 'C:\Session\Modules'
+
+            Returns the module path a child process would get for that one.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The module path for the child process.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$ModulePath
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ ModulePath = $ModulePath } {
             Get-IslDesktopModulePath -ModulePath $ModulePath
         }

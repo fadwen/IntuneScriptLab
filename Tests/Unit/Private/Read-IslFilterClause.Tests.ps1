@@ -14,13 +14,43 @@ BeforeAll {
     }
 
     function script:Read-Clause {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Reads one clause of a filter rule with Read-IslFilterClause.
+
+        .DESCRIPTION
+            Builds a parser for the text inside the module, runs Read-IslFilterClause on it and
+            returns the node with the state the parser was left in: its error, clauses, warnings and
+            cursor. For an empty text the parser's refusal is cleared first, so that the case reads
+            the end of the tokens.
+
+        .PARAMETER Text
+            The rule text, starting with the clause to read.
+
+        .EXAMPLE
+            Read-Clause -Text 'device.DeviceName -EQ "LAB-PC-01" and'
+
+            Reads the clause and returns its node and the parser's state after it.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.FilterClauseRead. Node, Error, Clauses, Warnings and Pos.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.FilterClauseRead')]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } {
             $parser = New-IslFilterParser -Rule $Text
             # An empty rule is refused before anything is read; the case is the end of the tokens
             if (-not $Text) { $parser.Error = $null }
             $node = Read-IslFilterClause -Parser $parser
             [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.FilterClauseRead'
                 Node = $node; Error = $parser.Error; Clauses = $parser.Clauses.ToArray()
                 Warnings = $parser.Warnings.ToArray(); Pos = $parser.Pos
             }

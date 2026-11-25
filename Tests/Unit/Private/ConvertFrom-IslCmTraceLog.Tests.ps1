@@ -16,8 +16,60 @@ BeforeAll {
     }
 
     function script:New-CmTraceLine {
-        param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
-            [string]$Component = 'HealthScripts', [int]$Thread = 71)
+        <#
+        .SYNOPSIS
+            Builds the text of one log entry in the CMTrace format.
+
+        .DESCRIPTION
+            Returns one line with the message, time, date, component, type and thread in the places
+            the parser reads them, so that the suite writes log files without spelling out the
+            format each time. The defaults are those of a HealthScripts entry.
+
+        .PARAMETER Message
+            The text of the entry.
+
+        .PARAMETER Time
+            The time field, as the log writes it.
+
+        .PARAMETER Date
+            The date field, month-day-year.
+
+        .PARAMETER Type
+            The type field of the entry, 1 by default.
+
+        .PARAMETER Component
+            The component that wrote the entry, HealthScripts by default.
+
+        .PARAMETER Thread
+            The thread field of the entry, 71 by default.
+
+        .EXAMPLE
+            New-CmTraceLine -Message '[HS] Runner' -Time '08:45:14.1234567'
+
+            Returns a HealthScripts entry of type 1 dated 9-25-2026.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The line, without a line ending.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Message,
+
+            [string]$Time,
+
+            [string]$Date = '9-25-2026',
+
+            [int]$Type = 1,
+
+            [string]$Component = 'HealthScripts',
+
+            [int]$Thread = 71
+        )
+
         "<![LOG[$Message]LOG]!><time=`"$Time`" date=`"$Date`" component=`"$Component`" context=`"`" " +
         "type=`"$Type`" thread=`"$Thread`" file=`"`">"
     }

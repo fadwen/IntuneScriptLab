@@ -14,7 +14,36 @@ BeforeAll {
     }
 
     function script:Get-Finding {
-        param([hashtable]$Selection = @{})
+        <#
+        .SYNOPSIS
+            Gets the findings that ConvertTo-IslPolicyFinding makes of one fixed finding.
+
+        .DESCRIPTION
+            Calls the private function inside the module with a warning-level assignment finding
+            for a platform script, and with the given selection parameters, so that each test
+            varies only the selection.
+
+        .PARAMETER Selection
+            Further parameters of ConvertTo-IslPolicyFinding: IncludeRule, ExcludeRule or
+            MinimumSeverity.
+
+        .EXAMPLE
+            Get-Finding -Selection @{ ExcludeRule = 'IslAssignmentIssue' }
+
+            Returns what is left of the finding once its rule is excluded.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DeploymentFinding. The findings that pass the selection.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DeploymentFinding')]
+        param(
+            [hashtable]$Selection = @{}
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Selection = $Selection } {
             $findingSplat = @{
                 PolicyKind = 'PlatformScript'; Policy = @{ id = 'p1'; displayName = 'Set-Wallpaper' }

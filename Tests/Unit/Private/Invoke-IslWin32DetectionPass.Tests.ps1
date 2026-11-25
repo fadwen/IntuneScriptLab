@@ -14,7 +14,34 @@ BeforeAll {
     }
 
     function script:Invoke-Pass {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs Invoke-IslWin32DetectionPass with the given parameters.
+
+        .DESCRIPTION
+            Calls the private function inside the module, where a test cannot call it directly, and
+            returns the pass it reports.
+
+        .PARAMETER Parameters
+            The parameters of Invoke-IslWin32DetectionPass, by name.
+
+        .EXAMPLE
+            Invoke-Pass @{ Phase = 'Post'; Rule = @($rule); Detection = @{}; Warning = $warnings }
+
+            Runs a detection pass after the install with one rule and no detection script.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Win32DetectionPass. What Invoke-IslWin32DetectionPass returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Win32DetectionPass')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters } {
             Invoke-IslWin32DetectionPass @Parameters
         }

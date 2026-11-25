@@ -14,7 +14,34 @@ BeforeAll {
     }
 
     function script:Get-Part {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts a version text to its four numbers with Get-IslVersionPart.
+
+        .DESCRIPTION
+            Runs the module's private Get-IslVersionPart inside the module and returns the numbers
+            as an array, so that a test can count them.
+
+        .PARAMETER Text
+            The version text, such as '10.0.26100'.
+
+        .EXAMPLE
+            Get-Part -Text '10.0.26100'
+
+            Returns 10, 0, 26100 and 0.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Int64. Four numbers, or nothing when the text is not a version.
+        #>
+        [CmdletBinding()]
+        [OutputType([long])]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } { @(Get-IslVersionPart -Text $Text) }
     }
 }

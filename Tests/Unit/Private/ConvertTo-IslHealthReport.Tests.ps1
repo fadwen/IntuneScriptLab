@@ -16,7 +16,41 @@ BeforeAll {
 
     # The report of a policy assigned to one group, with what the case adds
     function script:Get-Report {
-        param([hashtable]$Extra = @{}, [object[]]$Assignments)
+        <#
+        .SYNOPSIS
+            Gets the health report of one remediation policy from ConvertTo-IslHealthReport.
+
+        .DESCRIPTION
+            Builds the parameters of a remediation policy that runs as System, has no findings and
+            is assigned to one group, replaces or adds the parameters the case gives, and runs the
+            module's private ConvertTo-IslHealthReport with them inside the module.
+
+        .PARAMETER Extra
+            Parameters of ConvertTo-IslHealthReport that replace or add to the defaults, such as
+            @{ DriftByPolicy = @{} }.
+
+        .PARAMETER Assignments
+            The assignments of the policy in place of the one group assignment.
+
+        .EXAMPLE
+            Get-Report -Extra @{ DriftByPolicy = @{} }
+
+            Returns the report of the policy when no local script was compared with it.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.HealthReport. The health line of the policy.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.HealthReport')]
+        param(
+            [hashtable]$Extra = @{},
+
+            [object[]]$Assignments
+        )
+
         $assigned = @(@{ target = @{ '@odata.type' = '#microsoft.graph.groupAssignmentTarget' } })
         if ($PSBoundParameters.ContainsKey('Assignments')) { $assigned = $Assignments }
         $parameters = @{

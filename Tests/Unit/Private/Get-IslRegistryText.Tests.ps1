@@ -15,7 +15,39 @@ BeforeAll {
     }
 
     function script:Get-Text {
-        param([string]$Key, [int]$Depth)
+        <#
+        .SYNOPSIS
+            Gets a registry key as lines of text from Get-IslRegistryText.
+
+        .DESCRIPTION
+            Runs the module's private Get-IslRegistryText inside the module and returns its lines as
+            an array.
+
+        .PARAMETER Key
+            The path of the registry key, such as 'TestRegistry:\Policies'.
+
+        .PARAMETER Depth
+            How many levels of subkeys are written below the key.
+
+        .EXAMPLE
+            Get-Text -Key 'TestRegistry:\Policies' -Depth 0
+
+            Returns the lines of the key without its subkeys.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. One line for each key and each value.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Key,
+
+            [int]$Depth
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Key = $Key; Depth = $Depth } {
             @(Get-IslRegistryText -Key $Key -Depth $Depth)
         }

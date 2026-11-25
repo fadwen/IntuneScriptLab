@@ -17,7 +17,40 @@ BeforeAll {
     $script:Cmd = Join-Path ([System.Environment]::SystemDirectory) 'cmd.exe'
 
     function Invoke-NativeCommand {
-        param([hashtable]$Parameters, [string]$Preference = 'Continue')
+        <#
+        .SYNOPSIS
+            Runs Invoke-IslNativeCommand inside the module under a given error preference.
+
+        .DESCRIPTION
+            Sets the error preference inside the module, as a caller's -ErrorAction would, and calls
+            the private function with the given parameters, so that a test can show that the result
+            does not depend on that preference.
+
+        .PARAMETER Parameters
+            The parameters of Invoke-IslNativeCommand, FilePath and Arguments.
+
+        .PARAMETER Preference
+            The error preference in force inside the module during the call, Continue by default.
+
+        .EXAMPLE
+            Invoke-NativeCommand @{ FilePath = $script:Cmd; Arguments = '/D /C "exit 0"' } -Preference Stop
+
+            Runs cmd.exe under the error preference Stop and returns its exit code and output.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.NativeCommandResult. What Invoke-IslNativeCommand returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.NativeCommandResult')]
+        param(
+            [hashtable]$Parameters,
+
+            [string]$Preference = 'Continue'
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters; Preference = $Preference } {
             # What a caller's -ErrorAction leaves in force inside the module
             $ErrorActionPreference = $Preference

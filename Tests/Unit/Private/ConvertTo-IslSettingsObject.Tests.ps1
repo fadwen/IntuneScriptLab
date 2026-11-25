@@ -15,7 +15,40 @@ BeforeAll {
     }
 
     function ConvertTo-SettingsTable {
-        param([hashtable]$Table, [string]$Source = '-Settings')
+        <#
+        .SYNOPSIS
+            Converts a settings table with the module's private ConvertTo-IslSettingsObject.
+
+        .DESCRIPTION
+            Runs ConvertTo-IslSettingsObject inside the module, where the private function is
+            visible, with the table and the source it names in its messages.
+
+        .PARAMETER Table
+            The settings table to validate and convert.
+
+        .PARAMETER Source
+            Where the table came from, as the messages name it. The default is '-Settings', the
+            parameter a caller passes a table with.
+
+        .EXAMPLE
+            ConvertTo-SettingsTable -Table @{ ExcludeRule = 'IslLongSleep' }
+
+            Returns the settings object with one rule excluded.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Settings. The settings the analysis reads.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Settings')]
+        param(
+            [hashtable]$Table,
+
+            [string]$Source = '-Settings'
+        )
+
         $parameters = @{ Table = $Table; Source = $Source }
         $scope = @{ Parameters = $parameters }
         InModuleScope IntuneScriptLab -Parameters $scope { ConvertTo-IslSettingsObject @Parameters }

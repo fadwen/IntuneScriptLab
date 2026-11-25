@@ -14,7 +14,39 @@ BeforeAll {
     }
 
     function script:Test-Next {
-        param([string]$Rule, [string]$Name)
+        <#
+        .SYNOPSIS
+            Tests whether the token at the start of a filter rule is a given connector.
+
+        .DESCRIPTION
+            Builds a parser for the rule, whose cursor starts at its first token, and calls
+            Test-IslFilterConnector on it inside the module.
+
+        .PARAMETER Rule
+            The text of the assignment filter rule.
+
+        .PARAMETER Name
+            The connector to test for, and or or.
+
+        .EXAMPLE
+            Test-Next -Rule '-AND' -Name 'and'
+
+            Returns $true.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. What Test-IslFilterConnector returns.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [string]$Rule,
+
+            [string]$Name
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule; Name = $Name } {
             Test-IslFilterConnector -Parser (New-IslFilterParser -Rule $Rule) -Name $Name
         }

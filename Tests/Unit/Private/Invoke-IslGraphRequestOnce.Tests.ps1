@@ -25,7 +25,34 @@ BeforeAll {
     Mock Start-Sleep -ModuleName IntuneScriptLab { }
 
     function script:Invoke-Once {
-        param([hashtable]$Request)
+        <#
+        .SYNOPSIS
+            Runs one Graph request with the module's private Invoke-IslGraphRequestOnce.
+
+        .DESCRIPTION
+            Runs Invoke-IslGraphRequestOnce inside the module, where the private function and the
+            mocks of Invoke-MgGraphRequest and Start-Sleep apply, and returns the reply as it came.
+
+        .PARAMETER Request
+            The parameters of Invoke-MgGraphRequest, such as Method, Uri and ErrorAction.
+
+        .EXAMPLE
+            Invoke-Once @{ Method = 'GET'; Uri = '/beta/things/x'; ErrorAction = 'Stop' }
+
+            Sends the request to the mocked Invoke-MgGraphRequest and returns its reply.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The reply of the request.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [hashtable]$Request
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Request = $Request } {
             Invoke-IslGraphRequestOnce -Request $Request
         }

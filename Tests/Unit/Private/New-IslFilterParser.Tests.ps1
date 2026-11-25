@@ -14,7 +14,34 @@ BeforeAll {
     }
 
     function script:New-Parser {
-        param([string]$Rule)
+        <#
+        .SYNOPSIS
+            Creates a filter rule parser with the module's private New-IslFilterParser.
+
+        .DESCRIPTION
+            Calls New-IslFilterParser inside the module, where the private function is visible,
+            and returns the parser with its tokens, position and any error.
+
+        .PARAMETER Rule
+            The text of the filter rule.
+
+        .EXAMPLE
+            New-Parser -Rule '(device.deviceName -eq "X")'
+
+            Returns the parser for a rule with one clause.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The parser state.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string]$Rule
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule } { New-IslFilterParser -Rule $Rule }
     }
 }

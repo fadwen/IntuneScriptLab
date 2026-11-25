@@ -14,7 +14,39 @@ BeforeAll {
     }
 
     function script:Copy-Shared {
-        param([string]$Source, [string]$Destination)
+        <#
+        .SYNOPSIS
+            Copies a file with the module's private Copy-IslSharedFile.
+
+        .DESCRIPTION
+            Calls Copy-IslSharedFile inside the module, where the private function is visible.
+            Its errors reach the caller, which the tests of a locked or missing source rely on.
+
+        .PARAMETER Source
+            The path of the file to copy.
+
+        .PARAMETER Destination
+            The path to copy the file to.
+
+        .EXAMPLE
+            Copy-Shared -Source $source -Destination $destination
+
+            Copies the source file to the destination.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Void. The function writes nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [string]$Source,
+
+            [string]$Destination
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Source = $Source; Destination = $Destination } {
             Copy-IslSharedFile -Source $Source -Destination $Destination
         }

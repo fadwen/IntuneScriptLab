@@ -22,7 +22,35 @@ BeforeAll {
     $script:OnWindows = $PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows
 
     function script:Get-FactWithStatus {
-        param([string[]]$Status)
+        <#
+        .SYNOPSIS
+            Gets the device facts with a fixed dsregcmd status in place of the real one.
+
+        .DESCRIPTION
+            Mocks Get-IslDsregStatus inside the module to return the given lines and runs
+            Get-IslFilterDeviceFact, so that the join type and the ownership are tested against a
+            known status on any machine.
+
+        .PARAMETER Status
+            The lines that dsregcmd /status would write.
+
+        .EXAMPLE
+            Get-FactWithStatus -Status @('  AzureAdJoined : YES', '  DomainJoined : NO')
+
+            Returns the facts of a device that reports itself Azure AD joined.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The filter properties of the device.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string[]]$Status
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Status = $Status } {
             Mock Get-IslDsregStatus { $Status }
             Get-IslFilterDeviceFact

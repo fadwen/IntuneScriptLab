@@ -21,9 +21,51 @@ BeforeAll {
         Set-Content -LiteralPath $full -Value 'exit 0' -Encoding ascii
     }
 
-    # The full paths of the candidates for a policy, sorted
     function script:Find-Script {
-        param([string]$PolicyName, [string]$Role, [string]$Pattern, [hashtable]$Map)
+        <#
+        .SYNOPSIS
+            Gets the sorted full paths of the local scripts that may hold a policy's script.
+
+        .DESCRIPTION
+            Runs Find-IslLocalScript inside the module for a policy of the given name, over every
+            file and folder of the fixture tree under TestDrive, and returns the full path of each
+            candidate it finds, sorted.
+
+        .PARAMETER PolicyName
+            The display name of the policy.
+
+        .PARAMETER Role
+            The role of the script in the policy: detection, remediation or script.
+
+        .PARAMETER Pattern
+            The pattern that the file name of the script matches. Left out, none is passed.
+
+        .PARAMETER Map
+            The -Map entries that name the local file of a policy.
+
+        .EXAMPLE
+            Find-Script -PolicyName 'Fix Widget' -Role 'detection' -Pattern '^(?i)detect'
+
+            Returns the path of the detection script in the folder Fix Widget.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full path of each candidate.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$PolicyName,
+
+            [string]$Role,
+
+            [string]$Pattern,
+
+            [hashtable]$Map
+        )
+
         $parameters = @{
             Policy = @{ id = 'p1'; displayName = $PolicyName }; Role = $Role; Root = $script:Root
             LocalFile = @(Get-ChildItem -LiteralPath $script:Root -Recurse -File -Filter '*.ps1')

@@ -26,7 +26,40 @@ BeforeAll {
     # whose headers may carry Retry-After. Windows PowerShell 5.1 loads System.Net.Http on demand
     Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
     function script:New-GraphFailure {
-        param([int]$StatusCode, [int]$RetryAfterSeconds)
+        <#
+        .SYNOPSIS
+            Creates the exception that a failed Graph request throws, with its status code.
+
+        .DESCRIPTION
+            Builds a FakeGraphException with the status code and an HTTP response of that status,
+            whose Retry-After header carries the given seconds. The seam reads only those two
+            members, so a mock can throw this in place of a real Graph failure.
+
+        .PARAMETER StatusCode
+            The HTTP status code of the failure, such as 429.
+
+        .PARAMETER RetryAfterSeconds
+            The seconds of the Retry-After header. Zero, the default, leaves the header out.
+
+        .EXAMPLE
+            New-GraphFailure -StatusCode 429 -RetryAfterSeconds 7
+
+            Creates a throttling failure that asks for a retry after seven seconds.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            FakeGraphException. The exception, not yet thrown.
+        #>
+        [CmdletBinding()]
+        [OutputType('FakeGraphException')]
+        param(
+            [int]$StatusCode,
+
+            [int]$RetryAfterSeconds
+        )
+
         # .NET Framework's HttpStatusCode has no name for 429; the enum takes the number all the same
         $code = [System.Enum]::ToObject([System.Net.HttpStatusCode], $StatusCode)
         $response = [System.Net.Http.HttpResponseMessage]::new($code)
@@ -102,9 +135,36 @@ Describe 'Invoke-IslGraphRequest' -Tag 'Unit', 'Private' {
         BeforeEach {
             Mock Start-Sleep -ModuleName IntuneScriptLab { }
             $script:Failures = [System.Collections.Generic.List[object]]::new()
-            # Throws the next queued failure, or returns the answer given
             function script:Invoke-NextFailure {
-                param($Answer)
+                <#
+                .SYNOPSIS
+                    Throws the next queued Graph failure, or returns the answer when none is left.
+
+                .DESCRIPTION
+                    Takes the first failure off the queue in $script:Failures and throws it, so that a
+                    mock of Invoke-MgGraphRequest fails as many times as the test queued and then
+                    answers.
+
+                .PARAMETER Answer
+                    What the mock returns once the queue is empty.
+
+                .EXAMPLE
+                    Invoke-NextFailure -Answer @{ id = 'x' }
+
+                    Throws the next queued failure, or returns the hashtable when the queue is empty.
+
+                .INPUTS
+                    None.
+
+                .OUTPUTS
+                    System.Object. The answer, once no failure is left.
+                #>
+                [CmdletBinding()]
+                [OutputType([object])]
+                param(
+                    [object]$Answer
+                )
+
                 if ($script:Failures.Count) {
                     $next = $script:Failures[0]
                     $script:Failures.RemoveAt(0)

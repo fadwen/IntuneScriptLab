@@ -21,7 +21,39 @@ BeforeAll {
         "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:ConvertTo-Base64 {
-        param([string]$Text, [switch]$Bom)
+        <#
+        .SYNOPSIS
+            Converts script text to Base64 as Graph returns a script's content.
+
+        .DESCRIPTION
+            Encodes the text as UTF-8, with a byte order mark when -Bom is given, and returns the
+            bytes as Base64, the form of scriptContent in the fake tenant's replies.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .PARAMETER Bom
+            Puts the UTF-8 byte order mark before the text.
+
+        .EXAMPLE
+            ConvertTo-Base64 "Write-Output 'checked'`r`nexit 0" -Bom
+
+            Returns the Base64 of the script with a byte order mark.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The Base64 text.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text,
+
+            [switch]$Bom
+        )
+
         $preamble = [System.Text.UTF8Encoding]::new([bool]$Bom).GetPreamble()
         [System.Convert]::ToBase64String($preamble + [System.Text.Encoding]::UTF8.GetBytes($Text))
     }

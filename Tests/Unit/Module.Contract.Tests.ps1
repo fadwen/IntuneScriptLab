@@ -196,7 +196,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
             function script:Import-ModuleCopy {
                 <#
                 .SYNOPSIS
-                    Copies the module under TestDrive, changes the copy and imports it in a new process.
+                    Copies the module under TestDrive, changes it and imports it in a new process.
 
                 .DESCRIPTION
                     The import is a plain one, as a user types it. Returns the exit code of that process

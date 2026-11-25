@@ -13,14 +13,67 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
 
-    # The syntax tree of a script given as text
     function script:ConvertTo-Ast {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts the text of a script to its syntax tree.
+
+        .DESCRIPTION
+            Parses the text with the PowerShell parser and ignores its tokens and errors, so that a
+            test can hand a node of the tree to the function under test.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            ConvertTo-Ast 'Get-Credential -Credential $saved'
+
+            Returns the syntax tree of the one-line script.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.ScriptBlockAst. The syntax tree of the script.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.ScriptBlockAst])]
+        param(
+            [string]$Text
+        )
+
         [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
     }
 
     function script:Get-Argument {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Gets the text of what the first command of a script is handed as its credential.
+
+        .DESCRIPTION
+            Finds the first command in the script and runs Get-IslCredentialArgument inside the
+            module on it, returning the extent text of each argument it gives.
+
+        .PARAMETER Text
+            The text of a script whose first command is a Get-Credential call.
+
+        .EXAMPLE
+            Get-Argument -Text 'Get-Credential -Credential $saved'
+
+            Returns '$saved'.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The text of each credential argument.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text
+        )
+
         $commandType = [System.Management.Automation.Language.CommandAst]
         $command = (ConvertTo-Ast $Text).Find({ param($node) $node -is $commandType }, $true)
         InModuleScope IntuneScriptLab -Parameters @{ Command = $command } {

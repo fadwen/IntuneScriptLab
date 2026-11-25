@@ -15,7 +15,40 @@ BeforeAll {
     }
 
     function Resolve-RulePath {
-        param([string]$Path, [bool]$Check32 = $false)
+        <#
+        .SYNOPSIS
+            Resolves the path of a Win32 app rule with the module's private function.
+
+        .DESCRIPTION
+            Calls Resolve-IslRulePath inside the module, where the private function is visible,
+            and passes the Boolean on as its -Check32BitOn64System switch, so that the tests can
+            give it positionally.
+
+        .PARAMETER Path
+            The path as the rule states it, with any environment variables.
+
+        .PARAMETER Check32
+            Resolves the path as a rule with Check32BitOn64System does. False by default.
+
+        .EXAMPLE
+            Resolve-RulePath '%ProgramFiles%\Vendor' $true
+
+            Returns the path under Program Files (x86).
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The resolved path.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Path,
+
+            [bool]$Check32 = $false
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Check32 = $Check32 } {
             Resolve-IslRulePath -Path $Path -Check32BitOn64System:$Check32
         }

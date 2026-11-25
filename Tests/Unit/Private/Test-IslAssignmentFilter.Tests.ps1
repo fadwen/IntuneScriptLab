@@ -21,7 +21,45 @@ BeforeAll {
 
     # The findings for one policy whose single assignment carries the filter and type given
     function script:Test-Filter {
-        param([string]$FilterId, [string]$FilterType = 'include', [hashtable]$Extra = @{})
+        <#
+        .SYNOPSIS
+            Runs Test-IslAssignmentFilter for a remediation with one group assignment.
+
+        .DESCRIPTION
+            Builds a remediation assigned to the group g1, with the given assignment filter when an
+            id is given, and an empty filter cache, and calls the private function inside the
+            module. Extra replaces or adds parameters, so that each test names only what it is about.
+
+        .PARAMETER FilterId
+            The id of the assignment filter. Left out, the assignment has no filter.
+
+        .PARAMETER FilterType
+            The filter type of the assignment, include by default.
+
+        .PARAMETER Extra
+            Parameters of Test-IslAssignmentFilter that replace or add to the defaults.
+
+        .EXAMPLE
+            Test-Filter -FilterId 'quoted' -Extra @{ MinimumSeverity = 'Warning' }
+
+            Returns the findings of at least Warning for the assignment with the filter quoted.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DeploymentFinding. What Test-IslAssignmentFilter returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DeploymentFinding')]
+        param(
+            [string]$FilterId,
+
+            [string]$FilterType = 'include',
+
+            [hashtable]$Extra = @{}
+        )
+
         $target = @{ '@odata.type' = '#microsoft.graph.groupAssignmentTarget'; groupId = 'g1' }
         if ($FilterId) {
             $target['deviceAndAppManagementAssignmentFilterId'] = $FilterId

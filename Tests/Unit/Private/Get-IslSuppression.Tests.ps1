@@ -16,7 +16,39 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:Get-Suppression {
-        param([string]$Name, [string]$Body)
+        <#
+        .SYNOPSIS
+            Writes a script under TestDrive and gets the suppressions it declares.
+
+        .DESCRIPTION
+            Writes the script with New-TestScript, builds its context inside the module and passes
+            it to the private Get-IslSuppression.
+
+        .PARAMETER Name
+            The file name of the script, relative to TestDrive.
+
+        .PARAMETER Body
+            The text of the script.
+
+        .EXAMPLE
+            @(Get-Suppression 'plain.ps1' 'exit 0')
+
+            Returns no suppressions for a script that declares none.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Suppression. One object for each suppression in the script.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Suppression')]
+        param(
+            [string]$Name,
+
+            [string]$Body
+        )
+
         $path = New-TestScript $Name $Body
         @(InModuleScope IntuneScriptLab -Parameters @{ Path = $path } {
                 Get-IslSuppression -Context (Get-IslScriptContext -Path $Path)

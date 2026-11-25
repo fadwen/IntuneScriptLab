@@ -14,7 +14,45 @@ BeforeAll {
     }
 
     function script:Write-Section {
-        param([string]$Root, [string]$RelativePath, [AllowNull()][string[]]$Line)
+        <#
+        .SYNOPSIS
+            Writes lines to a file below a folder through Write-IslTextFile.
+
+        .DESCRIPTION
+            Calls the private function inside the module with the folder, the relative path and the
+            lines, which are passed on as given, $null included.
+
+        .PARAMETER Root
+            The folder the file is written below.
+
+        .PARAMETER RelativePath
+            The path of the file relative to Root.
+
+        .PARAMETER Line
+            The lines to write. $null is passed on as it is.
+
+        .EXAMPLE
+            Write-Section -Root $script:Root -RelativePath 'Manifest.txt' -Line 'new'
+
+            Writes one line to Manifest.txt below the test folder.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [string]$Root,
+
+            [string]$RelativePath,
+
+            [AllowNull()]
+            [string[]]$Line
+        )
+
         $parameters = @{ Root = $Root; RelativePath = $RelativePath; Line = $Line }
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $parameters } {
             Write-IslTextFile @Parameters

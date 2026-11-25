@@ -17,7 +17,40 @@ BeforeAll {
     Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
 
     function script:New-GraphFailureRecord {
-        param([int]$StatusCode, [int]$RetryAfterSeconds)
+        <#
+        .SYNOPSIS
+            Creates an error record shaped like a failed Invoke-MgGraphRequest call.
+
+        .DESCRIPTION
+            Builds an exception with the status code and an HTTP response, with a Retry-After
+            header when seconds are given, and wraps it in an error record, so that the delay is
+            read from the same members a real Graph failure carries.
+
+        .PARAMETER StatusCode
+            The HTTP status code of the failure, such as 429 or 503.
+
+        .PARAMETER RetryAfterSeconds
+            The Retry-After header in seconds. Zero, the default, leaves the header out.
+
+        .EXAMPLE
+            New-GraphFailureRecord -StatusCode 429 -RetryAfterSeconds 7
+
+            Creates the record of a throttled request that asks for a wait of seven seconds.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.ErrorRecord. The record of the failure.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.ErrorRecord])]
+        param(
+            [int]$StatusCode,
+
+            [int]$RetryAfterSeconds
+        )
+
         # .NET Framework's HttpStatusCode has no name for 429; the enum takes the number all the same
         $code = [System.Enum]::ToObject([System.Net.HttpStatusCode], $StatusCode)
         $response = [System.Net.Http.HttpResponseMessage]::new($code)
@@ -32,7 +65,39 @@ BeforeAll {
     }
 
     function script:Get-Delay {
-        param([System.Management.Automation.ErrorRecord]$Record, [int]$Attempt)
+        <#
+        .SYNOPSIS
+            Gets the retry delay the module's private function gives for a failure.
+
+        .DESCRIPTION
+            Calls Get-IslGraphRetryDelay inside the module, where the private function is
+            visible, with the error record and the number of the attempt that failed.
+
+        .PARAMETER Record
+            The error record of the failed request.
+
+        .PARAMETER Attempt
+            The number of the attempt that failed, starting at 1.
+
+        .EXAMPLE
+            Get-Delay -Record (New-GraphFailureRecord -StatusCode 503) -Attempt 2
+
+            Returns the seconds to wait after the second attempt failed with status 503.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Int32. The seconds to wait, or nothing when the request is not retried.
+        #>
+        [CmdletBinding()]
+        [OutputType([int])]
+        param(
+            [System.Management.Automation.ErrorRecord]$Record,
+
+            [int]$Attempt
+        )
+
         $parameters = @{ Record = $Record; Attempt = $Attempt }
         InModuleScope IntuneScriptLab -Parameters $parameters {
             Get-IslGraphRetryDelay -ErrorRecord $Record -Attempt $Attempt

@@ -17,7 +17,44 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function Get-IntuneOutput {
-        param([string]$StdOut = '', [string]$StdErr = '', [int]$Limit = 2048)
+        <#
+        .SYNOPSIS
+            Gets the output that the portal shows for the given streams of a run.
+
+        .DESCRIPTION
+            Runs Get-IslIntuneOutput inside the module, where the private function can be reached,
+            with empty streams and the limit of 2,048 characters unless the test gives others.
+
+        .PARAMETER StdOut
+            The standard output of the run.
+
+        .PARAMETER StdErr
+            The standard error of the run.
+
+        .PARAMETER Limit
+            The number of characters that each stream is capped at.
+
+        .EXAMPLE
+            Get-IntuneOutput -StdOut "one`r`ntwo`r`n"
+
+            Returns the output reduced to its last line, two.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.IntuneOutput. The output and the error text as the portal shows them.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.IntuneOutput')]
+        param(
+            [string]$StdOut = '',
+
+            [string]$StdErr = '',
+
+            [int]$Limit = 2048
+        )
+
         $parameters = @{ StdOut = $StdOut; StdErr = $StdErr; Limit = $Limit }
         InModuleScope IntuneScriptLab -Parameters $parameters {
             Get-IslIntuneOutput -StdOut $StdOut -StdErr $StdErr -Limit $Limit

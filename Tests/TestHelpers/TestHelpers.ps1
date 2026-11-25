@@ -170,7 +170,7 @@ function Get-AssertionMessage {
 function New-Win32Fixture {
     <#
     .SYNOPSIS
-        Creates a Win32 content folder with an install.ps1, a detection script and a marker path.
+        Creates a Win32 content folder with install.ps1, a detection script and a marker.
 
     .DESCRIPTION
         Lays out what Invoke-IntuneWin32AppTest needs under TestDrive: a content folder that holds
@@ -345,7 +345,7 @@ function ConvertTo-FakeRunResult {
 function Invoke-CallerScript {
     <#
     .SYNOPSIS
-        Runs statements as a script in a new process that has no try and the default error preference.
+        Runs statements as a script in a new process without try and with default errors.
 
     .DESCRIPTION
         A command that ends with a terminating error ends only itself for such a caller, and the test

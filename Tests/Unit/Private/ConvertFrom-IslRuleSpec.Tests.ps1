@@ -15,7 +15,33 @@ BeforeAll {
     }
 
     function Convert-Spec {
-        param([hashtable]$Rule)
+        <#
+        .SYNOPSIS
+            Converts a rule hashtable with ConvertFrom-IslRuleSpec inside the module.
+
+        .DESCRIPTION
+            ConvertFrom-IslRuleSpec is private, so the test reaches it through InModuleScope.
+
+        .PARAMETER Rule
+            The rule, in the Graph shape or in the short Type shape.
+
+        .EXAMPLE
+            Convert-Spec @{ Type = 'ProductCode'; ProductCode = '{1}' }
+
+            Returns the Test-IntuneWin32Rule parameters of a product code rule.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The parameters of Test-IntuneWin32Rule.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [hashtable]$Rule
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule } { ConvertFrom-IslRuleSpec -Rule $Rule }
     }
 }
