@@ -299,6 +299,30 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
             [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($path)) |
                 Should-Be ([System.Convert]::ToBase64String($original))
         }
+
+        It 'leaves a file with a byte order mark and an invalid byte unchanged, and names its own encoding' {
+            # A UTF-8 file with a byte order mark whose comment holds 0xFF, which UTF-8 never uses
+            $folder = Join-Path $TestDrive 'Remediations\InvalidByte'
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            $path = Join-Path $folder 'Detect.ps1'
+            $ascii = [System.Text.Encoding]::ASCII
+            $original = [byte[]](0xEF, 0xBB, 0xBF) +
+            $ascii.GetBytes("if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n# ") + [byte[]](0xFF) +
+            $ascii.GetBytes("`r`n")
+            [System.IO.File]::WriteAllBytes($path, $original)
+
+            $output = Repair-IntuneScript -Path $path -WarningAction Continue 3>&1
+            $warnings = @($output | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $results = @($output | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            $results | Should-BeCollection -Count 1
+            $results[0].Written | Should-BeFalse
+            $results[0].Applied | Should-Be 0
+            $warnings | Should-BeCollection -Count 1
+            "$($warnings[0])" | Should-BeLikeString '*not valid utf-8, the encoding its byte order mark names*'
+            [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($path)) |
+                Should-Be ([System.Convert]::ToBase64String($original))
+        }
     }
 
     Context 'Error Handling' {
