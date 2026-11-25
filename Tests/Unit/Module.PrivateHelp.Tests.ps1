@@ -9,12 +9,14 @@
 #>
 
 BeforeDiscovery {
-    $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $moduleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $isFunction = { param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }
     # The PSScriptAnalyzer rule module ships with the package and has no PlatyPS help either, so
     # its functions are held to the same help as the private ones
-    $rulesModule = Join-Path (Join-Path $moduleRoot 'PSScriptAnalyzer') 'IntuneScriptLab.Rules.psm1'
-    $files = @(Get-ChildItem -LiteralPath (Join-Path $moduleRoot 'Private') -Recurse -Filter '*.ps1') +
+    $rulesFolder = Join-Path -Path $moduleRoot -ChildPath 'PSScriptAnalyzer'
+    $rulesModule = Join-Path -Path $rulesFolder -ChildPath 'IntuneScriptLab.Rules.psm1'
+    $privateFolder = Join-Path -Path $moduleRoot -ChildPath 'Private'
+    $files = @(Get-ChildItem -LiteralPath $privateFolder -Recurse -Filter '*.ps1') +
         @(Get-Item -LiteralPath $rulesModule)
     $script:Functions = foreach ($file in $files) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
@@ -30,7 +32,8 @@ BeforeAll {
         param([string]$Argument)
         $text = $Argument.Trim()
         if ($text -match "^'(.+)'$") { return $Matches[1] }
-        $inner = $text.Trim('[', ']')
+        # Only the outer brackets go: [string[]] names System.String[], not System.String
+        $inner = if ($text -match '^\[(.+)\]$') { $Matches[1] } else { $text }
         switch ($inner) {
             'void' { return 'None' }
             'object' { return 'System.Object' }
@@ -83,10 +86,13 @@ Describe 'Private function help' -Tag 'Unit', 'Contract' {
         $arguments = @($declared[0].PositionalArguments | ForEach-Object { $_.Extent.Text })
         @($arguments | Where-Object { $_ -match '(?i)^\[(System\.Management\.Automation\.)?PSCustomObject\]$' }) |
             Should-BeCollection @() -Because 'FUN-10 rules out [OutputType([PSCustomObject])]'
-        $outputs = $function.GetHelpContent().Outputs -join ' '
+        # Each .OUTPUTS entry starts with the type it names, followed by a full stop, comma or colon
+        $documented = @($function.GetHelpContent().Outputs | ForEach-Object {
+                ($_.Trim() -split '\s+')[0].TrimEnd('.', ',', ':')
+            })
         foreach ($argument in $arguments) {
-            $typeName = Get-TypeName $argument
-            $outputs | Should-BeLikeString "*$typeName*" -Because ".OUTPUTS of $Name names $argument"
+            $typeName = Get-TypeName -Argument $argument
+            $documented | Should-ContainCollection $typeName -Because ".OUTPUTS of $Name names $argument"
         }
     }
 }
