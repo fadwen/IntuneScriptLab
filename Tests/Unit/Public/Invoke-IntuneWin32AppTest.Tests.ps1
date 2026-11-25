@@ -595,6 +595,14 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             $failure.Exception.Message | Should-BeLikeString '*for dependency Runtime*'
             Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
+
+        It 'reports an empty rule of a superseded app under -WhatIf, among the argument checks' {
+            $empty = @{ Name = 'Old'; DetectionRule = @($null, $null) }
+
+            { Invoke-IntuneWin32AppTest @script:ParentSplat -Supersedes $empty -WhatIf } |
+                Should-Throw -FullyQualifiedErrorId 'DetectionRuleEmpty,*' -ExceptionMessage (
+                    'Detection rule 1 for superseded app Old is empty')
+        }
     }
 
     Context 'Error Handling' {
