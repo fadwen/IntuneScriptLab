@@ -333,8 +333,8 @@ session by SID. A stored-password task did not start for such an account on the 
 or without the batch logon right, so an Entra account has to hold a session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
-harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLab\Runs` with the
-account granted Modify, since another account cannot reach your temp folder.
+harness as another account"). The script copy and its output live under `ProgramData\IntuneScriptLabRuns` with the
+account granted Modify, since another account cannot reach your temp folder; no other account can open that folder.
 [Validation/New-IslHarnessUser.ps1](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/New-IslHarnessUser.ps1) creates a standard lab
 account with a generated password stored as a DPAPI credential, and the `UserContext` integration
 suite runs against it when `ISL_TEST_CREDENTIAL` points at that file.
@@ -844,6 +844,7 @@ $Error[0].FullyQualifiedErrorId
 | `ScheduledTaskNotRegistered` | The scheduled task for `-Context System` or `-Credential` was refused | Run from an elevated session; with `-Credential`, check the password |
 | `ScheduledTaskNotStarted` | The task for another account did not start | Follow the hint in the message: grant the account "Log on as a batch job", or sign it in and run while it holds a session |
 | `FolderAccessNotGranted` | `icacls` could not give the other account access to the run folder | Read the message, which carries what `icacls` reported |
+| `RunFolderUnsafe`, `RunFolderNotRestricted` | `ProgramData\IntuneScriptLabRuns`, where a run as another account copies its script, is a link or is owned by an account other than SYSTEM, the Administrators group or you, or `icacls` could not close it to other accounts | Remove that folder, as an administrator, and run again; the module creates it anew |
 | `SettingsInvalid` | A settings file or `-Settings` table holds a value the module does not accept | Correct the entry the message names |
 | `GraphModuleNotLoaded` | A tenant command ran without Microsoft.Graph.Authentication | `Install-PSResource Microsoft.Graph.Authentication`, then `Connect-MgGraph` with the scopes the message lists |
 | `ExportJobFailed`, `ExportJobTimedOut`, `ExportHasNoCsv` | The report export for the app install counts did not complete or held no data | Run again, or use `-SkipRunState` to leave the device counts out |
