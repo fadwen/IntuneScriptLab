@@ -334,7 +334,7 @@ or without the batch logon right, so an Entra account has to hold a session. On
 the lab device the interactive path reproduced the agent's launch point for point (console session,
 `UserInteractive` true, the account's profile paths, system32; `Validation/Findings.md`, "The
 harness as another account"). The script copy and its output live in a folder of the run's own, `ProgramData\IntuneScriptLabRun-<id>`, with the
-account granted Modify, since another account cannot reach your temp folder; no other account can open that folder.
+account granted Modify on what is in it once the copy is there, since another account cannot reach your temp folder; no other account can open that folder.
 [Validation/New-IslHarnessUser.ps1](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/New-IslHarnessUser.ps1) creates a standard lab
 account with a generated password stored as a DPAPI credential, and the `UserContext` integration
 suite runs against it when `ISL_TEST_CREDENTIAL` points at that file.

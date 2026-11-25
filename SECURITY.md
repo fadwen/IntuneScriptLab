@@ -53,8 +53,10 @@ account has a signed-in session the task runs interactively in it and no passwor
 otherwise the password goes to the Task Scheduler for the life of the task, which is deleted at
 the end of the run. Each run copies the script to a folder of its own,
 `ProgramData\IntuneScriptLabRun-<id>`, created already closed: SYSTEM, the Administrators group
-and the user who runs the harness have full control, the run's account is granted Modify, and no
-other account can open it. The name is new for each run, so no other user can take it first, and
+and the user who runs the harness have full control, and no other account can open it. Once the
+script is copied in, the run's account is granted Modify on what is in the folder and the rights
+to list it and add to it, but not to delete or rename the folder itself, so it cannot redirect the
+copy. The name is new for each run, so no other user can take it first, and
 a run is refused when something is already there under the name. The folder is removed after the
 run. Graph access is the session you already opened.
 

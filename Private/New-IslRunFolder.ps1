@@ -8,8 +8,10 @@ function New-IslRunFolder {
         user and the administrators can open.
 
         A run as another account cannot reach the caller's temp folder, so its folder is
-        ProgramData\IntuneScriptLabRun-<id>, and the account is granted Modify on it to read the
-        copy and write its output there. ProgramData lets every local user create folders and add
+        ProgramData\IntuneScriptLabRun-<id>. The caller grants the account access to it with
+        Grant-IslFolderAccess once the script or content has been copied in, not here: an account
+        that could write to the folder before the copy could put a link at the copy's name and send
+        the caller's elevated copy elsewhere. ProgramData lets every local user create folders and add
         files below it, and a folder created there inherits that, so another user could change the
         script that then runs as the account, or the output the harness reads back. The folder is
         therefore created with an access list of its own in the same call that creates it: full
@@ -25,19 +27,19 @@ function New-IslRunFolder {
         user Modify there for its probes, and with it the right to rename that folder and put
         another in its place.
 
-    .PARAMETER Account
-        The account the run is for, as the credential names it. Omit it for a run as the current
-        user.
+    .PARAMETER AnotherAccount
+        Makes the folder for a run as another account, under ProgramData. Without it, the folder is
+        for a run as the current user, under the caller's temp folder.
 
     .PARAMETER RunId
         The id in the folder's name. A new GUID by default; the unit tests give one so that they
         can put something in the folder's place first.
 
     .EXAMPLE
-        New-IslRunFolder -Account 'isl-user'
+        New-IslRunFolder -AnotherAccount
 
-        Returns C:\ProgramData\IntuneScriptLabRun-<id>, which isl-user can modify and no other
-        user but the caller and the administrators can open.
+        Returns C:\ProgramData\IntuneScriptLabRun-<id>, which no user but the caller and the
+        administrators can open until the caller grants the run's account.
 
     .EXAMPLE
         New-IslRunFolder
@@ -56,14 +58,14 @@ function New-IslRunFolder {
         Justification = 'Bookkeeping of a run that the command which started it has already asked about.')]
     param(
         [Parameter()]
-        [string]$Account,
+        [switch]$AnotherAccount,
 
         [Parameter()]
         [ValidatePattern('\A[0-9a-f]{32}\z')]
         [string]$RunId = [guid]::NewGuid().ToString('N')
     )
 
-    if (-not $Account) {
+    if (-not $AnotherAccount) {
         $folder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$RunId"
         try {
             $null = New-Item -ItemType Directory -Path $folder -Force -ErrorAction Stop @script:IslInternal
@@ -124,8 +126,6 @@ function New-IslRunFolder {
             }
             $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
-
-        Grant-IslFolderAccess -Path $folder -Account $Account
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }

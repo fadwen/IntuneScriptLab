@@ -105,10 +105,14 @@ function Invoke-IslScriptRun {
     $cache = $null
     try {
         # Another account's folder is under ProgramData, closed to other users (New-IslRunFolder)
-        $runAccount = if ($Credential) { $Credential.UserName } else { $null }
-        $cache = New-IslRunFolder -Account $runAccount
+        $cache = New-IslRunFolder -AnotherAccount:([bool]$Credential)
         $scriptCopy = Join-Path -Path $cache -ChildPath "$Phase.ps1"
         Copy-Item -LiteralPath $source -Destination $scriptCopy -ErrorAction Stop @script:IslInternal
+        # Only once the copy is in place: an account that could write to the folder before could
+        # put a link at the copy's name and send this elevated copy elsewhere
+        if ($Credential) {
+            Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
+        }
         $processSplat = @{
             FilePath = $hostInfo.Path
             Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptCopy`""
