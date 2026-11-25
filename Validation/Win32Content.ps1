@@ -54,10 +54,11 @@ function New-IntuneWinPackage {
         [string]$OutputFolder
     )
 
-    $null = New-Item -ItemType Directory -Path $OutputFolder -Force
+    # Built on this computer under -WhatIf as well, so that the caller's rehearsal can go on
+    $null = New-Item -ItemType Directory -Path $OutputFolder -Force -WhatIf:$false -Confirm:$false
     $packageName = [IO.Path]::GetFileNameWithoutExtension($SetupFile) + '.intunewin'
     $package = Join-Path -Path $OutputFolder -ChildPath $packageName
-    if (Test-Path -LiteralPath $package) { Remove-Item -LiteralPath $package }
+    if (Test-Path -LiteralPath $package) { Remove-Item -LiteralPath $package -WhatIf:$false -Confirm:$false }
     & $ToolPath -c $SourceFolder -s $SetupFile -o $OutputFolder -q | Out-Null
     if (-not (Test-Path -LiteralPath $package)) {
         $exception = [System.IO.FileNotFoundException]::new("IntuneWinAppUtil did not produce $package", $package)

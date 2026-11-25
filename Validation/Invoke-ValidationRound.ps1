@@ -395,7 +395,7 @@ function Read-ExportJobCsv {
             }
         } finally {
             $zip.Dispose()
-            Remove-Item -LiteralPath $zipPath -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $zipPath -ErrorAction SilentlyContinue -WhatIf:$false -Confirm:$false
         }
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
@@ -863,8 +863,11 @@ function Invoke-DeployWin32 {
     try {
         . (Join-Path -Path $PSScriptRoot -ChildPath 'Win32Content.ps1')
         if (-not (Test-Path -LiteralPath $IntuneWinAppUtilPath)) {
-            # Microsoft's tool is not in the repo; fetch it and refuse anything not signed by Microsoft
-            $null = New-Item -ItemType Directory -Path (Split-Path -Path $IntuneWinAppUtilPath -Parent) -Force
+            # Microsoft's tool is not in the repo; fetch it and refuse anything not signed by Microsoft.
+            # The tool and the package are built on this computer under -WhatIf as well, so that a
+            # rehearsal gets as far as the first change to the tenant: the folders are pinned
+            $toolFolder = Split-Path -Path $IntuneWinAppUtilPath -Parent
+            $null = New-Item -ItemType Directory -Path $toolFolder -Force -WhatIf:$false -Confirm:$false
             $downloadMessage = "Downloading IntuneWinAppUtil.exe to $IntuneWinAppUtilPath"
             Write-Information -InformationAction Continue -MessageData $downloadMessage
             $toolUri = 'https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/' +
@@ -888,7 +891,8 @@ function Invoke-DeployWin32 {
         # One package for every app: install.ps1 = param block + probe + body
         $buildName = "ISL-Win32-$([guid]::NewGuid().ToString('N'))"
         $build = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath $buildName
-        $source = New-Item -ItemType Directory -Path (Join-Path -Path $build -ChildPath 'Source') -Force
+        $sourceFolder = Join-Path -Path $build -ChildPath 'Source'
+        $source = New-Item -ItemType Directory -Path $sourceFolder -Force -WhatIf:$false -Confirm:$false
         $probe = Get-Content -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath 'Probe.ps1') -Raw
         # .Replace, not -replace: the probe text contains `$_`, which a regex replacement would expand
         $installPath = Join-Path -Path $PSScriptRoot -ChildPath 'Win32Install.ps1'
@@ -1211,8 +1215,9 @@ function Get-MsiPackageContent {
                 $PSCmdlet.ThrowTerminatingError((New-ValidationErrorRecord @errorSplat))
             }
         }
-        $source = New-Item -ItemType Directory -Path (Join-Path -Path $Build -ChildPath $fileName) -Force
-        Copy-Item -LiteralPath $installer -Destination $source
+        $sourceFolder = Join-Path -Path $Build -ChildPath $fileName
+        $source = New-Item -ItemType Directory -Path $sourceFolder -Force -WhatIf:$false -Confirm:$false
+        Copy-Item -LiteralPath $installer -Destination $source -WhatIf:$false -Confirm:$false
         $packageSplat = @{
             ToolPath     = $IntuneWinAppUtilPath
             SourceFolder = $source
