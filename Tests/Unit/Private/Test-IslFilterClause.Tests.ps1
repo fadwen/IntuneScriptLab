@@ -72,5 +72,17 @@ Describe 'Test-IslFilterClause' -Tag 'Unit', 'Private' {
             $result.Matched | Should-BeFalse
             $result.Clause.Actual | Should-BeNull
         }
+
+        It 'gives <Expected> for <Operator> when the device version is not a version' -ForEach @(
+            @{ Operator = 'eq'; Expected = $false }
+            @{ Operator = 'ne'; Expected = $true }
+            @{ Operator = 'ge'; Expected = $false }
+            @{ Operator = 'lt'; Expected = $false }
+        ) {
+            $device = @{ operatingSystemVersion = 'unknown' }
+            $rule = "(device.operatingSystemVersion -$Operator 10.0.22000.1)"
+
+            (Test-Rule -Rule $rule -Device $device).Matched | Should-Be $Expected
+        }
     }
 }
