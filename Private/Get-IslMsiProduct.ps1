@@ -44,6 +44,8 @@ function Get-IslMsiProduct {
         $key = $null
         try {
             $base = [Microsoft.Win32.RegistryKey]::OpenBaseKey($place.Hive, $place.View)
+            # Exception to STY-30: a registry subkey name for RegistryKey.OpenSubKey, which takes
+            # backslashes; Join-Path would treat it as a path of the current provider
             $key = $base.OpenSubKey("$uninstall\$code")
             if ($key) {
                 return [pscustomobject]@{

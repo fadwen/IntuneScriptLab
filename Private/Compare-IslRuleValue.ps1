@@ -129,7 +129,7 @@ function Compare-IslRuleValue {
         'LessThanOrEqual' { $comparison -le 0 }
     }
     $relation = if ($result.Met) { 'meets' } else { 'does not meet' }
-    $fallback = if ($comparedAs -ne $Type) { " (compared as text: not both values are versions)" } else { '' }
+    $fallback = if ($comparedAs -ne $Type) { ' (compared as text: not both values are versions)' } else { '' }
     $result.Reason = "'$Actual' $relation $Type $Operator '$Expected'$fallback"
     $result
 }

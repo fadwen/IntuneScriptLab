@@ -49,7 +49,7 @@ function Find-IslArm64Assumption {
             Context  = $Context
             Extent   = $literal.Extent
             Message  = ("'AMD64' does not match on Windows on ARM (the value is ARM64), so a 64-bit " +
-                "check built on it takes the 32-bit branch. Test [Environment]::Is64BitProcess or " +
+                'check built on it takes the 32-bit branch. Test [Environment]::Is64BitProcess or ' +
                 "match 'ARM64|AMD64'")
             Evidence = $evidence
         }

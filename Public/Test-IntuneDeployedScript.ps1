@@ -32,8 +32,8 @@ function Test-IntuneDeployedScript {
     # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }
 
-    $workName = "IntuneScriptLab\preflight-$([guid]::NewGuid().ToString('N'))"
-    $workFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath $workName
+    $workParent = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'IntuneScriptLab'
+    $workFolder = Join-Path -Path $workParent -ChildPath "preflight-$([guid]::NewGuid().ToString('N'))"
     # The work folder is this command's own: it reads the tenant and changes nothing, so a
     # caller's -WhatIf or -Confirm preference has no say in it
     $null = New-Item -ItemType Directory -Path $workFolder -Force @script:IslInternal

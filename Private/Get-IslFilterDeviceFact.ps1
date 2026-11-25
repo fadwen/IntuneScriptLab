@@ -49,7 +49,7 @@ function Get-IslFilterDeviceFact {
     $computer = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue
     $operatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
     $versionKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    $version = Get-ItemProperty -Path $versionKey -ErrorAction SilentlyContinue
+    $version = Get-ItemProperty -LiteralPath $versionKey -ErrorAction SilentlyContinue
     $osVersion = if ($version -and $version.CurrentMajorVersionNumber) {
         "$($version.CurrentMajorVersionNumber).$($version.CurrentMinorVersionNumber)." +
         "$($version.CurrentBuildNumber).$($version.UBR)"

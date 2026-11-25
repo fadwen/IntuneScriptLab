@@ -6,7 +6,8 @@
     .DESCRIPTION
         Intune delivers the script bytes unchanged. Without a UTF-8 BOM, Windows PowerShell 5.1
         reads the file as ANSI, so every non-ASCII character in the source is corrupted before
-        the script runs ("Grüße — ✓" became "GrÃ¼ÃŸe â€" âœ""). With a BOM the source decodes
+        the script runs: each umlaut, dash or symbol of a test string came out as two or three
+        other characters (REM-ENC-BOM vs REM-PROBE-SYS64). With a BOM the source decodes
         correctly, but text the script *outputs* still goes through the OEM console code page on
         its way to Intune and loses anything outside it.
 

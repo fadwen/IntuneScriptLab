@@ -63,7 +63,7 @@ function Find-IslPowerShell7Syntax {
     }
 
     $requires = $ast.ScriptRequirements
-    if ($requires -and $requires.RequiredPSVersion -and $requires.RequiredPSVersion.Major -ge 6) {
+    if ($requires -and $requires.RequiredPSVersion -and $requires.RequiredPSVersion -ge [version]'6.0') {
         # The requirement is a comment token, not a node; the finding sits on that line, and the
         # fix takes the line out. What the script then does under 5.1 the other findings say
         $requiresToken = @($Context.Tokens | Where-Object {

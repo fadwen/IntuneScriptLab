@@ -34,7 +34,7 @@ function Find-IslInteractiveCall {
 
     $rule = 'IslInteractiveCall'
     $timeout = if ($Context.ScriptType -eq 'PlatformScript') { '30 minutes' } else { '60 minutes' }
-    $evidence = ("Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; " +
+    $evidence = ('Launched as powershell.exe -NoProfile -executionPolicy bypass -file, without -NonInteractive; ' +
         "AgentExecutor timeout $timeout (PS-PROBE-SYS64, REM-PROBE-SYS64, Win32 log)")
     $builtEvidence = ($evidence + '; handed a PSCredential object, Get-Credential -Credential returned it ' +
         'in 12 ms under the agent, without a prompt (REM-CRED-BUILT)')

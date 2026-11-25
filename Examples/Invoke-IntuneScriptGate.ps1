@@ -26,7 +26,8 @@
         Pester suites (*.Tests.ps1), which the suite template places next to the scripts, and the
         contents of a Win32 app's Package folder (Win32\<app>\Package\, what becomes the .intunewin),
         which the agent runs through the install command rather than as a script. A file named
-        directly is analyzed. Default: the current directory.
+        directly is analyzed. Each path is literal: wildcards are not expanded, so name a folder
+        to analyze everything in it. Default: the current directory.
 
     .PARAMETER FailOn
         The lowest severity that fails the build: Error (default), Warning, Information, or None
@@ -97,9 +98,6 @@
 #>
 [CmdletBinding()]
 [OutputType('IntuneScriptLab.Finding')]
-# GitHub reads workflow commands (::error, ::warning) from plain stdout lines, which is what
-# Write-Host produces; the findings themselves go to the pipeline only with -PassThru
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
 param(
     [string[]]$Path = @('.'),
 
@@ -144,6 +142,41 @@ function Get-RelativePath {
     else { $FullPath }
 }
 
+function Write-GateLine {
+    <#
+    .SYNOPSIS
+        Writes one line of the gate's output to the console.
+
+    .DESCRIPTION
+        GitHub reads workflow commands (::error, ::warning) from plain lines of stdout, which is
+        where the host writes an information record. The success stream stays for the findings,
+        which go to the pipeline only with -PassThru.
+
+    .PARAMETER Text
+        The line to write. An empty string writes an empty line.
+
+    .EXAMPLE
+        Write-GateLine -Text '::error file=Detect.ps1,line=3::Exit code is missing'
+
+        Writes a workflow command that GitHub shows as an annotation.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        None. The line is an information record.
+    #>
+    [CmdletBinding()]
+    [OutputType([void])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Text
+    )
+
+    Write-Information -MessageData $Text -InformationAction Continue
+}
+
 function ConvertTo-AnnotationText {
     # Workflow commands take a percent-encoded message on one line
     param([string]$Text)
@@ -165,7 +198,7 @@ function ConvertTo-AnnotationProperty {
 # named directly on -Path is still analyzed. Only the singular segment 'Package' is left out: a
 # 'Packages' folder is one that holds Win32 apps, and their detection scripts stay in.
 $scriptFiles = @(foreach ($item in $Path) {
-        foreach ($resolved in (Resolve-Path -Path $item)) {
+        foreach ($resolved in (Resolve-Path -LiteralPath $item)) {
             if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                 Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
                     Where-Object {
@@ -188,8 +221,8 @@ $scripts = @($findings | ForEach-Object { $_.ScriptPath } | Sort-Object -Unique)
 $counts = @{ Error = 0; Warning = 0; Information = 0 }
 foreach ($finding in $findings) { $counts[$finding.Severity]++ }
 
-if ($findings) { $findings | Format-Table | Out-String -Width 200 | Write-Host }
-Write-Host ("IntuneScriptLab: $($findings.Count) finding(s) in $($scripts.Count) script(s): " +
+if ($findings) { Write-GateLine -Text ($findings | Format-Table | Out-String -Width 200) }
+Write-GateLine -Text ("IntuneScriptLab: $($findings.Count) finding(s) in $($scripts.Count) script(s): " +
     "$($counts.Error) error(s), $($counts.Warning) warning(s), $($counts.Information) note(s)")
 
 if ($Annotate) {
@@ -198,7 +231,7 @@ if ($Annotate) {
         if ($finding.Line -gt 0) { $location += ",line=$($finding.Line),col=$([Math]::Max(1, $finding.Column))" }
         $message = ConvertTo-AnnotationText -Text $finding.Message
         $title = ConvertTo-AnnotationProperty -Text $finding.RuleName
-        Write-Host "::$($annotationLevel[$finding.Severity]) $location,title=${title}::$message"
+        Write-GateLine -Text "::$($annotationLevel[$finding.Severity]) $location,title=${title}::$message"
     }
 }
 
@@ -226,7 +259,7 @@ if ($SummaryPath) {
 
 if ($SarifPath) {
     $null = Export-IntuneFindingSarif -Finding $findings -Path $SarifPath -Root $rootPath
-    Write-Host "SARIF written to $SarifPath"
+    Write-GateLine -Text "SARIF written to $SarifPath"
 }
 
 if ($PassThru) { $findings }
@@ -237,9 +270,9 @@ if ($FailOn -ne 'None') {
     $failing = @($findings | Where-Object { $severityRank[$_.Severity] -ge $severityRank[$FailOn] })
 }
 if ($failing.Count) {
-    Write-Host "::group::Gate"
-    Write-Host "$($failing.Count) finding(s) at $FailOn or above; failing the build"
-    Write-Host '::endgroup::'
+    Write-GateLine -Text '::group::Gate'
+    Write-GateLine -Text "$($failing.Count) finding(s) at $FailOn or above; failing the build"
+    Write-GateLine -Text '::endgroup::'
     exit 1
 }
 exit 0
