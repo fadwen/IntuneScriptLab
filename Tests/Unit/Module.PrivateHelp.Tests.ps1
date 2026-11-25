@@ -1,7 +1,8 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
-    The help and output type of every private function, read from the syntax trees. Private help is
+    The help and output type of every private function, and of every function in the
+    PSScriptAnalyzer rule module, read from the syntax trees. Private help is
     the only documentation these functions have: PlatyPS does not see them. DOC-01 lists the
     keywords, DOC-10 the length of the synopsis, DOC-06 that .OUTPUTS names the declared type, and
     FUN-10 the output type itself.
@@ -10,7 +11,13 @@
 BeforeDiscovery {
     $moduleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $isFunction = { param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }
-    $files = Get-ChildItem -LiteralPath (Join-Path -Path $moduleRoot -ChildPath 'Private') -Recurse -Filter '*.ps1'
+    # The PSScriptAnalyzer rule module ships with the package and has no PlatyPS help either, so
+    # its functions are held to the same help as the private ones
+    $rulesFolder = Join-Path -Path $moduleRoot -ChildPath 'PSScriptAnalyzer'
+    $rulesModule = Join-Path -Path $rulesFolder -ChildPath 'IntuneScriptLab.Rules.psm1'
+    $privateFolder = Join-Path -Path $moduleRoot -ChildPath 'Private'
+    $files = @(Get-ChildItem -LiteralPath $privateFolder -Recurse -Filter '*.ps1') +
+        @(Get-Item -LiteralPath $rulesModule)
     $script:Functions = foreach ($file in $files) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
         foreach ($function in $ast.FindAll($isFunction, $false)) {

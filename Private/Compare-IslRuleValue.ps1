@@ -38,7 +38,7 @@ function Compare-IslRuleValue {
     [OutputType('IntuneScriptLab.RuleComparison')]
     param(
         [AllowNull()]
-        $Actual,
+        [object]$Actual,
 
         [Parameter(Mandatory)]
         [AllowEmptyString()]

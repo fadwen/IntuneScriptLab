@@ -22,6 +22,6 @@ function Get-IslDsregStatus {
     [OutputType([string])]
     param()
 
-    if (-not (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue)) { return @() }
-    @(& dsregcmd.exe /status 2>$null | ForEach-Object { "$_" })
+    if (-not (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue)) { return }
+    & dsregcmd.exe /status 2>$null | ForEach-Object { "$_" }
 }

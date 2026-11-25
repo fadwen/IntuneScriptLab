@@ -35,7 +35,7 @@
     [OutputType([string])]
     param(
         [Parameter(Mandatory)]
-        $Warning,
+        [psobject]$Warning,
 
         [ValidateSet('Include', 'Exclude')]
         [string]$Mode = 'Include'

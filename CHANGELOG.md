@@ -49,6 +49,13 @@ entries are carried over from the manifest's release notes.
   `[PSCustomObject]` (#66). `Tests/Unit/Module.PrivateHelp.Tests.ps1` holds every private
   function to that. The synopses of seven analyzer rules are shorter, and `docs/Rules.md` with
   them.
+- The functions of the PSScriptAnalyzer rule module, `IntuneScriptLab.Rules.psm1`, have the same
+  help, and the private help test covers them. Each `Measure-Isl*` rule says which findings it
+  reports and declares the `DiagnosticRecord[]` it returns. Private parameters that had no type
+  have one, and two `[bool]` parameters are switches: `Resolve-IslRulePath -Check32BitOn64System`
+  and `Compare-IslRequirementOutput -TimedOut`. `Get-IslDsregStatus`, `Get-IslInboxModule` and
+  `Select-IslRuleCandidate` write their strings and candidates one at a time, as their output
+  types say, where they returned an array (#66).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

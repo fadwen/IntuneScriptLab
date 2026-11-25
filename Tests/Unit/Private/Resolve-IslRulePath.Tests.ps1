@@ -12,7 +12,7 @@ BeforeAll {
     function Resolve-RulePath {
         param([string]$Path, [bool]$Check32 = $false)
         InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Check32 = $Check32 } {
-            Resolve-IslRulePath -Path $Path -Check32BitOn64System $Check32
+            Resolve-IslRulePath -Path $Path -Check32BitOn64System:$Check32
         }
     }
 }

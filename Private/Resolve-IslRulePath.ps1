@@ -18,7 +18,7 @@ function Resolve-IslRulePath {
         Expand in the 32-bit context on a 64-bit device.
 
     .EXAMPLE
-        Resolve-IslRulePath -Path '%ProgramFiles%\Vendor' -Check32BitOn64System $true
+        Resolve-IslRulePath -Path '%ProgramFiles%\Vendor' -Check32BitOn64System
 
         C:\Program Files (x86)\Vendor on a 64-bit device.
 
@@ -34,7 +34,7 @@ function Resolve-IslRulePath {
         [Parameter(Mandatory)]
         [string]$Path,
 
-        [bool]$Check32BitOn64System
+        [switch]$Check32BitOn64System
     )
 
     $expanded = $Path

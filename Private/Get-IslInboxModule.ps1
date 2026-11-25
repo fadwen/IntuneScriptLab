@@ -33,7 +33,7 @@ function Get-IslInboxModule {
     [OutputType([string])]
     param()
 
-    @(
+    $modules = @(
         'AppBackgroundTask', 'AppLocker', 'AppvClient', 'Appx', 'AssignedAccess', 'BitLocker', 'BitsTransfer',
         'BranchCache', 'CimCmdlets', 'ConfigCI', 'ConfigDefender', 'ConfigDefenderPerformance', 'Defender',
         'DefenderPerformance', 'DeliveryOptimization', 'DirectAccessClientComponents', 'Dism', 'DnsClient',
@@ -52,4 +52,5 @@ function Get-IslInboxModule {
         'TroubleshootingPack', 'TrustedPlatformModule', 'UEV', 'VMDirectStorage', 'VpnClient', 'Wdac', 'Whea',
         'WindowsDeveloperLicense', 'WindowsErrorReporting', 'WindowsSearch', 'WindowsUpdate', 'WinHttpProxy'
     )
+    foreach ($module in $modules) { $module }
 }

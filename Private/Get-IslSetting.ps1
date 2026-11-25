@@ -48,7 +48,7 @@ function Get-IslSetting {
         [Parameter(Mandatory)]
         [string]$Path,
 
-        $Settings,
+        [object]$Settings,
 
         [hashtable]$Cache = @{}
     )
