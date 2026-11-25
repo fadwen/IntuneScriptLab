@@ -33,24 +33,8 @@ function Get-IslInboxModule {
     [OutputType([string])]
     param()
 
-    $modules = @(
-        'AppBackgroundTask', 'AppLocker', 'AppvClient', 'Appx', 'AssignedAccess', 'BitLocker', 'BitsTransfer',
-        'BranchCache', 'CimCmdlets', 'ConfigCI', 'ConfigDefender', 'ConfigDefenderPerformance', 'Defender',
-        'DefenderPerformance', 'DeliveryOptimization', 'DirectAccessClientComponents', 'Dism', 'DnsClient',
-        'EventTracingManagement', 'Get-NetView', 'International', 'iSCSI', 'ISE', 'Kds', 'LanguagePackManagement',
-        'LAPS', 'Microsoft.PowerShell.Archive', 'Microsoft.PowerShell.Diagnostics', 'Microsoft.PowerShell.Host',
-        'Microsoft.PowerShell.LocalAccounts', 'Microsoft.PowerShell.Management', 'Microsoft.PowerShell.ODataUtils',
-        'Microsoft.PowerShell.Operation.Validation', 'Microsoft.PowerShell.Security',
-        'Microsoft.PowerShell.Utility', 'Microsoft.PowerShell.Core', 'Microsoft.ReFsDedup.Commands',
-        'Microsoft.Windows.Bcd.Cmdlets', 'Microsoft.WSMan.Management', 'MMAgent', 'MsDtc', 'NetAdapter',
-        'NetConnection', 'NetEventPacketCapture', 'NetLbfo', 'NetNat', 'NetQos', 'NetSecurity', 'NetSwitchTeam',
-        'NetTCPIP', 'NetworkConnectivityStatus', 'NetworkSwitchManager', 'NetworkTransition', 'OsConfiguration',
-        'OSLicense', 'PackageManagement', 'PcsvDevice', 'PersistentMemory', 'Pester', 'PKI', 'PnpDevice',
-        'PowerShellGet', 'PrintManagement', 'ProcessMitigations', 'Provisioning', 'PSDesiredStateConfiguration',
-        'PSDiagnostics', 'PSReadLine', 'PSScheduledJob', 'PSWorkflow', 'PSWorkflowUtility', 'ScheduledTasks',
-        'SecureBoot', 'SmbShare', 'SmbWitness', 'StartLayout', 'Storage', 'StorageBusCache', 'TLS',
-        'TroubleshootingPack', 'TrustedPlatformModule', 'UEV', 'VMDirectStorage', 'VpnClient', 'Wdac', 'Whea',
-        'WindowsDeveloperLicense', 'WindowsErrorReporting', 'WindowsSearch', 'WindowsUpdate', 'WinHttpProxy'
-    )
-    foreach ($module in $modules) { $module }
+    # The table is Data\InboxModules.psd1, read when the module is imported
+    foreach ($module in $script:IslInboxModules) {
+        $module
+    }
 }

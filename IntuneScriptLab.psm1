@@ -40,25 +40,32 @@ foreach ($functionFolder in $functionFolders) {
 # for each of these, and a No to the copy started the host on a file that was not there.
 $script:IslInternal = @{ WhatIf = $false; Confirm = $false }
 
-# Rule registry: every Find-* function in Private\Rules is a rule. Test-IntuneScript runs them
-# in this order so the output reads from "will it run at all" down to "will it report well".
-$script:RuleOrder = @(
-    'Find-IslPowerShell7Syntax'
-    'Find-IslEncodingIssue'
-    'Find-IslInteractiveCall'
-    'Find-IslExitCodeIssue'
-    'Find-IslOutputIssue'
-    'Find-IslContextIssue'
-    'Find-IslArchitectureIssue'
-    'Find-IslArm64Assumption'
-    'Find-IslRebootCommand'
-    'Find-IslRelativePath'
-    'Find-IslLongSleep'
-    'Find-IslSignatureIssue'
-    'Find-IslExecutionPolicyCall'
-    'Find-IslModuleDependency'
-    'Find-IslScriptSize'
-)
+# Static tables live as data under Data (MOD-20), each read once here. A file that is missing or
+# does not parse fails the import, as a function file that does not load does.
+# RuleOrder: every Find-* function in Private\Rules is a rule, and Test-IntuneScript runs them in
+# this order. IslInboxModules, IslWindowsReleaseBuilds and IslAgentLogEventDefinitions are read by
+# Get-IslInboxModule, Get-IslWindowsReleaseBuild and Get-IslAgentLogEvent.
+$dataFolder = Join-Path -Path $PSScriptRoot -ChildPath 'Data'
+$dataFiles = [ordered]@{
+    RuleOrder = @('RuleOrder.psd1', 'RuleOrder')
+    IslInboxModules = @('InboxModules.psd1', 'Modules')
+    IslWindowsReleaseBuilds = @('WindowsReleaseBuilds.psd1', 'Builds')
+    IslAgentLogEventDefinitions = @('AgentLogEvents.psd1', 'Definitions')
+}
+foreach ($entry in $dataFiles.GetEnumerator()) {
+    $dataPath = Join-Path -Path $dataFolder -ChildPath $entry.Value[0]
+    try {
+        $data = Import-PowerShellDataFile -LiteralPath $dataPath -ErrorAction Stop
+    } catch {
+        # Rethrown, as for a function file: without it Import-Module reports the error and leaves
+        # it to the caller to notice that nothing was imported
+        throw
+    }
+    Set-Variable -Name $entry.Key -Scope Script -Value $data[$entry.Value[1]]
+}
+# The loop's own variables would otherwise stay in the module scope, where a function that reads
+# one of these names without assigning it would find them
+Remove-Variable -Name dataFolder, dataFiles, entry, dataPath, data
 
 # Pester assertions: approved-verb functions, exported under the Should-* names Pester users
 # expect (aliases are not verb-checked, so Import-Module stays warning-free)
@@ -108,5 +115,6 @@ Export-ModuleMember -Function @(
 
 $ExecutionContext.SessionState.Module.OnRemove = {
     Write-Verbose 'Cleaning up IntuneScriptLab module'
-    Remove-Variable -Name RuleOrder -Scope Script -ErrorAction SilentlyContinue
+    $tables = 'RuleOrder', 'IslInboxModules', 'IslWindowsReleaseBuilds', 'IslAgentLogEventDefinitions'
+    Remove-Variable -Name $tables -Scope Script -ErrorAction SilentlyContinue
 }

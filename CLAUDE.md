@@ -210,8 +210,8 @@ Always publish through `Build/Publish-Module.ps1`, which stages an **allowlist**
 git-ignored `out/`. A new folder does not ship until it is named in `$shipFiles` or
 `$shipFolders`. It then imports the staged copy in a fresh process, analyzes a sample detection
 script, checks the PSScriptAnalyzer rules module is present and that every command and the about
-topic serve their help, before anything is uploaded. `Examples/` and `PSScriptAnalyzer/` ship;
-`Validation/`, `Tests/`, `docs/` and `Build/` do not.
+topic serve their help, before anything is uploaded. `Data/`, `Examples/` and `PSScriptAnalyzer/`
+ship; `Validation/`, `Tests/`, `docs/` and `Build/` do not.
 
 ### A command that runs a script or writes a report asks `ShouldProcess`; nothing else does
 

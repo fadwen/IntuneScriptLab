@@ -242,6 +242,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
                     'IntuneScriptLab.psd1'
                     'IntuneScriptLab.psm1'
                     'IntuneScriptLab.Format.ps1xml'
+                    'Data'
                     'Private'
                     'Public'
                 )
@@ -293,6 +294,25 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
             }
             $result.ExitCode | Should-Be 1
             $result.Output | Should-BeLikeString "error: *$($Folder -replace '^.*\\')*is missing*not imported"
+        }
+
+        It 'fails the import when a data file <Problem>' -ForEach @(
+            @{ Problem = 'is missing'; Body = $null }
+            @{ Problem = 'does not parse'; Body = '@{ Modules = @(' }
+        ) {
+            # The tables the commands read are data (MOD-20); a module without them would import
+            # and then fail in every command that reads one
+            $result = Import-ModuleCopy -Name ('data-' + ($Problem -replace '\W', '-')) -Change {
+                param($copy)
+                $dataFile = Join-Path $copy 'Data\InboxModules.psd1'
+                if ($null -eq $Body) {
+                    Remove-Item -LiteralPath $dataFile
+                } else {
+                    Set-Content -LiteralPath $dataFile -Value $Body -Encoding ascii
+                }
+            }
+            $result.ExitCode | Should-Be 1
+            $result.Output | Should-BeLikeString 'error: *not imported'
         }
     }
 
