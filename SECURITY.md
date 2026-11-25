@@ -55,6 +55,39 @@ account for the run and removed afterwards. That folder is open to SYSTEM, the A
 group and the user who runs the harness, and to no other account; a run is refused when it is a
 link or someone else owns it. Graph access is the session you already opened.
 
+## Data classification
+
+The controls follow from what each kind of data is (SEC-20). The module handles nothing above
+Confidential.
+
+| Data | Classification | Where it goes | How it is handled |
+| --- | --- | --- | --- |
+| The scripts under test, their findings, and a run's output and exit code | Internal | The caller's pipeline; the SARIF file that `Export-IntuneFindingSarif` writes, which holds each finding's path, line and the text of that line | Read where they are; the harness's copy is deleted after the run. The SARIF file is written only where the caller names it. |
+| What the tenant commands read from Graph: the deployed scripts, their settings and assignments, and summary counts of their runs and installs | Internal | The caller's pipeline; the Markdown report of `Get-IntuneScriptHealth -MarkdownPath` | Read through the caller's own Graph session. The scripts and the downloaded report export are written to the caller's temp folder for the analysis and deleted. |
+| The `-Credential` of a run as another account | Confidential | The Task Scheduler, for the life of the run's task, when the account has no signed-in session | Never written to a file, a stream or an error message. The password is read from the `PSCredential` only in the call that registers the task, and the task is deleted when the run ends. |
+| The diagnostic package of `Export-IntuneAgentDiagnostic` | Confidential | The zip the caller names | It names the device, the tenant, the user and every deployed policy. In its list of loaded modules, a folder under the user's Documents or profile is written as `<Documents>` or `%USERPROFILE%`. Review it before sharing it. |
+| The validation kit's lab account | Confidential, lab only | The lab device | Not part of the package. `Validation/New-IslHarnessUser.ps1` stores the password of a lab account it creates on a lab device you own, DPAPI-protected for SYSTEM and as the LSA autologon secret. |
+
+## Threats
+
+The threats to the module by STRIDE category (SEC-21), each with the control the module has or
+the reason none applies.
+
+| Category | Threat | Control |
+| --- | --- | --- |
+| Spoofing | A Graph request made under an identity other than the caller's. | The module never signs in, prompts for or holds a token: every request goes through the caller's own Microsoft.Graph session. |
+| Spoofing | The download link of a report export, read from Graph's reply, leads to a host that poses as Microsoft's storage. | The link is a signed address requested with no credential header, so there is nothing to send elsewhere, and a redirect is refused (`-MaximumRedirection 0`). |
+| Tampering | Another local user changes the script copy that a run as another account starts, or the output the harness reads back, in the run folder under ProgramData. | `ProgramData\IntuneScriptLabRuns` is open to SYSTEM, the Administrators group and the caller only, and the account is granted its own run folder in it. A folder there that is a link, or that someone else owns, refuses the run (`RunFolderUnsafe`). A run as the current user or as SYSTEM uses the caller's temp folder. |
+| Tampering | A policy id or a script name read from the tenant leads a write outside the work folder. | The pre-flight refuses a policy id that is not letters, digits, `_` and `-`, and a script path that resolves outside its work folder (`PolicyIdInvalid`, `PolicyPathOutsideWorkFolder`). |
+| Tampering | `Repair-IntuneScript` rewrites a script into something other than what it was. | It changes only the three fixes the rules offer, previews with `-WhatIf`, and refuses a file whose text does not survive the round trip through its encoding. |
+| Repudiation | A change made without a record of who made it. | The module changes nothing outside the files a caller names and its own run folders, and reads the tenant, apart from the report export job, which changes nothing there. It keeps no log of its own; the scheduled tasks it registers are named `IntuneScriptLab-<id>`, so an entry in the Task Scheduler's operational log, where that log is turned on, names the module as their source. |
+| Information disclosure | The diagnostic package or a SARIF file leaves the machine. | Both are written only where the caller names them; the package's contents are listed above, with the paths that are written in a general form. |
+| Information disclosure | A credential or token reaches a stream, a log or an error message. | No command writes a credential or a token anywhere; errors name the account, never its password. |
+| Denial of service | A script under test hangs or never ends. | Every run has a timeout (`-TimeoutSeconds`, 1 to 86,400) after which the process tree is ended and the run reported as timed out. |
+| Denial of service | Input long enough to exhaust the analysis. | `-Name`, `-Id`, `-IncludeRule` and `-ExcludeRule` take at most 1,000 characters (`InputTooLong`), and an assignment filter rule at most Intune's own 3,072. |
+| Elevation of privilege | A script under test is somebody's code and runs with the rights of the context it is given. | That is the harness's purpose: it runs the script as Intune would, as the caller, or, from an elevated session only, as the account of `-Credential` or as SYSTEM. Run only scripts you trust, and use a lab device or a lab account for the rest. |
+| Elevation of privilege | `-ExecutionPolicy Bypass` lets an unsigned script run. | It applies to the one host process the harness starts, as the agent starts it, and changes no policy on the machine. |
+
 ## Supported versions
 
 Only the latest release on the PowerShell Gallery receives fixes.
