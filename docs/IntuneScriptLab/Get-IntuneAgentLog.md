@@ -157,6 +157,7 @@ HelpMessage: ''
 ### -Id
 
 One or more policy or app ids; keeps the entries whose message contains one of them.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

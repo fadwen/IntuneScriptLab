@@ -30,6 +30,16 @@ function Repair-IntuneScript {
         [object]$Settings
     )
 
+    begin {
+        # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+        try {
+            Assert-IslTextLength -Name 'IncludeRule' -Value $IncludeRule
+            Assert-IslTextLength -Name 'ExcludeRule' -Value $ExcludeRule
+        } catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+    }
+
     process {
         # A path that is not there is reported, and the other paths are still repaired. It is tested
         # first and reported once: an error that Resolve-Path raised and this command caught would

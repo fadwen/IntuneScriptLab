@@ -22,6 +22,13 @@ function Compare-IntuneDeployedScript {
 
         [object]$Settings
     )
+    # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+    try {
+        Assert-IslTextLength -Name 'Name' -Value $Name
+        Assert-IslTextLength -Name 'Id' -Value $Id
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     Write-Verbose ("Starting $($MyInvocation.MyCommand.Name) against $Path for $($Kind -join ', ') named " +
         "$($Name -join ', ')$(if ($Id) { " or with id $($Id -join ', ')" })")
 

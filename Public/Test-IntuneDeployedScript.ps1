@@ -28,6 +28,15 @@ function Test-IntuneDeployedScript {
         # of their own to carry one)
         [object]$Settings
     )
+    # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+    try {
+        Assert-IslTextLength -Name 'Name' -Value $Name
+        Assert-IslTextLength -Name 'Id' -Value $Id
+        Assert-IslTextLength -Name 'IncludeRule' -Value $IncludeRule
+        Assert-IslTextLength -Name 'ExcludeRule' -Value $ExcludeRule
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
     # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }

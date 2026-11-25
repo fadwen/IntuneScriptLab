@@ -215,6 +215,7 @@ HelpMessage: ''
 ### -ExcludeRule
 
 Rule names (wildcards allowed) whose findings are not fixed.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -236,6 +237,7 @@ HelpMessage: ''
 ### -IncludeRule
 
 Rule names (wildcards allowed) whose findings are fixed; everything else is left alone.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

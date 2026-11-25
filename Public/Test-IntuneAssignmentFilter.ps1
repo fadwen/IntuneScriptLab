@@ -9,6 +9,8 @@ function Test-IntuneAssignmentFilter {
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateScript({ -not [string]::IsNullOrWhiteSpace($_) })]
+        # The service refuses a rule of more than 3,072 characters (FLT-X11, FLT-X12)
+        [ValidateLength(1, 3072)]
         [string[]]$Rule,
 
         [Parameter(Position = 1)]

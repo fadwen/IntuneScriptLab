@@ -127,6 +127,7 @@ HelpMessage: ''
 ### -Id
 
 Only the timelines whose own id is one of these. A line that merely mentions the id (a relationship report names two apps) does not add another timeline.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

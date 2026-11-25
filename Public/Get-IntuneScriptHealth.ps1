@@ -29,6 +29,13 @@ function Get-IntuneScriptHealth {
 
         [string]$MarkdownPath
     )
+    # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+    try {
+        Assert-IslTextLength -Name 'Name' -Value $Name
+        Assert-IslTextLength -Name 'Id' -Value $Id
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($Kind -join ', ')"
     # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }

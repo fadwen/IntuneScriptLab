@@ -125,6 +125,7 @@ groups.
 ### -ExcludeRule
 
 Rule names (wildcards allowed) to skip.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -146,6 +147,7 @@ HelpMessage: ''
 ### -Id
 
 Policy or app ids to include, instead of or in addition to -Name.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -169,6 +171,7 @@ HelpMessage: ''
 Rule names (wildcards allowed) to run; everything else is skipped.
 Applies to the script
 rules and the deployment-level checks alike.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -234,6 +237,7 @@ HelpMessage: ''
 
 Display names to include, wildcards allowed.
 Default: every policy.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]

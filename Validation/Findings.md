@@ -317,7 +317,8 @@ device, the agent restarted once to fetch them.
 Probe (2026-09-28, `Invoke-FilterProbe.ps1`, nothing created): 114 rules through
 `deviceManagement/assignmentFilters/validateFilter` for the Windows 10 and later platform (FLT-V,
 FLT-W, FLT-X) and 84 through `deviceManagement/evaluateAssignmentFilter`, the call behind the
-portal's Preview devices, against the two enrolled devices (FLT-E, FLT-F, FLT-Y). The evaluator
+portal's Preview devices, against the two enrolled devices (FLT-E, FLT-F, FLT-Y). Two more
+through `validateFilter` on 2026-11-25, the length cases FLT-X11 and FLT-X12, make 116. The evaluator
 returned the joined device as deviceName `KRBETYP-AIEPVQ5`, cpuArchitecture `amd64`, deviceTrustType
 `Azure AD joined`, manufacturer `QEMU`, model `Standard PC (Q35 + ICH9, 2009)`, operatingSystemSKU
 `EnterpriseSEval` (Win32_OperatingSystem SKU 129; managedDevice.skuFamily says `Enterprise`),
@@ -334,6 +335,7 @@ which is how the ordering works), osVersion, deviceOwnership, userPrincipalName.
 |---|---|---|---|
 | Operators | eq, ne, startsWith, contains, notContains, in, notIn; gt, ge, lt, le on operatingSystemVersion | Exactly those. `-notStartsWith`, `-endsWith`, `-notEndsWith`, `not`, `-not`, `!`, `-equals`, `xor` refused (FLT-V02 to V07, V49, V50) | ✅ |
 | Dash and casing | `-eq` or `eq`; "properties, operations, and values are case insensitive" | Both forms; `-EQ`, `AND`, `-AND`, `-IN`, `-NOTIN`, `OR`, `DEVICE.DEVICENAME` all accepted (FLT-V08 to V11, V15, W19, W29) | ✅ |
+| Length | "Each assignment filter is limited to 3,072 characters" (filters overview) | As documented: a rule of 3,072 characters accepted (`isValidRule` true), one of 3,073 refused with 400 Bad Request (FLT-X11, X12, through validateFilter on 2026-11-25). `Test-IntuneAssignmentFilter -Rule` refuses a longer rule when it binds | ✅ |
 | Quoting | Double-quoted values in every example | Single quotes, an unquoted word and a bare number refused (FLT-V12, V13, V58). No escape exists: `\"` and `""` inside a string refused (V44, V45); an apostrophe, a backslash and a tab inside are fine (V43, W36, W37) | ⚠️ |
 | Parentheses | "Parentheses and nested parentheses are supported" | Optional around a clause and around an and-chain (FLT-V14, W10, W11, W12, V34); unbalanced, empty `()`, a missing connector or a trailing connector refused (W07, W08, W09, V41, V42, W28, X07) | ✅ |
 | Precedence | Not documented | `and` binds tighter than `or`: `true or false and false` matched, `nope or me and registered` did not (FLT-E27, E28, F09); parentheses override it (F08) | ⚠️ |

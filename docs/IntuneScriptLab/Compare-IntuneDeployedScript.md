@@ -119,6 +119,7 @@ how Windows PowerShell 5.1 reads a non-ASCII character.
 ### -Id
 
 Policy ids to compare, in addition to -Name.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
@@ -191,6 +192,7 @@ HelpMessage: ''
 
 Policy display names to compare, wildcards allowed.
 Default: every policy.
+A value of more than 1,000 characters is refused.
 
 ```yaml
 Type: System.String[]
