@@ -149,7 +149,7 @@ function Get-RelativePath {
         The full path of an analyzed file.
 
     .EXAMPLE
-        Get-RelativePath -FullPath (Join-Path $rootPath 'Intune\Detect.ps1')
+        Get-RelativePath -FullPath (Join-Path -Path $rootPath -ChildPath 'Intune\Detect.ps1')
 
         Returns 'Intune/Detect.ps1'.
 

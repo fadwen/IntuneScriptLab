@@ -90,7 +90,7 @@ BeforeAll {
             None.
 
         .OUTPUTS
-            System.Int32[]. The ids of the processes that are still running.
+            System.Int32. The ids of the processes that are still running.
         #>
         [CmdletBinding()]
         [OutputType([int])]
