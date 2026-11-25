@@ -231,7 +231,8 @@ foreach ($file in $Path) {
     $definitions = @{}
     $targets = [System.Collections.Generic.List[object]]::new()
     foreach ($entry in $lines) {
-        $definition = [regex]::Match($entry.Text, '^ {0,3}\[([^\]]+)\]:\s*<?([^\s>]+)>?')
+        # A footnote ('[^1]: text') is not a link definition
+        $definition = [regex]::Match($entry.Text, '^ {0,3}\[([^\]^][^\]]*)\]:\s*<?([^\s>]+)>?')
         if ($definition.Success) {
             $definitions[$definition.Groups[1].Value.ToLowerInvariant()] = $true
             $targets.Add([pscustomobject]@{ Number = $entry.Number; Target = $definition.Groups[2].Value })
@@ -242,7 +243,9 @@ foreach ($file in $Path) {
         foreach ($link in [regex]::Matches($outsideCode, '\]\(([^)\s]*)(?:\s+"[^"]*")?\)')) {
             $targets.Add([pscustomobject]@{ Number = $entry.Number; Target = $link.Groups[1].Value })
         }
-        foreach ($reference in [regex]::Matches($outsideCode, '\]\[([^\]]+)\]')) {
+        # '[text][ref]' where the text is not part of something else: '$rows[0][1]' is prose, not a link
+        $referencePattern = '(?<![\w\])$])\[[^\[\]]+\]\[([^\[\]]+)\]'
+        foreach ($reference in [regex]::Matches($outsideCode, $referencePattern)) {
             $targets.Add([pscustomobject]@{ Number = $entry.Number; Reference = $reference.Groups[1].Value })
         }
     }

@@ -113,6 +113,19 @@ Describe 'Build/Test-MarkdownLink.ps1' -Tag 'Unit', 'Build' {
         }
     }
 
+    Context 'Text that is not a link' {
+        It 'leaves a footnote and an index in prose alone' {
+            $result = Invoke-LinkCheck -File @{
+                'README.md' = @(
+                    '# Module', 'A note.[^1] The cell $rows[0][1] holds it.', '', '[^1]: See the docs.'
+                )
+            }
+
+            $result.Passed | Should-BeTrue
+            $result.Output | Should-BeLikeString '*0 checked*none broken*'
+        }
+    }
+
     Context 'Links that do not work' {
         It 'names an anchor that is no heading and a file that does not exist' {
             $result = Invoke-LinkCheck -File @{
