@@ -35,7 +35,8 @@ function Get-IslDeviceFact {
     $processor = Get-CimInstance -ClassName Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1
     $build = [Environment]::OSVersion.Version.Build
     $versionKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    $currentBuild = Get-ItemProperty -Path $versionKey -Name CurrentBuildNumber -ErrorAction SilentlyContinue
+    $buildSplat = @{ LiteralPath = $versionKey; Name = 'CurrentBuildNumber'; ErrorAction = 'SilentlyContinue' }
+    $currentBuild = Get-ItemProperty @buildSplat
     if ($currentBuild -and "$($currentBuild.CurrentBuildNumber)" -match '^\d+$') {
         $build = [int]$currentBuild.CurrentBuildNumber
     }

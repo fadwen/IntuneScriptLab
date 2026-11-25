@@ -84,7 +84,12 @@ function Get-IslExportReport {
             $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat -TargetObject $ReportName))
         }
 
-        Invoke-WebRequest -Uri $jobUrl -OutFile $zip -UseBasicParsing -ErrorAction Stop
+        # The link is a signed blob address that is downloaded directly, and the request carries no
+        # credential header. A redirect is refused all the same, so nothing follows the link elsewhere
+        $downloadSplat = @{
+            Uri = $jobUrl; OutFile = $zip; UseBasicParsing = $true; MaximumRedirection = 0; ErrorAction = 'Stop'
+        }
+        Invoke-WebRequest @downloadSplat
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
         try {

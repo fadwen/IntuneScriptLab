@@ -56,8 +56,9 @@ Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {
         Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
             $Uri -like '*/exportJobs/job-1'
         } -Times 2 -Exactly
+        # The download link is followed as given, never to wherever a redirect points (SEC-09)
         Should-Invoke Invoke-WebRequest -ModuleName IntuneScriptLab -ParameterFilter {
-            $Uri -eq 'https://download.example/job-1.zip'
+            $Uri -eq 'https://download.example/job-1.zip' -and $MaximumRedirection -eq 0
         } -Times 1 -Exactly
     }
 

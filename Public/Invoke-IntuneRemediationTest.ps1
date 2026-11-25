@@ -108,7 +108,7 @@ function Invoke-IntuneRemediationTest {
 
     $intune = Get-IslIntuneOutput -StdOut $pre.StdOut -StdErr $pre.StdErr
     if ($intune.DroppedLines -gt 0) { $warnings.Add("Detection wrote $($intune.DroppedLines + 1) lines; Intune " +
-        "reports only the last one") }
+        'reports only the last one') }
     if ($intune.OutputTruncated) { $warnings.Add('Detection output exceeds 2,048 characters; Intune keeps the ' +
         'last 2,048') }
     if ($intune.ErrorTruncated) { $warnings.Add('Detection error output exceeds 2,048 characters; Intune keeps ' +

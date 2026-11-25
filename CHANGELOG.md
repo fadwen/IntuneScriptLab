@@ -77,6 +77,12 @@ entries are carried over from the manifest's release notes.
   and the help pages use words where they used arrows. `Build/Build-Help.ps1 -ValidateOnly`,
   which the `help` job runs, fails when an exported command has no help page, a page has no
   command, or a command's documented parameters differ from its real ones (#68).
+- `Examples/Invoke-IntuneScriptGate.ps1` writes its summary and its GitHub workflow commands as
+  information records shown on the console, which the host writes to standard output as it did
+  `Write-Host`'s lines, and resolves each `-Path` as a literal path, so a folder name with
+  square brackets is found. The download of an Intune report export refuses a redirect. Registry
+  reads take literal paths, a version check compares the whole version, and the help of two
+  functions describes the corrupted text in ASCII, as `docs/Rules.md` does with it (#69).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

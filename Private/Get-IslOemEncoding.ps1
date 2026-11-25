@@ -5,9 +5,10 @@
 
     .DESCRIPTION
         Windows PowerShell's [Console]::OutputEncoding defaults to the system OEM code page
-        (437 on US systems), which is what turned "Grüße — ✓" into "Grüße - √" in Intune's
-        reports. Read it from the registry rather than CultureInfo, which lies under invariant
-        globalization, and register the legacy code pages when running on .NET Core.
+        (437 on US systems). That is why an em dash came back as a hyphen and a check mark as a
+        square root sign in Intune's reports. Read it from the registry rather than CultureInfo,
+        which lies under invariant globalization, and register the legacy code pages when running
+        on .NET Core.
 
     .PARAMETER Kind
         OEM (the default) is what a console-less powershell.exe writes its output in; ANSI is
@@ -35,7 +36,7 @@
     $codePage = if ($Kind -eq 'ANSI') { 1252 } else { 437 }
     try {
         $key = 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage'
-        $value = (Get-ItemProperty -Path $key -Name $valueName -ErrorAction Stop).$valueName
+        $value = (Get-ItemProperty -LiteralPath $key -Name $valueName -ErrorAction Stop).$valueName
         if ($value -match '^\d+$') { $codePage = [int]$value }
     }
     catch { Write-Verbose "$valueName not readable from the registry, assuming $codePage" }
