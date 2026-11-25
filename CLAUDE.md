@@ -256,10 +256,11 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 ## Checks
 
 ```powershell
+./Build/Invoke-Build.ps1                           # all of it in order: help, rule reference, links, analysis, unit suites on 7 and 5.1
 ./Tests/Invoke-Tests.ps1                           # every suite, shuffled; suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -CodeCoverage             # the same with the 80% coverage gate, as the tests job runs it
-Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
-./Build/Build-Help.ps1                             # rebuild MAML after editing docs/
+./Build/Invoke-Analysis.ps1                        # PSScriptAnalyzer with the settings file, as the tests job runs it
+./Build/Build-Help.ps1 -SkipUpdate                 # rebuild MAML after editing docs/, the form CI compares
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule
 ./Build/Test-MarkdownLink.ps1                      # the anchors and relative links of the Markdown, as the help job checks them
 ./Build/Publish-Module.ps1 -WhatIf                 # full release rehearsal, publishes nothing
@@ -269,10 +270,11 @@ The layout is the formatter's: `PSScriptAnalyzerSettings.psd1` holds the layout 
 standards (brace placement, indentation, whitespace, the 115-character line), and
 `Invoke-Formatter -ScriptDefinition $text -Settings ./PSScriptAnalyzerSettings.psd1` lays a file out
 the way the `tests` job checks it. The formatter can leave a space at the end of a line where it
-moves a brace; the analysis reports that too. The job leaves the validation kit's three
-instruments, `Probe.ps1`, `Win32Install.ps1` and `Fixtures.ps1`, to the default rules: they keep
-the layout they ran with (`Validation/README.md`), so the recursive command above reports them and
-the job does not. Clear a stale `out/` from a release rehearsal before a recursive run.
+moves a brace; the analysis reports that too. `Build/Invoke-Analysis.ps1` leaves the validation
+kit's three instruments, `Probe.ps1`, `Win32Install.ps1` and `Fixtures.ps1`, to the default rules:
+they keep the layout they ran with (`Validation/README.md`). Run it in a new process, as
+`Invoke-Build.ps1` does: in a session that loaded the module, PSScriptAnalyzer resolves the
+module's `Should-*` aliases and reports every Pester assertion as an alias.
 
 `Tests/Invoke-Tests.ps1` is the one way the suites are run: it fails when Pester's result is not
 `Passed` or when no tests ran, which a check of `FailedCount` alone does not. Run the unit suites

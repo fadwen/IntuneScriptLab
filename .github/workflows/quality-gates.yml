@@ -98,30 +98,12 @@ jobs:
       # parameters, ConvertTo-SecureString -AsPlainText, hard-coded computer names and
       # PSCredential parameters), so this step is also the static analysis of a security gate.
       # There is no credential scan and no dependency scan in this workflow: the module has no
-      # dependency, and the credential scan is #127.
+      # dependency, and the credential scan is #127. The script is the one Build/Invoke-Build.ps1
+      # runs locally, so the two cannot drift apart; the validation kit's three instruments get
+      # the default rules only (Validation/README.md).
       - name: PSScriptAnalyzer
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $folders = 'Public', 'Private', 'PSScriptAnalyzer', 'Examples', 'Build', 'Tests', 'Validation'
-          $files = @(Get-ChildItem -Path $folders -Recurse -Include *.ps1, *.psm1, *.psd1 -File) +
-              @(Get-Item ./IntuneScriptLab.psd1, ./IntuneScriptLab.psm1)
-          # The validation kit's three instruments keep the layout they ran with in the rounds
-          # that cite them (Validation/README.md), so they get the default rules only
-          $instruments = @('Probe.ps1', 'Win32Install.ps1', 'Fixtures.ps1' |
-              ForEach-Object { (Resolve-Path -LiteralPath "Validation/$_").Path })
-          $issues = @(foreach ($file in $files) {
-              $analyzerSplat = @{ Path = $file.FullName; Severity = 'Error', 'Warning' }
-              if ($file.FullName -notin $instruments) {
-                  $analyzerSplat['Settings'] = './PSScriptAnalyzerSettings.psd1'
-              }
-              Invoke-ScriptAnalyzer @analyzerSplat
-          })
-          if ($issues) {
-              $issues | Format-Table RuleName, Severity, ScriptName, Line -AutoSize | Out-String | Write-Host
-              throw "PSScriptAnalyzer reported $($issues.Count) issue(s)."
-          }
-          Write-Host "PSScriptAnalyzer clean with PSScriptAnalyzerSettings.psd1 in $($files.Count) files."
+        run: ./Build/Invoke-Analysis.ps1
 
       # Every suite, shuffled, with the 80% coverage gate. The reports are written before the
       # checks run, so a failed run still leaves both files to upload.
