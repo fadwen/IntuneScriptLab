@@ -23,10 +23,12 @@ Describe 'Get-IslTrimmedLine' -Tag 'Unit', 'Private' {
     }
 
     It 'gives a single line as one string, which a caller wraps in @()' {
-        $lines = @(InModuleScope IntuneScriptLab { @(Get-IslTrimmedLine -Line @('only', '')) })
+        $output = InModuleScope IntuneScriptLab { Get-IslTrimmedLine -Line @('only', '') }
 
-        $lines | Should-BeCollection -Count 1
-        $lines[0] | Should-Be 'only'
+        # Unwrapped it is a string, which has no Count under strict mode
+        Should-HaveType -Actual $output -Expected ([string])
+        $output | Should-Be 'only'
+        @($output) | Should-BeCollection -Count 1
     }
 
     It 'gives nothing when every line is blank' {

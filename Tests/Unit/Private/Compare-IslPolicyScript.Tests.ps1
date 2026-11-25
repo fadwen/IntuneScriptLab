@@ -56,6 +56,7 @@ Describe 'Compare-IslPolicyScript' -Tag 'Unit', 'Private' {
             $local = Write-Local -Name 'other.ps1' -Text "if (Test-Path C:\y) { exit 1 }`r`nexit 0"
             $results = Compare-Script -Content $script:Tenant -Candidates @($local)
 
+            $results | Should-BeCollection -Count 1
             $results[0].State | Should-Be 'Drifted'
             $results[0].Differences | Should-BeCollection @('Content')
             $results[0].Detail | Should-BeLikeString 'content differs from line 1*'
@@ -65,6 +66,7 @@ Describe 'Compare-IslPolicyScript' -Tag 'Unit', 'Private' {
             $local = Write-Local -Name 'user.ps1' -Text "# IntuneScriptLab: Context=User`r`n$($script:Text)"
             $results = Compare-Script -Content $script:Tenant -Candidates @($local)
 
+            $results | Should-BeCollection -Count 1
             $results[0].State | Should-Be 'Drifted'
             $results[0].Differences | Should-ContainCollection @('Settings')
             $results[0].Detail | Should-BeLikeString '*Context=User locally, the policy runs as System'
@@ -74,6 +76,7 @@ Describe 'Compare-IslPolicyScript' -Tag 'Unit', 'Private' {
             $local = Write-Local -Name 'skip.ps1' -Text "# IntuneScriptLab: Context=User`r`n$($script:Text)"
             $results = Compare-Script -Content $script:Tenant -Candidates @($local) -Extra @{ SkipContext = $true }
 
+            $results | Should-BeCollection -Count 1
             @($results[0].Differences) | Should-BeCollection @('Content')
         }
     }
@@ -104,6 +107,7 @@ Describe 'Compare-IslPolicyScript' -Tag 'Unit', 'Private' {
             $local = Write-Local -Name 'extra.ps1' -Text $script:Text
             $results = Compare-Script -Content '' -Candidates @($local)
 
+            $results | Should-BeCollection -Count 1
             $results[0].State | Should-Be 'NotInTenant'
             $results[0].Detail | Should-BeLikeString 'the policy has no detection script; * exists locally'
         }
