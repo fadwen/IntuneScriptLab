@@ -15,7 +15,6 @@ function Get-IntuneAgentLog {
         [string[]]$Log = @('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor'),
 
         [Parameter(ParameterSetName = 'Read')]
-        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [Parameter(ParameterSetName = 'Read')]
@@ -41,6 +40,12 @@ function Get-IntuneAgentLog {
         [Parameter(ParameterSetName = 'List', Mandatory)]
         [switch]$ListEvent
     )
+    # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+    try {
+        Assert-IslTextLength -Name 'Id' -Value $Id
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
 
     # Touching the table once compiles it, for -ListEvent and for validating -EventName
