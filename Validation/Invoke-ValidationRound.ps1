@@ -1001,19 +1001,26 @@ function Invoke-DeployWin32 {
             if ($requirements) {
                 foreach ($key in @($requirements.Keys)) { $body[$key] = $requirements[$key] }
             }
-            # An assignment filter, created on first use and named after the experiment
+            $ruleCount = @($rules).Count
+            if (-not $PSCmdlet.ShouldProcess($appDisplayName, "Create Win32 app ($intent, $ruleCount rules)")) {
+                continue
+            }
+
+            # An assignment filter, created on first use and named after the experiment. It is a change
+            # to the tenant too, so it waits for the app's answer above and asks for itself
             $assignTarget = @{} + $Target
             $filterSpec = $exp['Filter']
             if ($filterSpec) {
                 $filterName = "$prefix$($exp['Name'])"
                 $filterId = Get-AssignmentFilterId -DisplayName $filterName -Rule $filterSpec['Rule']
+                if (-not $filterId) {
+                    Write-Information -InformationAction Continue -MessageData (
+                        "Skipped ${appDisplayName}: its assignment filter $filterName was not created")
+                    continue
+                }
                 $assignTarget.deviceAndAppManagementAssignmentFilterId = $filterId
                 $filterMode = if ($filterSpec['Mode']) { $filterSpec['Mode'] } else { 'include' }
                 $assignTarget.deviceAndAppManagementAssignmentFilterType = $filterMode
-            }
-            $ruleCount = @($rules).Count
-            if (-not $PSCmdlet.ShouldProcess($appDisplayName, "Create Win32 app ($intent, $ruleCount rules)")) {
-                continue
             }
 
             # One rejected rule must not end the round: Graph's answer is the finding, the rest still
@@ -1097,7 +1104,8 @@ function Get-AssignmentFilterId {
 
     .DESCRIPTION
         A device assignment filter for Windows, reused by name across deploys. A filter with the display
-        name is reused as it is; otherwise one is created with the rule.
+        name is reused as it is; otherwise one is created with the rule, after ShouldProcess. Under
+        -WhatIf, or after a No to -Confirm, nothing is created and nothing is returned.
 
     .PARAMETER DisplayName
         The filter's display name.
@@ -1114,9 +1122,9 @@ function Get-AssignmentFilterId {
         None.
 
     .OUTPUTS
-        System.String. The filter's id.
+        System.String. The filter's id, or nothing when the filter was not created.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     [OutputType([string])]
     param(
         [Parameter(Mandatory)]
@@ -1129,9 +1137,10 @@ function Get-AssignmentFilterId {
     try {
         $existing = Get-AllGraphItem -Uri '/beta/deviceManagement/assignmentFilters?$select=id,displayName' |
             Where-Object { $_['displayName'] -eq $DisplayName } | Select-Object -First 1
+        $filterId = $null
         if ($existing) {
             $filterId = $existing['id']
-        } else {
+        } elseif ($PSCmdlet.ShouldProcess($DisplayName, "Create assignment filter ($Rule)")) {
             $filter = Invoke-MgGraphRequest -Method POST -Uri '/beta/deviceManagement/assignmentFilters' -Body @{
                 displayName                    = $DisplayName
                 description                    = 'IntuneScriptLab validation filter. Safe to delete.'
