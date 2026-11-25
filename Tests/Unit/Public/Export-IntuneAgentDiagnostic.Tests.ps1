@@ -230,7 +230,7 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             $manifest | Should-BeLikeString '*Timeline: 3 event(s), 1 timeline(s)*'
         }
 
-        It 'lists the modules of the session, with a profile folder written from %USERPROFILE%' {
+        It 'lists the modules of the session with their versions' {
             $system = Read-ZipEntry -Zip $script:Result.Path -Name 'Device/system.txt'
             $module = Get-Module -Name IntuneScriptLab
 
