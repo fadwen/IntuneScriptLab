@@ -6,9 +6,11 @@ function Assert-HaveIntuneStatus {
     #>
     [CmdletBinding()]
     [OutputType([void])]
-    # The assertion body must be an end block so New-ShouldAssertion sees the whole pipeline (repo
-    # custom-assertion guide)
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    # Exception to FUN-21: New-ShouldAssertion reads the whole pipeline from $Input, which only the
+    # end block holds. In a process block each piped item would be asserted on its own, and a
+    # collection such as Get-ChildItem's output could not be asserted as one value.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '',
+        Justification = 'New-ShouldAssertion reads the whole pipeline from $Input in the end block.')]
     param(
         [Parameter(Position = 0, Mandatory)]
         [string]$Expected,
@@ -25,18 +27,19 @@ function Assert-HaveIntuneStatus {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    $status = "$($Actual.Status)"
+    $status = "$($received.Status)"
     if ($status -eq $Expected) { return }
 
-    $detail = @()
-    foreach ($name in 'IntuneOutput', 'IntuneError') {
-        if ($Actual.PSObject.Properties[$name] -and $Actual.$name) { $detail += "${name}: $($Actual.$name)" }
-    }
-    if ($Actual.PSObject.Properties['Warnings'] -and $Actual.Warnings) {
-        $detail += "Warnings: $($Actual.Warnings -join ' | ')"
-    }
+    $detail = @(
+        foreach ($name in 'IntuneOutput', 'IntuneError') {
+            if ($received.PSObject.Properties[$name] -and $received.$name) { "${name}: $($received.$name)" }
+        }
+        if ($received.PSObject.Properties['Warnings'] -and $received.Warnings) {
+            "Warnings: $($received.Warnings -join ' | ')"
+        }
+    )
     $assert.Fail(
         'Expected status <expected>,<because> but Intune would report <Status>. <Detail>',
         @{ Expected = $Expected; Because = $Because; Status = $status; Detail = ($detail -join '. ') })

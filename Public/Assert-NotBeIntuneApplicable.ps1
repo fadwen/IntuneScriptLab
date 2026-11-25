@@ -6,9 +6,11 @@ function Assert-NotBeIntuneApplicable {
     #>
     [CmdletBinding()]
     [OutputType([void])]
-    # The assertion body must be an end block so New-ShouldAssertion sees the whole pipeline (repo
-    # custom-assertion guide)
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    # Exception to FUN-21: New-ShouldAssertion reads the whole pipeline from $Input, which only the
+    # end block holds. In a process block each piped item would be asserted on its own, and a
+    # collection such as Get-ChildItem's output could not be asserted as one value.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '',
+        Justification = 'New-ShouldAssertion reads the whole pipeline from $Input in the end block.')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
         [object]$Actual,
@@ -22,10 +24,10 @@ function Assert-NotBeIntuneApplicable {
         $PSCmdlet.ThrowTerminatingError($_)
     }
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
+    $received = $assert.Actual()
 
-    if (-not $Actual.Applicable) { return }
+    if (-not $received.Applicable) { return }
     $assert.Fail(
         'Expected the requirement not to be met,<because> but <Reason>',
-        @{ Because = $Because; Reason = "$($Actual.Reason)" })
+        @{ Because = $Because; Reason = "$($received.Reason)" })
 }

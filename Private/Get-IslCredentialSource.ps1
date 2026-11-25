@@ -34,24 +34,25 @@ function Get-IslCredentialSource {
 
     $credentialType = '^(System\.Management\.Automation\.)?PSCredential$'
     # Parentheses, a one-element pipeline and the expression statement around a value are wrappers
+    $node = $Expression
     $unwrapped = $false
-    while ($Expression -and -not $unwrapped) {
-        $kind = $Expression.GetType().Name
-        if ($kind -eq 'ParenExpressionAst') { $Expression = $Expression.Pipeline }
-        elseif ($kind -eq 'PipelineAst' -and @($Expression.PipelineElements).Count -eq 1) {
-            $Expression = $Expression.PipelineElements[0]
+    while ($node -and -not $unwrapped) {
+        $kind = $node.GetType().Name
+        if ($kind -eq 'ParenExpressionAst') { $node = $node.Pipeline }
+        elseif ($kind -eq 'PipelineAst' -and @($node.PipelineElements).Count -eq 1) {
+            $node = $node.PipelineElements[0]
         }
-        elseif ($kind -eq 'CommandExpressionAst') { $Expression = $Expression.Expression }
+        elseif ($kind -eq 'CommandExpressionAst') { $node = $node.Expression }
         else { $unwrapped = $true }
     }
-    if (-not $Expression) { return }
-    switch ($Expression.GetType().Name) {
+    if (-not $node) { return }
+    switch ($node.GetType().Name) {
         'CommandAst' {
-            $commandName = $Expression.GetCommandName()
+            $commandName = $node.GetCommandName()
             if ($commandName -eq 'Import-Clixml') { return 'Import-Clixml' }
             if ($commandName -ne 'New-Object') { return }
             $typeName = $null
-            $elements = @($Expression.CommandElements | Select-Object -Skip 1)
+            $elements = @($node.CommandElements | Select-Object -Skip 1)
             for ($index = 0; $index -lt $elements.Count; $index++) {
                 $element = $elements[$index]
                 if ($element.GetType().Name -eq 'CommandParameterAst') {
@@ -68,17 +69,17 @@ function Get-IslCredentialSource {
             if ("$typeName".Trim('''"') -match $credentialType) { return 'New-Object PSCredential' }
         }
         'InvokeMemberExpressionAst' {
-            $onType = $Expression.Expression.GetType().Name -eq 'TypeExpressionAst' -and
-                $Expression.Expression.TypeName.FullName -match $credentialType
+            $onType = $node.Expression.GetType().Name -eq 'TypeExpressionAst' -and
+                $node.Expression.TypeName.FullName -match $credentialType
             # A member named by a variable, as in [pscredential]::$m(), has no Value, and the
             # method it calls cannot be known from the script
-            $namedMember = $Expression.Member.GetType().Name -eq 'StringConstantExpressionAst'
-            if ($onType -and $namedMember -and $Expression.Member.Value -eq 'new') {
+            $namedMember = $node.Member.GetType().Name -eq 'StringConstantExpressionAst'
+            if ($onType -and $namedMember -and $node.Member.Value -eq 'new') {
                 return '[pscredential]::new()'
             }
         }
         'ConvertExpressionAst' {
-            if ($Expression.Type.TypeName.FullName -match $credentialType) { return 'a [pscredential] cast' }
+            if ($node.Type.TypeName.FullName -match $credentialType) { return 'a [pscredential] cast' }
         }
     }
 }

@@ -173,7 +173,7 @@ function Test-IntuneScript {
                 continue
             }
 
-            $selected
+            foreach ($finding in $selected) { $finding }
         }
     }
 }

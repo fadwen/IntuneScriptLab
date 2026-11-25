@@ -6,9 +6,11 @@ function Assert-PassIntuneAnalysis {
     #>
     [CmdletBinding()]
     [OutputType([void])]
-    # The assertion body must be an end block so New-ShouldAssertion sees the whole pipeline (repo
-    # custom-assertion guide)
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    # Exception to FUN-21: New-ShouldAssertion reads the whole pipeline from $Input, which only the
+    # end block holds. In a process block each piped item would be asserted on its own, and a
+    # collection such as Get-ChildItem's output could not be asserted as one value.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '',
+        Justification = 'New-ShouldAssertion reads the whole pipeline from $Input in the end block.')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
         [object]$Actual,
@@ -30,8 +32,8 @@ function Assert-PassIntuneAnalysis {
     # A file, a folder, or a pipeline of either: every script found is analyzed and the failure
     # names each file
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
-    $Actual = $assert.Actual()
-    $paths = @(foreach ($item in @($Actual)) {
+    $received = $assert.Actual()
+    $paths = @(foreach ($item in @($received)) {
             if ($item -is [System.IO.FileSystemInfo]) { $item.FullName } else { "$item" }
         })
 
