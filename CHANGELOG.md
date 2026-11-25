@@ -44,10 +44,13 @@ entries are carried over from the manifest's release notes.
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
-  `Export-IntuneAgentDiagnostic`, `Get-IslSetting`, `Get-IslAgentLogEvent`,
-  `Invoke-IslGraphRequest`, the assignment filter parser `ConvertFrom-IslFilterRule` and three
-  analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`, `IslModuleDependency`) are private
-  functions of their own, each an advanced function with help and tests (#65). A settings value
+  `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Get-IslSetting`,
+  `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest`, the assignment filter parser
+  `ConvertFrom-IslFilterRule` and three analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`,
+  `IslModuleDependency`) are private functions of their own, each an advanced function with help
+  and tests (#65). `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript` and
+  `Get-IntuneScriptHealth` select the tenant's policies through one function where each had its
+  own copy. A settings value
   that is not allowed still ends `Test-IntuneScript` with `SettingsInvalid,Test-IntuneScript`. One
   error changes: a detection rule entry that is `$null`, for the app or for one of its
   `-DependsOn` or `-Supersedes` apps, ends `Invoke-IntuneWin32AppTest`

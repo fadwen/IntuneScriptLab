@@ -46,22 +46,12 @@ function Compare-IntuneDeployedScript {
     $mapped = @{}
     $sha = [System.Security.Cryptography.SHA256]::Create()
     # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
-    $nameGiven = $PSBoundParameters.ContainsKey('Name')
+    $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }
     $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     function Get-NameKey {
         param([string]$Value)
         ([regex]::Replace($Value, '[^\w.-]', '_')).ToLowerInvariant()
-    }
-
-    function Test-Wanted {
-        param($Policy)
-        $displayName = "$(Get-IslPropertyValue -InputObject $Policy -Name 'displayName')"
-        $policyId = "$(Get-IslPropertyValue -InputObject $Policy -Name 'id')"
-        # -Id alone selects by id: -Name's default of '*' only counts when -Name was given or -Id was not
-        $byName = ($nameGiven -or -not $Id) -and @($Name | Where-Object { $displayName -like $_ }).Count -gt 0
-        $byId = $Id -and $policyId -in $Id
-        $byName -or $byId
     }
 
     function Get-Hash {
@@ -347,16 +337,11 @@ function Compare-IntuneDeployedScript {
         @()
     }
 
-    function Get-WantedPolicy {
-        param([string]$Uri)
-        @(Invoke-IslGraphRequest -Uri $Uri -All | Where-Object { Test-Wanted -Policy $_ })
-    }
-
     try {
         if ('Remediation' -in $Kind) {
             $remediations = '/beta/deviceManagement/deviceHealthScripts'
             try {
-                $summaries = @(Get-WantedPolicy -Uri "$remediations`?`$select=id,displayName")
+                $summaries = @(Get-IslSelectedPolicy -Uri "$remediations`?`$select=id,displayName" @wanted)
             } catch {
                 $PSCmdlet.ThrowTerminatingError($_)
             }
@@ -398,7 +383,7 @@ function Compare-IntuneDeployedScript {
         if ('PlatformScript' -in $Kind) {
             $scripts = '/beta/deviceManagement/deviceManagementScripts'
             try {
-                $summaries = @(Get-WantedPolicy -Uri "$scripts`?`$select=id,displayName")
+                $summaries = @(Get-IslSelectedPolicy -Uri "$scripts`?`$select=id,displayName" @wanted)
             } catch {
                 $PSCmdlet.ThrowTerminatingError($_)
             }
@@ -429,7 +414,7 @@ function Compare-IntuneDeployedScript {
             $apps = '/beta/deviceAppManagement/mobileApps'
             $listUri = "$apps`?`$filter=isof('microsoft.graph.win32LobApp')&`$select=id,displayName"
             try {
-                $summaries = @(Get-WantedPolicy -Uri $listUri)
+                $summaries = @(Get-IslSelectedPolicy -Uri $listUri @wanted)
             } catch {
                 $PSCmdlet.ThrowTerminatingError($_)
             }
