@@ -18,6 +18,12 @@ function ConvertFrom-IslRuleSpec {
             OperationType = 'exists' }
 
         @{ Path = 'C:\App'; FileOrFolderName = 'a.exe'; FileOperation = 'exists' }
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Collections.Hashtable.
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]

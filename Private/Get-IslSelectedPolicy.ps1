@@ -1,7 +1,7 @@
 function Get-IslSelectedPolicy {
     <#
     .SYNOPSIS
-    Gets the tenant policies of one Graph list that the caller's -Name and -Id select.
+    Gets the policies of one Graph list that the caller's -Name and -Id select.
 
     .DESCRIPTION
     For the tenant commands Test-IntuneDeployedScript, Compare-IntuneDeployedScript and

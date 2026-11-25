@@ -1,7 +1,7 @@
 function Test-IslFilterConnector {
     <#
     .SYNOPSIS
-    Tells whether the assignment filter token at the parser's cursor is a given connector.
+    Tells whether the filter token at the parser's cursor is a given connector.
 
     .DESCRIPTION
     For the assignment filter parser. The token is the connector when it is a word whose text,

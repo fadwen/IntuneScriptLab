@@ -12,6 +12,17 @@
     .PARAMETER Kind
         OEM (the default) is what a console-less powershell.exe writes its output in; ANSI is
         what Windows PowerShell 5.1 reads a file without a BOM as.
+
+    .EXAMPLE
+        (Get-IslOemEncoding).CodePage
+
+        437 on a United States English device.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Text.Encoding.
     #>
     [CmdletBinding()]
     [OutputType([System.Text.Encoding])]

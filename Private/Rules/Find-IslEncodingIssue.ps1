@@ -1,7 +1,7 @@
 ﻿function Find-IslEncodingIssue {
     <#
     .SYNOPSIS
-        Flags files whose bytes Windows PowerShell 5.1 will decode as something other than UTF-8.
+        Flags files Windows PowerShell 5.1 decodes as something other than UTF-8.
 
     .DESCRIPTION
         Intune delivers the script bytes unchanged. Without a UTF-8 BOM, Windows PowerShell 5.1
@@ -18,8 +18,15 @@
         Find-IslEncodingIssue -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

@@ -1,7 +1,7 @@
 function ConvertTo-IslNamedGroupPattern {
     <#
     .SYNOPSIS
-    Renames the capturing groups of a regular expression so that several fit into one pattern.
+    Renames a regular expression's groups so that several fit into one pattern.
 
     .DESCRIPTION
     The agent-log reader joins every event pattern into one alternation and must still tell

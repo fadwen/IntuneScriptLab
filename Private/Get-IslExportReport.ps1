@@ -27,9 +27,15 @@ function Get-IslExportReport {
         Get-IslExportReport -ReportName AppInstallStatusAggregate
 
         One row per app with InstalledDeviceCount, FailedDeviceCount and the other counts.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Object. One object for each row of the report, with its columns as properties.
     #>
     [CmdletBinding()]
-    [OutputType([pscustomobject])]
+    [OutputType([object])]
     param(
         [Parameter(Mandatory)]
         [string]$ReportName,

@@ -1,7 +1,7 @@
 function Get-IslFilterDeviceFact {
     <#
     .SYNOPSIS
-        Reads this device's values for the properties an assignment filter rule compares.
+        Reads this device's values for the properties a filter rule compares.
 
     .DESCRIPTION
         The values the filter evaluator returned for the lab devices, read from the same places on
@@ -22,6 +22,12 @@ function Get-IslFilterDeviceFact {
         Get-IslFilterDeviceFact
 
         A hashtable with one entry per filter property.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Collections.Hashtable.
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]

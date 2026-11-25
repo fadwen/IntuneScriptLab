@@ -30,6 +30,12 @@ function Resolve-IslAccount {
         Resolve-IslAccount -Name 'someone@contoso.com'
 
         Name AzureAD\SomeOne and the account's SID, on a device where that Entra user has signed in.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Account.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Account')]

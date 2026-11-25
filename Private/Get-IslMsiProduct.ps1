@@ -17,6 +17,12 @@ function Get-IslMsiProduct {
         Get-IslMsiProduct -ProductCode '{FBE4D84C-C935-4F54-B96F-49316CEB5149}'
 
         The product's display name and version, or nothing when it is not installed.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.MsiProduct.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.MsiProduct')]

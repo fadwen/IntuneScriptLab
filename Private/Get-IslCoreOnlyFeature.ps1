@@ -1,7 +1,7 @@
 function Get-IslCoreOnlyFeature {
     <#
     .SYNOPSIS
-        The cmdlets, parameters and parameter values that PowerShell 7 has and Windows PowerShell 5.1 lacks.
+        Lists the cmdlets, parameters and values PowerShell 7 has and 5.1 lacks.
 
     .DESCRIPTION
         The table IslPowerShell7Syntax reports from, kept in one place so a test can hold it against
@@ -23,6 +23,9 @@ function Get-IslCoreOnlyFeature {
     .OUTPUTS
         IntuneScriptLab.CoreOnlyFeature: Commands (string[]), Parameters (hashtable of command to
         parameter names) and Values (hashtable of command to hashtable of parameter to values).
+
+    .INPUTS
+        None.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.CoreOnlyFeature')]

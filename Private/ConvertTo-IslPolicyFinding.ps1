@@ -1,7 +1,7 @@
 function ConvertTo-IslPolicyFinding {
     <#
     .SYNOPSIS
-    Builds a finding about a tenant policy itself, when the caller's rule selection keeps it.
+    Builds a finding about a tenant policy itself, when the rule selection keeps it.
 
     .DESCRIPTION
     For Test-IntuneDeployedScript, for what it finds in a policy's settings and assignments

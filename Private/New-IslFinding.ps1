@@ -7,6 +7,40 @@ function New-IslFinding {
         Every rule reports through this so the output shape is uniform: rule name, severity,
         message, where in the script, and the observed Intune behaviour that justifies it
         (a short evidence string, mirrored in Validation\Findings.md).
+
+    .PARAMETER RuleName
+        The rule that found it, such as IslLongSleep.
+
+    .PARAMETER Severity
+        Error, Warning or Information.
+
+    .PARAMETER Message
+        What is wrong and what happens on a device.
+
+    .PARAMETER Extent
+        The script element the finding is about, which gives its line, column and text. Leave
+        it out for a finding about the whole script.
+
+    .PARAMETER Context
+        The IntuneScriptLab.ScriptContext of the script, from Get-IslScriptContext.
+
+    .PARAMETER Evidence
+        What Intune was observed to do that makes this a problem, ending in its experiment ids.
+
+    .PARAMETER Fix
+        An edit Repair-IntuneScript can apply without changing behaviour: @{ Replacement = '...' }
+        for the extent, or @{ Encoding = 'UTF8BOM' } for the file.
+
+    .EXAMPLE
+        New-IslFinding -RuleName 'IslLongSleep' -Severity 'Warning' -Message $message -Context $Context
+
+        One IntuneScriptLab.Finding about the whole script.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Finding')]

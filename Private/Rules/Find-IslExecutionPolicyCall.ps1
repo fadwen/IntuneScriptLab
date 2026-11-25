@@ -1,7 +1,7 @@
 function Find-IslExecutionPolicyCall {
     <#
     .SYNOPSIS
-        Flags Set-ExecutionPolicy calls, which the agent's own launch makes redundant or harmful.
+        Flags Set-ExecutionPolicy, which the agent's launch makes redundant or harmful.
 
     .DESCRIPTION
         Every script the agent runs is launched as
@@ -18,8 +18,15 @@ function Find-IslExecutionPolicyCall {
         Find-IslExecutionPolicyCall -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

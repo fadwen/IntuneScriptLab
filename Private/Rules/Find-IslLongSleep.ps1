@@ -1,7 +1,7 @@
 function Find-IslLongSleep {
     <#
     .SYNOPSIS
-        Flags waits long enough to hit the agent's timeout or hold up other remediations.
+        Flags waits that hit the agent's timeout or hold up other remediations.
 
     .DESCRIPTION
         Platform scripts are killed after 30 minutes, remediations and Win32 detection after
@@ -16,8 +16,15 @@ function Find-IslLongSleep {
         Find-IslLongSleep -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

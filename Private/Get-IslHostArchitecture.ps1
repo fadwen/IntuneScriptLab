@@ -1,7 +1,7 @@
 ﻿function Get-IslHostArchitecture {
     <#
     .SYNOPSIS
-        The architecture of this device's 64-bit Windows PowerShell host: x64, or arm64 on Windows on ARM.
+        Gets the architecture of this device's 64-bit PowerShell host: x64 or arm64.
 
     .DESCRIPTION
         The agent runs Win32 detection and requirement scripts in the device's 64-bit host unless
@@ -17,6 +17,9 @@
 
     .OUTPUTS
         System.String. x64 or arm64, as Get-IslHostPath and the -Architecture parameters name them.
+
+    .INPUTS
+        None.
     #>
     [CmdletBinding()]
     [OutputType([string])]

@@ -1,7 +1,7 @@
 function ConvertTo-IslSettingsObject {
     <#
     .SYNOPSIS
-    Validates a settings table and converts it to the settings object the analysis reads.
+    Validates a settings table and converts it to the analysis's settings object.
 
     .DESCRIPTION
     The table is the content of an IntuneScriptLab.settings.psd1 file or a hashtable passed as

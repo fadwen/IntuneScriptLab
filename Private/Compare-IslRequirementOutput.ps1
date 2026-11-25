@@ -1,7 +1,7 @@
 function Compare-IslRequirementOutput {
     <#
     .SYNOPSIS
-        Applies a Win32 requirement rule to a script's captured run the way the agent was observed to.
+        Applies a Win32 requirement rule to a script's run, as the agent was seen to.
 
     .DESCRIPTION
         Observed on the test devices (W32-REQ-* experiments): the rule is evaluated only when the
@@ -37,6 +37,12 @@ function Compare-IslRequirementOutput {
         Compare-IslRequirementOutput -StdOut "2.10.0`r`n" -ExitCode 0 @ruleSplat
 
         Met, because the output is parsed as a version rather than compared as text.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.RequirementVerdict.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.RequirementVerdict')]

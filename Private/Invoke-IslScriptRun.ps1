@@ -1,7 +1,7 @@
 function Invoke-IslScriptRun {
     <#
     .SYNOPSIS
-        Runs one script the way the Intune Management Extension does and captures the raw result.
+        Runs one script the way the Intune Management Extension does.
 
     .DESCRIPTION
         Observed launch (PS-PROBE-*, REM-PROBE-*, Win32 log): AgentExecutor starts
@@ -20,6 +20,43 @@ function Invoke-IslScriptRun {
         Deviation: stdin is an empty stream rather than a hidden console, so a prompt returns
         immediately instead of hanging for the timeout. Test-IntuneScript's IslInteractiveCall
         rule is the check for that.
+
+    .PARAMETER Path
+        The script to run.
+
+    .PARAMETER Architecture
+        The host to run it in: x86, x64 or arm64 (Get-IslHostPath).
+
+    .PARAMETER Context
+        User, the default, or System.
+
+    .PARAMETER Credential
+        Runs it as this account, Context User only. Needs an elevated session.
+
+    .PARAMETER LogonType
+        How the credential's task logs on: Auto, the default, Interactive or Password
+        (Invoke-IslProcess).
+
+    .PARAMETER Phase
+        What the run is, such as detect, remediate or script, for the result and the name of the
+        copy in the cache.
+
+    .PARAMETER TimeoutSeconds
+        How long the script may run, 300 by default.
+
+    .PARAMETER WorkingDirectory
+        The folder the script runs in, System32 by default, as the agent runs it.
+
+    .EXAMPLE
+        Invoke-IslScriptRun -Path .\Detect.ps1 -Architecture 'x64' -Phase 'detect'
+
+        The exit code and output of the detection script run as the current user in the 64-bit host.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.RunResult.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.RunResult')]

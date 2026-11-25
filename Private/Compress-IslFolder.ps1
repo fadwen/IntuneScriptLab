@@ -1,7 +1,7 @@
 function Compress-IslFolder {
     <#
     .SYNOPSIS
-    Writes the files of a folder into a new zip archive, with forward slashes in the entry names.
+    Zips the files of a folder, with forward slashes in the entry names.
 
     .DESCRIPTION
     Windows PowerShell 5.1 runs on .NET Framework, whose ZipFile.CreateFromDirectory writes

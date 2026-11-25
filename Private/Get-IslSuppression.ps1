@@ -22,6 +22,12 @@ function Get-IslSuppression {
         Get-IslSuppression -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The suppressions declared in Detect.ps1.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Suppression.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Suppression')]

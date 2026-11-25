@@ -1,7 +1,7 @@
 function ConvertTo-IslNameKey {
     <#
     .SYNOPSIS
-    Turns a policy, folder or file name into the key that local scripts are matched by.
+    Turns a policy, folder or file name into the key local scripts match by.
 
     .DESCRIPTION
     For Compare-IntuneDeployedScript, which pairs a tenant policy with a local folder or file of

@@ -35,6 +35,12 @@ function Get-IslSetting {
         Get-IslSetting -Path .\Remediations\Widget\Detect.ps1
 
         The nearest settings file above Detect.ps1, validated, or an empty settings object.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Settings.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Settings')]

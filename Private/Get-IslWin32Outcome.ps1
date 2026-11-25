@@ -1,7 +1,7 @@
 function Get-IslWin32Outcome {
     <#
     .SYNOPSIS
-    Gets what the agent makes of the exit code of a Win32 app's install or uninstall.
+    Gets what the agent makes of a Win32 app's install or uninstall exit code.
 
     .DESCRIPTION
     For Invoke-IntuneWin32AppTest. A run that was ended at its timeout is timedOut. Otherwise the

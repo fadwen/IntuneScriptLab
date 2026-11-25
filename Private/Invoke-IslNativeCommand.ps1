@@ -1,7 +1,7 @@
 function Invoke-IslNativeCommand {
     <#
     .SYNOPSIS
-    Runs a Windows executable to its end and returns its exit code and what it wrote.
+    Runs a Windows executable to its end and returns its exit code and output.
 
     .DESCRIPTION
     For the small system tools the module calls for a side effect, such as taskkill.exe and

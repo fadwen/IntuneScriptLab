@@ -1,7 +1,7 @@
 function Get-IslWindowsReleaseBuild {
     <#
     .SYNOPSIS
-        Maps a Windows release name, as the Graph minimumSupportedWindowsRelease values name it, to its build.
+        Maps a Windows release name, as Graph writes it, to its build number.
 
     .DESCRIPTION
         The portal's "Minimum operating system" list is stored as a release name; the agent compares
@@ -14,6 +14,12 @@ function Get-IslWindowsReleaseBuild {
         Get-IslWindowsReleaseBuild -Release Windows11_24H2
 
         26100
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Int32.
     #>
     [CmdletBinding()]
     [OutputType([int])]

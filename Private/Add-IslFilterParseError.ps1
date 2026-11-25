@@ -1,7 +1,7 @@
 function Add-IslFilterParseError {
     <#
     .SYNOPSIS
-    Records why an assignment filter rule does not parse, unless a reason is already recorded.
+    Records why a filter rule does not parse, unless a reason is already recorded.
 
     .DESCRIPTION
     For the assignment filter parser. The first failure is the one reported, so a message is

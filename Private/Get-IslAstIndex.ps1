@@ -21,7 +21,29 @@ $script:IslAstToLookup = ([System.Linq.Enumerable].GetMethods() |
 function Get-IslAstIndex {
     <#
     .SYNOPSIS
-        The node and command index of an AST, built on first use and kept for the tree's lifetime.
+        Gets the node and command index of a syntax tree, built once for each tree.
+
+    .DESCRIPTION
+        For Find-IslAstNode and Find-IslCommand. The first call for a tree walks it once and
+        groups its nodes by type name and its commands by name, without regard to letter case;
+        a command whose name is not a constant is left out. Each group keeps document order.
+        The index is kept for the tree's lifetime, keyed on the tree object itself, so a
+        sub-tree gets an index of its own and later calls for the same tree return the same
+        index.
+
+    .PARAMETER Ast
+        The syntax tree, or the part of it, to index.
+
+    .EXAMPLE
+        (Get-IslAstIndex -Ast $ast).ByCommand['Read-Host']
+
+        The calls of Read-Host in the script.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.AstIndex.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.AstIndex')]

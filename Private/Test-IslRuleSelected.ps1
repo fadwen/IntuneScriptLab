@@ -1,7 +1,7 @@
 function Test-IslRuleSelected {
     <#
     .SYNOPSIS
-    Tells whether a rule name passes an include list and an exclude list of wildcard patterns.
+    Tells whether a rule name passes include and exclude lists of patterns.
 
     .DESCRIPTION
     The rule filter of Test-IntuneScript, for -IncludeRule, -ExcludeRule and the same keys of a

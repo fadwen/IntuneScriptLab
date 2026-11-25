@@ -1,7 +1,7 @@
 function Read-IslFilterClause {
     <#
     .SYNOPSIS
-    Reads one comparison of an assignment filter rule, such as device.deviceName -eq "X".
+    Reads one comparison of a filter rule, such as device.deviceName -eq "X".
 
     .DESCRIPTION
     For the assignment filter parser. At the parser's cursor it reads a property of the form

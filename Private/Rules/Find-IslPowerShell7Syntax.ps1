@@ -1,7 +1,7 @@
 function Find-IslPowerShell7Syntax {
     <#
     .SYNOPSIS
-        Flags syntax, cmdlets, parameters and parameter values that only exist in PowerShell 7.
+        Flags syntax, cmdlets, parameters and values that only PowerShell 7 has.
 
     .DESCRIPTION
         The Intune Management Extension runs every script with Windows PowerShell 5.1
@@ -21,8 +21,15 @@ function Find-IslPowerShell7Syntax {
         Find-IslPowerShell7Syntax -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

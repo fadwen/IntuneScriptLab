@@ -7,6 +7,26 @@ function Get-IslIntuneOutput {
         Observed (REM-OUT-STREAMS, REM-OUT-LONG, REM-ERR-LONG): the report holds only the last
         line of stdout, and only the last 2,048 characters of it; the error field holds the
         whole stderr text, also capped at its last 2,048 characters.
+
+    .PARAMETER StdOut
+        The script's standard output, as captured.
+
+    .PARAMETER StdErr
+        The script's standard error, as captured.
+
+    .PARAMETER Limit
+        How many characters of each Intune keeps, 2,048 by default.
+
+    .EXAMPLE
+        Get-IslIntuneOutput -StdOut "Checking`nCompliant" -StdErr ''
+
+        Output 'Compliant' and DroppedLines 1, as the portal would show it.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.IntuneOutput.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.IntuneOutput')]

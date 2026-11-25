@@ -1,7 +1,7 @@
 function ConvertTo-IslDriftResult {
     <#
     .SYNOPSIS
-    Builds the result of comparing one script of a tenant policy with its local copy.
+    Builds the result of comparing one script of a policy with its local copy.
 
     .DESCRIPTION
     For Compare-IntuneDeployedScript. The result names the policy's kind, name and id and the

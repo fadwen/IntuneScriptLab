@@ -1,7 +1,7 @@
 function Test-IslInboxModuleName {
     <#
     .SYNOPSIS
-    Tells whether a module name that a script uses is one the agent's SYSTEM session has.
+    Tells whether a module a script uses is one the agent's SYSTEM session has.
 
     .DESCRIPTION
     For the module-dependency rule. A name is in-box when it is in the list of modules that come

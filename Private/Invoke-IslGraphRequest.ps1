@@ -1,7 +1,7 @@
 function Invoke-IslGraphRequest {
     <#
     .SYNOPSIS
-        Calls Microsoft Graph through the caller's Microsoft.Graph.Authentication session.
+        Calls Microsoft Graph through the caller's Microsoft.Graph session.
 
     .DESCRIPTION
         A thin wrapper over Invoke-MgGraphRequest: one place that checks the Graph module is loaded
@@ -45,8 +45,15 @@ function Invoke-IslGraphRequest {
         Invoke-IslGraphRequest -Uri '/v1.0/groups/{id}/members/microsoft.graph.device/$count' @countSplat
 
         The number of devices among the group's members, as text.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Object. Graph's reply as Invoke-MgGraphRequest returns it; with -All, each item of every page.
     #>
     [CmdletBinding()]
+    [OutputType([object])]
     param(
         [Parameter(Mandatory)]
         [string]$Uri,

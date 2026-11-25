@@ -1,7 +1,7 @@
 function Get-IslInboxModule {
     <#
     .SYNOPSIS
-        The modules Windows PowerShell 5.1 can load as SYSTEM on a plain Windows 11 device.
+        Lists the modules Windows PowerShell 5.1 loads as SYSTEM on plain Windows 11.
 
     .DESCRIPTION
         Get-Module -ListAvailable as NT AUTHORITY\SYSTEM on an Entra-joined Windows 11 24H2 test
@@ -22,9 +22,15 @@ function Get-IslInboxModule {
         'ActiveDirectory' -in (Get-IslInboxModule)
 
         False: the RSAT module is not there unless the feature was added.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String.
     #>
     [CmdletBinding()]
-    [OutputType([string[]])]
+    [OutputType([string])]
     param()
 
     @(

@@ -1,14 +1,14 @@
 function Test-IslDeviceGroup {
     <#
     .SYNOPSIS
-    Tells whether every member of an Entra group is a device, asking Graph once for each group.
+    Tells whether every member of an Entra group is a device, read once a group.
 
     .DESCRIPTION
     For Test-IntuneDeployedScript, which notes a user-context script or app assigned to devices.
-    Two counts decide it: every member of the group, and the devices among them. A page of
-    members did not: a page of 20 decided for the whole group, and a mixed group whose first 20
-    members were devices passed as a device group. $count needs the eventual consistency header
-    and answers with the number as text.
+    Two counts decide it, two Graph calls the first time a group is asked about: every member of
+    the group, and the devices among them. A page of members is not enough: a mixed group whose
+    first 20 members are devices would pass as a device group. $count needs the eventual
+    consistency header and answers with the number as text.
 
     The answer for each group is kept in the state's Cache. When the members cannot be read, a
     warning names the permission that allows it, the state is marked Blocked, and every group

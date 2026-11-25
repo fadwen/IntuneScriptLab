@@ -1,7 +1,7 @@
 function Get-IslVariableCredentialSource {
     <#
     .SYNOPSIS
-    Tells how a variable comes to hold a credential, when every value the script gives it is one.
+    Tells how a variable holds a credential, when every value given to it is one.
 
     .DESCRIPTION
     For the interactive-call rule. Every assignment to the variable anywhere in the script, with

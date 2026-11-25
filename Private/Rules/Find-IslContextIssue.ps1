@@ -1,7 +1,7 @@
 function Find-IslContextIssue {
     <#
     .SYNOPSIS
-        Flags per-user locations in SYSTEM scripts and privileged writes in user scripts.
+        Flags per-user places in SYSTEM scripts and privileged writes in user scripts.
 
     .DESCRIPTION
         As SYSTEM, HKCU: is the SYSTEM account's own hive, USERPROFILE is
@@ -19,8 +19,15 @@ function Find-IslContextIssue {
         Find-IslContextIssue -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context
