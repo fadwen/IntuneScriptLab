@@ -70,7 +70,9 @@ entries are carried over from the manifest's release notes.
   `Test-IntuneScript` and `Get-IntuneScriptHealth` write their findings and reports one at a
   time, as their output types say. `Export-IntuneAgentDiagnostic` passes `-NoTypeInformation`
   to `Export-Csv` on Windows PowerShell 5.1 only: PowerShell 7.7 warns on every call that the
-  switch is obsolete, and 7 writes no type line without it (#67).
+  switch is obsolete, and 7 writes no type line without it. The seven `Assert-*` functions keep
+  their end block, which `New-ShouldAssertion` needs to read the whole pipeline, and say so in
+  a `# Exception to FUN-21` comment (#67).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,
