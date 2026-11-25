@@ -48,16 +48,28 @@ function Export-IntuneAgentDiagnostic {
 
         # Logs
         $logFiles = @()
+        $copiedCount = 0
         if (Test-Path -LiteralPath $LogPath -PathType Container) {
             $logFiles = @(Get-ChildItem -LiteralPath $LogPath -Filter '*.log' -File)
             $logFolder = Join-Path -Path $staging -ChildPath 'Logs'
             $null = New-Item -ItemType Directory -Path $logFolder -Force @script:IslInternal
+            $notCopied = [System.Collections.Generic.List[string]]::new()
             foreach ($file in $logFiles) {
                 $destination = Join-Path -Path $logFolder -ChildPath $file.Name
-                # A log the agent holds open is copied through a shared-read stream
-                Copy-IslSharedFile -Source $file.FullName -Destination $destination
+                try {
+                    # A log the agent holds open is copied through a shared-read stream
+                    Copy-IslSharedFile -Source $file.FullName -Destination $destination
+                } catch {
+                    # One log that cannot be read, or that rotated away since the folder was
+                    # listed, is one item of the package: it is reported and the rest is written
+                    $PSCmdlet.WriteError($_)
+                    $notCopied.Add($file.Name)
+                    continue
+                }
+                $copiedCount++
             }
-            $manifest.Add("Logs: $($logFiles.Count) file(s) from $LogPath")
+            $manifest.Add("Logs: $copiedCount file(s) from $LogPath")
+            if ($notCopied.Count) { $manifest.Add("Logs not copied: $($notCopied -join ', ')") }
         }
         else {
             $manifest.Add("Logs: folder not found: $LogPath")
@@ -154,7 +166,7 @@ function Export-IntuneAgentDiagnostic {
         PSTypeName = 'IntuneScriptLab.Diagnostic'
         Path       = $zip
         Files      = $entryCount
-        Logs       = $logFiles.Count
+        Logs       = $copiedCount
         Registry   = -not $SkipRegistry
         Timeline   = (-not $SkipTimeline) -and $logFiles.Count -gt 0
         SizeBytes  = (Get-Item -LiteralPath $zip).Length
