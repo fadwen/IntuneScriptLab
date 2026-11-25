@@ -49,7 +49,8 @@ BeforeAll {
         param()
 
         $testSplat = @{
-            Path = $script:ScriptPath; Architecture = 'x64'; Context = 'User'
+            # x86: the one host that every Windows has, Windows on ARM included, where there is no x64
+            Path = $script:ScriptPath; Architecture = 'x86'; Context = 'User'
             Credential = $script:Credential; TimeoutSeconds = 30
             Verbose = $true; InformationAction = 'Continue'; WarningAction = 'Continue'
             ErrorAction = 'Continue'

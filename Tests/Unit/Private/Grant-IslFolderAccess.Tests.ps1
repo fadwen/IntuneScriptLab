@@ -63,6 +63,68 @@ BeforeAll {
             Grant-IslFolderAccess -Path $Path -Account $Account
         }
     }
+
+    function script:Assert-RunGrant {
+        <#
+        .SYNOPSIS
+            Asserts the grant an account got on a run folder.
+
+        .DESCRIPTION
+            Reads the entries set on the folder itself for the identity, and asserts that one gives
+            Modify to what is in the folder only (inherit-only, to files and folders), that one lets
+            it list the folder and add files and folders, and that none of the entries that apply to
+            the folder itself lets it delete the folder or what is in it. Each failure lists every
+            entry of the identity, so that an entry Windows added can be read from the log.
+
+        .PARAMETER Path
+            The folder.
+
+        .PARAMETER Identity
+            The identity, as the access list names it.
+
+        .EXAMPLE
+            Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
+
+            Asserts the grant of the current user on the test folder.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [Parameter(Mandatory)]
+            [string]$Path,
+
+            [Parameter(Mandatory)]
+            [string]$Identity
+        )
+
+        $rules = @((Get-Acl -LiteralPath $Path).Access | Where-Object {
+                -not $_.IsInherited -and "$($_.IdentityReference)" -eq $Identity
+            })
+        $listed = ($rules | ForEach-Object {
+                $flags = '{0}/{1}' -f $_.InheritanceFlags, $_.PropagationFlags
+                '{0} {1} {2}' -f $_.FileSystemRights, $flags, $_.AccessControlType
+            }) -join '; '
+        $because = "the entries of $Identity are: $listed"
+
+        $below = @($rules | Where-Object {
+                "$($_.PropagationFlags)" -eq 'InheritOnly' -and "$($_.FileSystemRights)" -like '*Modify*'
+            })
+        $below.Count | Should-BeGreaterThan 0 -Because $because
+        $adding = [System.Security.AccessControl.FileSystemRights]'ListDirectory, CreateFiles, CreateDirectories'
+        $onFolder = @($rules | Where-Object { "$($_.PropagationFlags)" -ne 'InheritOnly' })
+        @($onFolder | Where-Object { ($_.FileSystemRights -band $adding) -eq $adding }).Count |
+            Should-BeGreaterThan 0 -Because $because
+        $deleting = [System.Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles'
+        @($onFolder | Where-Object {
+                "$($_.AccessControlType)" -eq 'Allow' -and [int]($_.FileSystemRights -band $deleting) -ne 0
+            }).Count | Should-Be 0 -Because $because
+    }
 }
 
 Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
@@ -101,11 +163,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
     It 'grants by the name as given when Windows does not resolve it' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
         Grant-Access -Path $script:Folder -Account $script:Me.Name
-        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
-            -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
-        }
-        # One entry for the folder's contents and one for the folder itself
-        @($rule).Count | Should-Be 2
+        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
     }
 
     It 'grants on a folder path that ends in a backslash' {
@@ -113,11 +171,7 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
         Grant-Access -Path "$($script:Folder)\" -Account $script:Me.Name
-        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
-            -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
-        }
-        # One entry for the folder's contents and one for the folder itself
-        @($rule).Count | Should-Be 2
+        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
     }
 
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
