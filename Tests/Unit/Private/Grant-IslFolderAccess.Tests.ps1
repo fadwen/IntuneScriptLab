@@ -64,17 +64,15 @@ BeforeAll {
         }
     }
 
-    function script:Assert-RunGrant {
+    function script:Get-GrantEntry {
         <#
         .SYNOPSIS
-            Asserts the grant an account got on a run folder.
+            Gets an identity's own entries on a folder, each with a text that names it.
 
         .DESCRIPTION
-            Reads the entries set on the folder itself for the identity, and asserts that one gives
-            Modify to what is in the folder only (inherit-only, to files and folders), that one lets
-            it list the folder and add files and folders, and that none of the entries that apply to
-            the folder itself lets it delete the folder or what is in it. Each failure lists every
-            entry of the identity, so that an entry Windows added can be read from the log.
+            Returns the entries of the folder's access list that are set on it, not inherited, for
+            the identity, each with a Text of its rights, inheritance and propagation flags and
+            type, so that the entries before and after a grant can be compared.
 
         .PARAMETER Path
             The folder.
@@ -83,7 +81,61 @@ BeforeAll {
             The identity, as the access list names it.
 
         .EXAMPLE
-            Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
+            $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Me.Name).Text
+
+            The texts of the current user's entries on the test folder.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Security.AccessControl.FileSystemAccessRule, with a Text note property.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Security.AccessControl.FileSystemAccessRule])]
+        param(
+            [Parameter(Mandatory)]
+            [string]$Path,
+
+            [Parameter(Mandatory)]
+            [string]$Identity
+        )
+
+        foreach ($rule in (Get-Acl -LiteralPath $Path).Access) {
+            if ($rule.IsInherited -or "$($rule.IdentityReference)" -ne $Identity) {
+                continue
+            }
+            $flags = '{0}/{1}' -f $rule.InheritanceFlags, $rule.PropagationFlags
+            $text = '{0} {1} {2}' -f $rule.FileSystemRights, $flags, $rule.AccessControlType
+            $rule | Add-Member -MemberType NoteProperty -Name Text -Value $text -PassThru
+        }
+    }
+
+    function script:Assert-RunGrant {
+        <#
+        .SYNOPSIS
+            Asserts the grant an account got on a run folder.
+
+        .DESCRIPTION
+            Reads the entries set on the folder itself for the identity that were not there before
+            the grant, and asserts that one gives Modify to what is in the folder only
+            (inherit-only, to files and folders), that one lets it list the folder and add files and
+            folders, and that none of them lets it delete the folder or what is in it. The test
+            grants to the account that runs it, which already has full control of its own test
+            folder on a hosted runner, so the entries from before are left out. Each failure lists
+            the entries the grant added.
+
+        .PARAMETER Path
+            The folder.
+
+        .PARAMETER Identity
+            The identity, as the access list names it.
+
+        .PARAMETER Before
+            The identity's entries before the grant, as Get-GrantEntry returned them.
+
+        .EXAMPLE
+            Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name -Before $before
 
             Asserts the grant of the current user on the test folder.
 
@@ -100,17 +152,15 @@ BeforeAll {
             [string]$Path,
 
             [Parameter(Mandatory)]
-            [string]$Identity
+            [string]$Identity,
+
+            [Parameter()]
+            [AllowEmptyCollection()]
+            [string[]]$Before = @()
         )
 
-        $rules = @((Get-Acl -LiteralPath $Path).Access | Where-Object {
-                -not $_.IsInherited -and "$($_.IdentityReference)" -eq $Identity
-            })
-        $listed = ($rules | ForEach-Object {
-                $flags = '{0}/{1}' -f $_.InheritanceFlags, $_.PropagationFlags
-                '{0} {1} {2}' -f $_.FileSystemRights, $flags, $_.AccessControlType
-            }) -join '; '
-        $because = "the entries of $Identity are: $listed"
+        $rules = @(Get-GrantEntry -Path $Path -Identity $Identity | Where-Object { $_.Text -notin $Before })
+        $because = "the entries the grant added for $Identity are: $(($rules.Text) -join '; ')"
 
         $below = @($rules | Where-Object {
                 "$($_.PropagationFlags)" -eq 'InheritOnly' -and "$($_.FileSystemRights)" -like '*Modify*'
@@ -162,16 +212,18 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
 
     It 'grants by the name as given when Windows does not resolve it' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
+        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Me.Name | ForEach-Object { $_.Text })
         Grant-Access -Path $script:Folder -Account $script:Me.Name
-        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
+        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name -Before $before
     }
 
     It 'grants on a folder path that ends in a backslash' {
         # Before, the backslash escaped the closing quote and icacls was handed a path with the rest
         # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
+        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Me.Name | ForEach-Object { $_.Text })
         Grant-Access -Path "$($script:Folder)\" -Account $script:Me.Name
-        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name
+        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name -Before $before
     }
 
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
