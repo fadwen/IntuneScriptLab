@@ -49,6 +49,13 @@
 [CmdletBinding()]
 param()
 
+Set-StrictMode -Version Latest
+# Exception to ERR-01: the script collects what it can and goes on past a read that fails, so that
+# one bad source does not cost the evidence of all the others. Under Windows PowerShell 5.1 the
+# line that query.exe writes to the redirected error stream while nobody is signed in, as during
+# the device phase of the page, becomes an error record, and a probe line that is not JSON fails
+# ConvertFrom-Json; under 'Stop' either would end the script before it writes any JSON. The errors
+# still reach stderr, which Invoke-LabGuestScript.ps1 shows as warnings.
 $ErrorActionPreference = 'Continue'
 $base = 'C:\ProgramData\IntuneScriptLab'
 $result = [ordered]@{}
@@ -56,10 +63,10 @@ $result.CollectedUtc = (Get-Date).ToUniversalTime().ToString('o')
 $result.Computer = $env:COMPUTERNAME
 $result.Sessions = @(query user 2>$null | ForEach-Object { "$_" })
 
-$probeFiles = Get-ChildItem -Path $base -Filter '*.jsonl' -ErrorAction SilentlyContinue |
+$probeFiles = Get-ChildItem -LiteralPath $base -Filter '*.jsonl' -ErrorAction SilentlyContinue |
     Where-Object Name -ne 'esp-state.jsonl'
 $result.Probes = @(foreach ($file in $probeFiles) {
-        foreach ($line in (Get-Content -Path $file.FullName)) {
+        foreach ($line in (Get-Content -LiteralPath $file.FullName)) {
             $record = $line | ConvertFrom-Json
             $record | Add-Member -NotePropertyName File -NotePropertyValue $file.BaseName -Force
             $record | Select-Object -Property File, Experiment, Phase, Time, User, SessionId, UserInteractive,
@@ -67,25 +74,67 @@ $result.Probes = @(foreach ($file in $probeFiles) {
         }
     })
 $statePath = Join-Path -Path $base -ChildPath 'esp-state.jsonl'
-$result.EspState = @(if (Test-Path -Path $statePath) {
-        Get-Content -Path $statePath | ForEach-Object { $_ | ConvertFrom-Json }
+$result.EspState = @(if (Test-Path -LiteralPath $statePath) {
+        Get-Content -LiteralPath $statePath | ForEach-Object { $_ | ConvertFrom-Json }
     })
-$result.Markers = @(Get-ChildItem -Path $base -Filter '*.installed' -ErrorAction SilentlyContinue |
+$result.Markers = @(Get-ChildItem -LiteralPath $base -Filter '*.installed' -ErrorAction SilentlyContinue |
         ForEach-Object { "$($_.Name) $($_.LastWriteTimeUtc.ToString('o'))" })
 
+
 function ConvertTo-ValueLine {
-    param([Parameter(Mandatory)][string]$Path, [Parameter(Mandatory)][string]$Prefix)
-    $item = Get-ItemProperty -Path $Path
-    $values = ($item.PSObject.Properties |
-            Where-Object { $_.Name -notlike 'PS*' } |
-            ForEach-Object { "$($_.Name)=$($_.Value)" }) -join ';'
+    <#
+    .SYNOPSIS
+        Formats the values of one registry key as a single line of text.
+
+    .DESCRIPTION
+        Reads the values of the key and writes its path below the prefix, a colon, and the values
+        as name=value pairs separated by semicolons. A key without values gives its path and
+        nothing after the colon.
+
+    .PARAMETER Path
+        The registry key as a provider path, such as the PSPath of an item that Get-ChildItem
+        returns. Read as a literal path.
+
+    .PARAMETER Prefix
+        The name of the key that the path is cut after, so that the line starts below it.
+
+    .EXAMPLE
+        ConvertTo-ValueLine -Path $key.PSPath -Prefix 'EnrollmentStatusTracking'
+
+        One line for a key below EnrollmentStatusTracking, its path relative to that key.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [Parameter(Mandatory)]
+        [string]$Prefix
+    )
+
+    $item = Get-ItemProperty -LiteralPath $Path
+    # Get-ItemProperty returns nothing for a key without values, and strict mode refuses a member of $null
+    $values = ''
+    if ($null -ne $item) {
+        $values = ($item.PSObject.Properties |
+                Where-Object { $_.Name -notlike 'PS*' } |
+                ForEach-Object { "$($_.Name)=$($_.Value)" }) -join ';'
+    }
     "$($Path -replace ('.*' + [regex]::Escape($Prefix) + '\\?'), ''): $values"
 }
 
-$enrollments = Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Enrollments' -ErrorAction SilentlyContinue
+
+$enrollments = Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Enrollments' -ErrorAction SilentlyContinue
 $result.Enrollments = @(foreach ($enrollment in $enrollments) {
         $syncPath = Join-Path -Path $enrollment.PSPath -ChildPath 'FirstSync'
-        $sync = Get-ItemProperty -Path $syncPath -ErrorAction SilentlyContinue
+        $sync = Get-ItemProperty -LiteralPath $syncPath -ErrorAction SilentlyContinue
         if (-not $sync) { continue }
         $values = [ordered]@{ Enrollment = $enrollment.PSChildName }
         foreach ($property in ($sync.PSObject.Properties | Where-Object { $_.Name -notlike 'PS*' })) {
@@ -94,17 +143,17 @@ $result.Enrollments = @(foreach ($enrollment in $enrollments) {
         [pscustomobject]$values
     })
 $tracking = 'HKLM:\SOFTWARE\Microsoft\Windows\Autopilot\EnrollmentStatusTracking'
-$result.EspTracking = @(Get-ChildItem -Path $tracking -Recurse -ErrorAction SilentlyContinue |
+$result.EspTracking = @(Get-ChildItem -LiteralPath $tracking -Recurse -ErrorAction SilentlyContinue |
         ForEach-Object { ConvertTo-ValueLine -Path $_.PSPath -Prefix 'EnrollmentStatusTracking' })
 $autopilotPath = 'HKLM:\SOFTWARE\Microsoft\Provisioning\Diagnostics\AutoPilot'
-$result.AutopilotDiag = @(Get-ItemProperty -Path $autopilotPath -ErrorAction SilentlyContinue |
+$result.AutopilotDiag = @(Get-ItemProperty -LiteralPath $autopilotPath -ErrorAction SilentlyContinue |
         Select-Object -Property * -ExcludeProperty PS* | ConvertTo-Json -Compress)
 
 $logs = 'C:\ProgramData\Microsoft\IntuneManagementExtension\Logs'
 $keywords = 'ESP|Esp|EnrollmentStatus|Sidecar|ISL-ESP|policies|After filter|Blocking|block|OOBE|IsDeviceInOobe|' +
     'userless|Userless|DeviceSetup|AccountSetup|Enrollment|Autopilot|Flighting\] Key'
 foreach ($log in 'IntuneManagementExtension', 'AppWorkload', 'HealthScripts', 'AgentExecutor') {
-    $file = Get-ChildItem -Path $logs -Filter "$log*.log" -ErrorAction SilentlyContinue |
+    $file = Get-ChildItem -LiteralPath $logs -Filter "$log*.log" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime | Select-Object -Last 1
     if (-not $file) { continue }
     $stream = [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite')

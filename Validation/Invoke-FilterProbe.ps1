@@ -60,9 +60,11 @@
 param(
     [string]$DeviceName,
 
-    [string]$OutputPath = (Join-Path $PSScriptRoot 'Results\filter-probe.json')
+    [string]$OutputPath = (
+        Join-Path -Path $PSScriptRoot -ChildPath 'Results' -AdditionalChildPath 'filter-probe.json')
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not (Get-MgContext)) { throw 'Connect-MgGraph first; this script uses the current session' }
 $graph = 'https://graph.microsoft.com/beta'
@@ -303,8 +305,95 @@ $tokens = @{
     '{manufacturer.lower}' = $device.manufacturer.ToLowerInvariant()
 }
 
+function Get-ReplyValue {
+    <#
+    .SYNOPSIS
+        Gets one named value from a reply, whether the reply is a dictionary or an object.
+
+    .DESCRIPTION
+        Invoke-MgGraphRequest returns dictionaries and ConvertFrom-Json returns objects, and strict
+        mode refuses a read of a member that is not there on either. The probe reads replies whose
+        shape it does not know in advance through this function, which returns $null for a missing
+        input or name where member access without strict mode gave $null too.
+
+    .PARAMETER InputObject
+        The reply: a dictionary, an object, or $null.
+
+    .PARAMETER Name
+        The key or property name, such as 'isValidRule'.
+
+    .EXAMPLE
+        Get-ReplyValue -InputObject @{ isValidRule = $true } -Name 'isValidRule'
+
+        Returns $true.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Object. The value, or $null when the input or the name is missing.
+    #>
+    [CmdletBinding()]
+    [OutputType([object])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        [object]$InputObject,
+
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    if ($null -eq $InputObject) {
+        return $null
+    }
+
+    if ($InputObject -is [System.Collections.IDictionary]) {
+        if ($InputObject.Contains($Name)) {
+            return $InputObject[$Name]
+        }
+        return $null
+    }
+
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($null -ne $property) {
+        return $property.Value
+    }
+    return $null
+}
+
+
 function Test-FilterSyntax {
-    param([string]$Rule)
+    <#
+    .SYNOPSIS
+        Tests whether the service accepts a filter rule for Windows 10 and later.
+
+    .DESCRIPTION
+        Sends the rule to deviceManagement/assignmentFilters/validateFilter as a device filter for
+        the windows10AndLater platform and returns the isValidRule answer, read from the top of
+        the reply or from its value property. Nothing is created. A request that fails ends the
+        function with Graph's error.
+
+    .PARAMETER Rule
+        The filter rule text, such as '(device.deviceName -eq "X")'.
+
+    .EXAMPLE
+        Test-FilterSyntax -Rule '(device.deviceName -eq "X")'
+
+        Returns $true when the service accepts the rule.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Boolean.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [string]$Rule
+    )
+
     $body = @{
         deviceAndAppManagementAssignmentFilter = @{
             '@odata.type' = '#microsoft.graph.deviceAndAppManagementAssignmentFilter'
@@ -316,32 +405,79 @@ function Test-FilterSyntax {
         Method = 'POST'; Uri = "$graph/deviceManagement/assignmentFilters/validateFilter"
         Body = ($body | ConvertTo-Json -Depth 5); ContentType = 'application/json'
     }
-    $answer = Invoke-MgGraphRequest @requestSplat
-    if ($null -ne $answer.isValidRule) { [bool]$answer.isValidRule } else { [bool]$answer.value.isValidRule }
+    try {
+        $answer = Invoke-MgGraphRequest @requestSplat -ErrorAction Stop
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+
+    $isValidRule = Get-ReplyValue -InputObject $answer -Name 'isValidRule'
+    if ($null -eq $isValidRule) {
+        $wrapped = Get-ReplyValue -InputObject $answer -Name 'value'
+        $isValidRule = Get-ReplyValue -InputObject $wrapped -Name 'isValidRule'
+    }
+    [bool]$isValidRule
 }
 
+
 function Get-FilterMatch {
-    param([string]$Rule)
+    <#
+    .SYNOPSIS
+        Gets the names of the devices that a filter rule matches, as Preview devices shows them.
+
+    .DESCRIPTION
+        Sends the rule to deviceManagement/evaluateAssignmentFilter for the windows10AndLater
+        platform, asking for the first 100 devices. The service answers with an octet stream, so
+        the reply is written to a temporary file, read back as JSON and removed. Returns the value
+        of the deviceName column of each row. A request that fails ends the function with Graph's
+        error.
+
+    .PARAMETER Rule
+        The filter rule text, with the device's own values already in place of the tokens.
+
+    .EXAMPLE
+        Get-FilterMatch -Rule '(device.deviceName -eq "LAB-042")'
+
+        LAB-042, when that device is enrolled.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. One device name for each matching device.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [string]$Rule
+    )
+
     $body = @{
         data = @{
             '@odata.type' = '#microsoft.graph.assignmentFilterEvaluateRequest'
             platform = 'windows10AndLater'; rule = $Rule; top = 100; skip = 0
         }
     }
-    $file = Join-Path ([IO.Path]::GetTempPath()) "isl-filter-$([guid]::NewGuid().ToString('N')).json"
+    $fileName = "isl-filter-$([guid]::NewGuid().ToString('N')).json"
+    $file = Join-Path -Path ([IO.Path]::GetTempPath()) -ChildPath $fileName
     try {
         $requestSplat = @{
             Method = 'POST'; Uri = "$graph/deviceManagement/evaluateAssignmentFilter"
             Body = ($body | ConvertTo-Json -Depth 5); ContentType = 'application/json'; OutputFilePath = $file
         }
-        Invoke-MgGraphRequest @requestSplat
-        $answer = Get-Content -Path $file -Raw | ConvertFrom-Json
-        $nameIndex = [array]::IndexOf(@($answer.Columns.Name), 'deviceName')
-        @($answer.Values | ForEach-Object { $_[$nameIndex] })
+        Invoke-MgGraphRequest @requestSplat -ErrorAction Stop
+        $answer = Get-Content -LiteralPath $file -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    } finally {
+        Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue
     }
-    finally {
-        Remove-Item -Path $file -ErrorAction SilentlyContinue
-    }
+
+    $columnNames = @(foreach ($column in @(Get-ReplyValue -InputObject $answer -Name 'Columns')) {
+            Get-ReplyValue -InputObject $column -Name 'Name'
+        })
+    $nameIndex = [array]::IndexOf($columnNames, 'deviceName')
+    @(Get-ReplyValue -InputObject $answer -Name 'Values') | ForEach-Object { $_[$nameIndex] }
 }
 
 $result = [ordered]@{ Device = $device; Syntax = @(); Matching = @() }
@@ -362,6 +498,7 @@ foreach ($probe in $matching) {
     '{0} matched=[{1}] {2}   <= {3}' -f $entry.Id, ($entry.Matched -join ','), $entry.Error, $rule
 }
 
-$null = New-Item -ItemType Directory -Path (Split-Path -Path $OutputPath -Parent) -Force
-$result | ConvertTo-Json -Depth 6 | Set-Content -Path $OutputPath -Encoding utf8
+# Split-Path returns the parent by default; -Parent is not in the parameter set of -LiteralPath
+$null = New-Item -ItemType Directory -Path (Split-Path -LiteralPath $OutputPath) -Force
+$result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $OutputPath -Encoding utf8
 "Written $OutputPath"

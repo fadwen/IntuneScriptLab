@@ -75,12 +75,17 @@ param(
     [string]$RemoteName = (Split-Path -Path $ScriptPath -Leaf)
 )
 
+Set-StrictMode -Version Latest
+# Also what ends this script when a GuestAgent.ps1 function fails: such a function ends itself
+# with ThrowTerminatingError, and only this preference makes that error end the script
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
 
+# A path on the VM, which is Windows whatever the host runs: Join-Path would refuse the C: drive on
+# a Linux or macOS host, which has none
 $remote = "C:\ProgramData\IntuneScriptLab\$RemoteName"
-$content = Get-Content -Path (Resolve-Path -Path $ScriptPath) -Raw
+$content = Get-Content -LiteralPath (Resolve-Path -LiteralPath $ScriptPath) -Raw
 $bytes = [Text.UTF8Encoding]::new($true).GetPreamble() + [Text.Encoding]::UTF8.GetBytes($content)
 Send-GuestFile -RemotePath $remote -Bytes $bytes
 Write-Information -InformationAction Continue -MessageData "Delivered $ScriptPath to VM $VmId as $remote"

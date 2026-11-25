@@ -11,6 +11,10 @@
 #                                                          (REG_SZ '42'), Version (REG_SZ '10.0.1'),
 #                                                          View (REG_SZ '64'), subkey Only64
 #   HKLM\SOFTWARE\WOW6432Node\IntuneScriptLab (32-bit view) View (REG_SZ '32') only
+#
+# An instrument of the experiments, kept as it ran for the rounds that cite it: no strict mode,
+# required-version line or help block, so that what it puts on a device stays what Findings.md
+# describes (see Validation\README.md).
 $ErrorActionPreference = 'Stop'
 
 $fixtures = 'C:\ProgramData\IntuneScriptLab\Fixtures'
