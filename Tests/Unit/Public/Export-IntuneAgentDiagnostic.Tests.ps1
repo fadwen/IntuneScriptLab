@@ -229,6 +229,17 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             $manifest | Should-BeLikeString 'IntuneScriptLab diagnostic package*Logs: 2 file(s)*Registry: skipped*'
             $manifest | Should-BeLikeString '*Timeline: 3 event(s), 1 timeline(s)*'
         }
+
+        It 'lists the modules of the session, with a profile folder written from %USERPROFILE%' {
+            $system = Read-ZipEntry -Zip $script:Result.Path -Name 'Device/system.txt'
+            $module = Get-Module -Name IntuneScriptLab
+
+            $system | Should-BeLikeString "*Loaded modules:*  IntuneScriptLab $($module.Version) *"
+            $system | Should-BeLikeString '*  Pester *'
+            if ($env:USERPROFILE) {
+                $system.Contains("$env:USERPROFILE\") | Should-BeFalse
+            }
+        }
     }
 
     Context 'Options' {

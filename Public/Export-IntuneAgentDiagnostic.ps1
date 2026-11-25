@@ -94,6 +94,18 @@ function Export-IntuneAgentDiagnostic {
         if ($agentExe -and (Test-Path -LiteralPath $agentExe)) {
             $system.Add("Agent version: $((Get-Item -LiteralPath $agentExe).VersionInfo.FileVersion)")
         }
+        # The modules of this session, which decide what a harness run or an analysis loaded
+        # (ERR-41). A folder under the user's profile is written from %USERPROFILE%, so the list
+        # names nobody the rest of the package does not
+        $system.Add('Loaded modules:')
+        $profileRoot = "$env:USERPROFILE"
+        foreach ($loadedModule in @(Get-Module | Sort-Object -Property Name, Version)) {
+            $base = "$($loadedModule.ModuleBase)"
+            if ($profileRoot -and $base.StartsWith($profileRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $base = '%USERPROFILE%' + $base.Substring($profileRoot.Length)
+            }
+            $system.Add("  $($loadedModule.Name) $($loadedModule.Version) $base")
+        }
         Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system
         if (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue) {
             $joinState = @(& dsregcmd.exe /status 2>&1 | ForEach-Object { "$_" })
