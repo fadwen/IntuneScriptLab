@@ -49,20 +49,26 @@ pipeline still runs.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1
+```
 
 Runs the script in the 32-bit host as the current user and reports Success or Failed
 with the full output.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1 -Architecture x64 -TimeoutSeconds 60
+```
 
 64-bit host with a short timeout.
 
 ### EXAMPLE 3
 
+```powershell
 'x86', 'arm64' | ForEach-Object { Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture $_ }
+```
 
 Both hosts that exist on a Windows on ARM device.
 

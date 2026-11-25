@@ -53,19 +53,25 @@ Nothing on the device is changed.
 
 ### EXAMPLE 1
 
+```powershell
 Export-IntuneAgentDiagnostic -Path C:\Temp\intune-diag.zip
+```
 
 The full package from this device.
 
 ### EXAMPLE 2
 
+```powershell
 Export-IntuneAgentDiagnostic -Path .\diag -SkipRegistry -Force
+```
 
 Logs, device facts and timelines only, written to diag.zip over an earlier one.
 
 ### EXAMPLE 3
 
+```powershell
 Export-IntuneAgentDiagnostic -Path .\copied.zip -LogPath \\server\share\LAB-042\Logs -SkipRegistry
+```
 
 Timelines and logs from a log folder copied off another device; the registry describes this
 machine, so it is left out. The Device section still describes this machine, not the one the

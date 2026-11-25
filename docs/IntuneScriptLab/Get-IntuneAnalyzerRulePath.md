@@ -46,23 +46,29 @@ built-in rules in the same pass, the same CI gate and the same editor squiggles.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-ScriptAnalyzer -Path .\Remediations -Recurse -CustomRulePath (Get-IntuneAnalyzerRulePath) -IncludeDefaultRules
+```
 
 Every script under Remediations checked by the built-in rules and the IntuneScriptLab rules. Without
 -IncludeDefaultRules a -CustomRulePath runs the custom rules alone.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-ScriptAnalyzer -Path .\Detect-App.ps1 -CustomRulePath (Get-IntuneAnalyzerRulePath) `
     -IncludeDefaultRules:$false -ExcludeRule Measure-IslAssumedContext
+```
 
 Only the IntuneScriptLab rules, without the note about the assumed script type.
 
 ### EXAMPLE 3
 
+```powershell
 $rules = Get-IntuneAnalyzerRulePath
 "@{ CustomRulePath = '$rules'; IncludeDefaultRules = `$true }" |
     Set-Content .\PSScriptAnalyzerSettings.psd1
+```
 
 Writes a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.
 

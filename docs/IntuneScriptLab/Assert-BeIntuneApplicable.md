@@ -36,20 +36,26 @@ parse as the rule's type, or the value that did not meet the operator.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
     Should-BeIntuneApplicable
+```
 
 Fails with the reason when the output would not satisfy the rule.
 
 ### EXAMPLE 2
 
+```powershell
 $result | Should-BeIntuneApplicable -Because 'the agent is installed on the test machine'
+```
 
 With a reason for the failure message.
 
 ### EXAMPLE 3
 
+```powershell
 Assert-BeIntuneApplicable $result
+```
 
 The function name, without the Should- alias.
 

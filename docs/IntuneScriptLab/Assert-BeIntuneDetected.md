@@ -35,20 +35,26 @@ the reason Intune would give: the exit code, missing stdout, or output on stderr
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-BeIntuneDetected
+```
 
 The app must be detected on this machine.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 |
     Should-BeIntuneDetected -Because 'the rule is set to run as 32-bit'
+```
 
 Same, in the 32-bit host, with the reason in the failure message.
 
 ### EXAMPLE 3
 
+```powershell
 $result | Should-NotBeIntuneDetected
+```
 
 The opposite check, for a machine where the app is absent.
 

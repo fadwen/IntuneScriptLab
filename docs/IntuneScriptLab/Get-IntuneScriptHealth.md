@@ -72,28 +72,36 @@ try or the script sets $ErrorActionPreference to Stop.
 
 ### EXAMPLE 1
 
+```powershell
 Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
     DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
 Get-IntuneScriptHealth | Where-Object Health -ne Healthy
+```
 
 Every policy that needs a look, with the reasons in Notes.
 
 ### EXAMPLE 2
 
+```powershell
 Get-IntuneScriptHealth -Path C:\Repos\intune-scripts -MarkdownPath .\intune-health.md
+```
 
 The full report with the drift column, written to a Markdown file as well.
 
 ### EXAMPLE 3
 
+```powershell
 Get-IntuneScriptHealth -Kind Remediation -SkipRunState |
     Sort-Object Health | Format-Table Health, PolicyName, Errors, Warnings, Assigned, Notes
+```
 
 The remediations judged on their scripts and assignments alone, without the lagging run states.
 
 ### EXAMPLE 4
 
+```powershell
 (Get-IntuneScriptHealth -Name 'Fix-*').Findings | Format-Table RuleName, Role, Message
+```
 
 The findings behind the counts of one policy family.
 

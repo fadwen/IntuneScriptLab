@@ -39,19 +39,25 @@ error of the analysis.
 
 ### EXAMPLE 1
 
+```powershell
 '.\Detect.ps1' | Should-PassIntuneAnalysis
+```
 
 No warnings or errors for the script, with its type inferred from the name.
 
 ### EXAMPLE 2
 
+```powershell
 Get-ChildItem .\Remediations -Filter *.ps1 | Should-PassIntuneAnalysis -ScriptType Detection
+```
 
 Every file, analyzed as a remediation detection script.
 
 ### EXAMPLE 3
 
+```powershell
 '.\Detect-App.ps1' | Should-PassIntuneAnalysis -MinimumSeverity Error -ScriptType Win32Detection
+```
 
 Only findings that would make the detection rule report not detected.
 

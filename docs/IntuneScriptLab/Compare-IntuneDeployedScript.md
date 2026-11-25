@@ -74,8 +74,10 @@ script sets $ErrorActionPreference to Stop.
 
 ### EXAMPLE 1
 
+```powershell
 Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
 Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync
+```
 
 Every deployed script whose local copy differs, is missing or is ambiguous.
 In a pipeline
@@ -83,25 +85,31 @@ an empty result means the tenant matches the checkout.
 
 ### EXAMPLE 2
 
+```powershell
 Compare-IntuneDeployedScript -Path . -Kind Remediation -Name 'Fix-*' |
     Format-Table PolicyName, Role, State, Differences, Detail
+```
 
 The remediations named Fix-* against the current folder, with what differs and where.
 
 ### EXAMPLE 3
 
+```powershell
 $map = @{
     'Fix-Widget' = @{ Detection = '.\widget\check.ps1'; Remediation = '.\widget\repair.ps1' }
     'Set-Proxy'  = '.\network\proxy.ps1'
 }
 Compare-IntuneDeployedScript -Path . -Map $map
+```
 
 Named files instead of the folder convention; any other policy still uses the convention.
 
 ### EXAMPLE 4
 
+```powershell
 $drift = Compare-IntuneDeployedScript -Path .\Intune | Where-Object Differences -contains 'Bom'
 $drift | Select-Object PolicyName, Role, Detail
+```
 
 Scripts whose byte order mark differs between git and the tenant, the difference that changes
 how Windows PowerShell 5.1 reads a non-ASCII character.

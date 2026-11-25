@@ -48,20 +48,26 @@ CI gate (Examples\Invoke-IntuneScriptGate.ps1 -SarifPath) writes it as part of a
 
 ### EXAMPLE 1
 
+```powershell
 Test-IntuneScript -Path .\Intune -IncludeSuppressed | Export-IntuneFindingSarif -Path .\results.sarif
+```
 
 Every finding, suppressed ones marked as such, in a file ready for upload-sarif.
 
 ### EXAMPLE 2
 
+```powershell
 $findings = Test-IntuneScript -Path .\Remediations -MinimumSeverity Warning
 Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -Root $env:GITHUB_WORKSPACE
+```
 
 Warnings and errors only, paths relative to the checkout on a GitHub runner.
 
 ### EXAMPLE 3
 
+```powershell
 Export-IntuneFindingSarif -Finding @() -Path .\results.sarif
+```
 
 A valid log with no results, so a clean run still uploads and closes earlier alerts.
 

@@ -50,21 +50,27 @@ pipeline still runs.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneDetectionTest -Path .\Detect-App.ps1
+```
 
 Runs the script in the 64-bit host and reports whether Intune would consider the app
 installed, and why not if it wouldn't.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 | Select-Object Detected, Reason
+```
 
 The same script with "Run script as 32-bit process" on, which changes what HKLM:\SOFTWARE
 and Program Files resolve to.
 
 ### EXAMPLE 3
 
+```powershell
 (Invoke-IntuneDetectionTest -Path .\Detect-App.ps1).Detected | Should -BeTrue
+```
 
 Inside a Pester test.
 

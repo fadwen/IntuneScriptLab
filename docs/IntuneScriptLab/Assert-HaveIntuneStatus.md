@@ -41,21 +41,27 @@ and error, and the harness warnings.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 |
     Should-HaveIntuneStatus 'Fixed'
+```
 
 The full flow must end Fixed.
 
 ### EXAMPLE 2
 
+```powershell
 $result | Should-HaveIntuneStatus 'Without issues' -Because 'the baseline image is compliant'
+```
 
 Detection alone, with the reason in the failure message.
 
 ### EXAMPLE 3
 
+```powershell
 Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'setup.exe /S' | Should-HaveIntuneStatus 'Installed after install'
+```
 
 A Win32 package that must install and then be detected.
 

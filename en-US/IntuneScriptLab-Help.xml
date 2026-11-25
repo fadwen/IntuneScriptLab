@@ -97,8 +97,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
-    Should-BeIntuneApplicable</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
+    Should-BeIntuneApplicable
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Fails with the reason when the output would not satisfy the rule.</maml:para>
         </maml:introduction>
@@ -108,7 +110,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-BeIntuneApplicable -Because 'the agent is installed on the test machine'</maml:para>
+          <maml:para>```powershell
+$result | Should-BeIntuneApplicable -Because 'the agent is installed on the test machine'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>With a reason for the failure message.</maml:para>
         </maml:introduction>
@@ -118,7 +122,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Assert-BeIntuneApplicable $result</maml:para>
+          <maml:para>```powershell
+Assert-BeIntuneApplicable $result
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The function name, without the Should- alias.</maml:para>
         </maml:introduction>
@@ -237,7 +243,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-BeIntuneDetected</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-BeIntuneDetected
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The app must be detected on this machine.</maml:para>
         </maml:introduction>
@@ -247,8 +255,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 |
-    Should-BeIntuneDetected -Because 'the rule is set to run as 32-bit'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 |
+    Should-BeIntuneDetected -Because 'the rule is set to run as 32-bit'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Same, in the 32-bit host, with the reason in the failure message.</maml:para>
         </maml:introduction>
@@ -258,7 +268,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-NotBeIntuneDetected</maml:para>
+          <maml:para>```powershell
+$result | Should-NotBeIntuneDetected
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The opposite check, for a machine where the app is absent.</maml:para>
         </maml:introduction>
@@ -395,7 +407,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 | Should-HaveIntuneRunState 'Success'</maml:para>
+          <maml:para>```powershell
+Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 | Should-HaveIntuneRunState 'Success'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The script must succeed.</maml:para>
         </maml:introduction>
@@ -405,8 +419,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture x64 |
-    Should-HaveIntuneRunState 'Success' -Because 'the policy runs it in 64-bit'</maml:para>
+          <maml:para>```powershell
+Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture x64 |
+    Should-HaveIntuneRunState 'Success' -Because 'the policy runs it in 64-bit'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>In the 64-bit host, with the reason.</maml:para>
         </maml:introduction>
@@ -416,7 +432,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-HaveIntuneRunState 'Failed'</maml:para>
+          <maml:para>```powershell
+$result | Should-HaveIntuneRunState 'Failed'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A script that is expected to fail on this machine.</maml:para>
         </maml:introduction>
@@ -563,8 +581,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 |
-    Should-HaveIntuneStatus 'Fixed'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 |
+    Should-HaveIntuneStatus 'Fixed'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The full flow must end Fixed.</maml:para>
         </maml:introduction>
@@ -574,7 +594,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-HaveIntuneStatus 'Without issues' -Because 'the baseline image is compliant'</maml:para>
+          <maml:para>```powershell
+$result | Should-HaveIntuneStatus 'Without issues' -Because 'the baseline image is compliant'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Detection alone, with the reason in the failure message.</maml:para>
         </maml:introduction>
@@ -584,8 +606,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
-    -InstallCommand 'setup.exe /S' | Should-HaveIntuneStatus 'Installed after install'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
+    -InstallCommand 'setup.exe /S' | Should-HaveIntuneStatus 'Installed after install'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A Win32 package that must install and then be detected.</maml:para>
         </maml:introduction>
@@ -704,8 +728,10 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
-    Should-NotBeIntuneApplicable</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
+    Should-NotBeIntuneApplicable
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Fails, quoting the output, when the rule would be met.</maml:para>
         </maml:introduction>
@@ -715,7 +741,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-NotBeIntuneApplicable -Because 'the prerequisite is absent here'</maml:para>
+          <maml:para>```powershell
+$result | Should-NotBeIntuneApplicable -Because 'the prerequisite is absent here'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>With a reason for the failure message.</maml:para>
         </maml:introduction>
@@ -725,7 +753,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Assert-NotBeIntuneApplicable $result</maml:para>
+          <maml:para>```powershell
+Assert-NotBeIntuneApplicable $result
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The function name, without the Should- alias.</maml:para>
         </maml:introduction>
@@ -844,7 +874,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-NotBeIntuneDetected</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-NotBeIntuneDetected
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>On a machine without the app, the rule must not report it installed.</maml:para>
         </maml:introduction>
@@ -854,7 +886,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-NotBeIntuneDetected -Because 'the package was uninstalled in BeforeAll'</maml:para>
+          <maml:para>```powershell
+$result | Should-NotBeIntuneDetected -Because 'the package was uninstalled in BeforeAll'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>With the reason in the failure message.</maml:para>
         </maml:introduction>
@@ -864,7 +898,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result | Should-BeIntuneDetected</maml:para>
+          <maml:para>```powershell
+$result | Should-BeIntuneDetected
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The opposite check.</maml:para>
         </maml:introduction>
@@ -1033,7 +1069,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>'.\Detect.ps1' | Should-PassIntuneAnalysis</maml:para>
+          <maml:para>```powershell
+'.\Detect.ps1' | Should-PassIntuneAnalysis
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>No warnings or errors for the script, with its type inferred from the name.</maml:para>
         </maml:introduction>
@@ -1043,7 +1081,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-ChildItem .\Remediations -Filter *.ps1 | Should-PassIntuneAnalysis -ScriptType Detection</maml:para>
+          <maml:para>```powershell
+Get-ChildItem .\Remediations -Filter *.ps1 | Should-PassIntuneAnalysis -ScriptType Detection
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every file, analyzed as a remediation detection script.</maml:para>
         </maml:introduction>
@@ -1053,7 +1093,9 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>'.\Detect-App.ps1' | Should-PassIntuneAnalysis -MinimumSeverity Error -ScriptType Win32Detection</maml:para>
+          <maml:para>```powershell
+'.\Detect-App.ps1' | Should-PassIntuneAnalysis -MinimumSeverity Error -ScriptType Win32Detection
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Only findings that would make the detection rule report not detected.</maml:para>
         </maml:introduction>
@@ -1292,8 +1334,10 @@ Windows PowerShell 5.1 reads UTF-8 without a BOM as ANSI (Validation\Findings.md
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
-Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync</maml:para>
+          <maml:para>```powershell
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementApps.Read.All
+Compare-IntuneDeployedScript -Path C:\Repos\intune-scripts | Where-Object State -ne InSync
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script whose local copy differs, is missing or is ambiguous.
 In a pipeline
@@ -1305,8 +1349,10 @@ an empty result means the tenant matches the checkout.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Compare-IntuneDeployedScript -Path . -Kind Remediation -Name 'Fix-*' |
-    Format-Table PolicyName, Role, State, Differences, Detail</maml:para>
+          <maml:para>```powershell
+Compare-IntuneDeployedScript -Path . -Kind Remediation -Name 'Fix-*' |
+    Format-Table PolicyName, Role, State, Differences, Detail
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The remediations named Fix-* against the current folder, with what differs and where.</maml:para>
         </maml:introduction>
@@ -1316,11 +1362,13 @@ an empty result means the tenant matches the checkout.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$map = @{
+          <maml:para>```powershell
+$map = @{
     'Fix-Widget' = @{ Detection = '.\widget\check.ps1'; Remediation = '.\widget\repair.ps1' }
     'Set-Proxy'  = '.\network\proxy.ps1'
 }
-Compare-IntuneDeployedScript -Path . -Map $map</maml:para>
+Compare-IntuneDeployedScript -Path . -Map $map
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Named files instead of the folder convention; any other policy still uses the convention.</maml:para>
         </maml:introduction>
@@ -1330,8 +1378,10 @@ Compare-IntuneDeployedScript -Path . -Map $map</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$drift = Compare-IntuneDeployedScript -Path .\Intune | Where-Object Differences -contains 'Bom'
-$drift | Select-Object PolicyName, Role, Detail</maml:para>
+          <maml:para>```powershell
+$drift = Compare-IntuneDeployedScript -Path .\Intune | Where-Object Differences -contains 'Bom'
+$drift | Select-Object PolicyName, Role, Detail
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Scripts whose byte order mark differs between git and the tenant, the difference that changes
 how Windows PowerShell 5.1 reads a non-ASCII character.</maml:para>
@@ -1548,7 +1598,9 @@ and writes no package.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Export-IntuneAgentDiagnostic -Path C:\Temp\intune-diag.zip</maml:para>
+          <maml:para>```powershell
+Export-IntuneAgentDiagnostic -Path C:\Temp\intune-diag.zip
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The full package from this device.</maml:para>
         </maml:introduction>
@@ -1558,7 +1610,9 @@ and writes no package.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Export-IntuneAgentDiagnostic -Path .\diag -SkipRegistry -Force</maml:para>
+          <maml:para>```powershell
+Export-IntuneAgentDiagnostic -Path .\diag -SkipRegistry -Force
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Logs, device facts and timelines only, written to diag.zip over an earlier one.</maml:para>
         </maml:introduction>
@@ -1568,7 +1622,9 @@ and writes no package.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Export-IntuneAgentDiagnostic -Path .\copied.zip -LogPath \\server\share\LAB-042\Logs -SkipRegistry</maml:para>
+          <maml:para>```powershell
+Export-IntuneAgentDiagnostic -Path .\copied.zip -LogPath \\server\share\LAB-042\Logs -SkipRegistry
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Timelines and logs from a log folder copied off another device; the registry describes this
 machine, so it is left out. The Device section still describes this machine, not the one the
@@ -1757,7 +1813,9 @@ the rules themselves.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneScript -Path .\Intune -IncludeSuppressed | Export-IntuneFindingSarif -Path .\results.sarif</maml:para>
+          <maml:para>```powershell
+Test-IntuneScript -Path .\Intune -IncludeSuppressed | Export-IntuneFindingSarif -Path .\results.sarif
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every finding, suppressed ones marked as such, in a file ready for upload-sarif.</maml:para>
         </maml:introduction>
@@ -1767,8 +1825,10 @@ the rules themselves.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$findings = Test-IntuneScript -Path .\Remediations -MinimumSeverity Warning
-Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -Root $env:GITHUB_WORKSPACE</maml:para>
+          <maml:para>```powershell
+$findings = Test-IntuneScript -Path .\Remediations -MinimumSeverity Warning
+Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -Root $env:GITHUB_WORKSPACE
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Warnings and errors only, paths relative to the checkout on a GitHub runner.</maml:para>
         </maml:introduction>
@@ -1778,7 +1838,9 @@ Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -R
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Export-IntuneFindingSarif -Finding @() -Path .\results.sarif</maml:para>
+          <maml:para>```powershell
+Export-IntuneFindingSarif -Finding @() -Path .\results.sarif
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A valid log with no results, so a clean run still uploads and closes earlier alerts.</maml:para>
         </maml:introduction>
@@ -2061,7 +2123,9 @@ a line the agent writes that is not in the table has no event and passes through
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentLog -Log HealthScripts -EventName RemediationStart, DetectionResult -Last 10</maml:para>
+          <maml:para>```powershell
+Get-IntuneAgentLog -Log HealthScripts -EventName RemediationStart, DetectionResult -Last 10
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The last ten remediation launches and detection verdicts on this device.</maml:para>
         </maml:introduction>
@@ -2071,8 +2135,10 @@ a line the agent writes that is not in the table has no event and passes through
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentLog -Id bbf7e139-fe9d-4783-80df-627b8e084059 -After (Get-Date).AddHours(-2) |
-    Format-Table Time, Log, Event, Detail, Message</maml:para>
+          <maml:para>```powershell
+Get-IntuneAgentLog -Id bbf7e139-fe9d-4783-80df-627b8e084059 -After (Get-Date).AddHours(-2) |
+    Format-Table Time, Log, Event, Detail, Message
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Everything the agent logged about one policy in the last two hours, across all four logs.</maml:para>
         </maml:introduction>
@@ -2082,8 +2148,10 @@ a line the agent writes that is not in the table has no event and passes through
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppReport |
-    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 1 }</maml:para>
+          <maml:para>```powershell
+Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppReport |
+    Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 1 }
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>From a copied log folder: the last detection or report per app. An install exit code line
 carries no app id, so read those with -EventName AppInstallExit on their own.</maml:para>
@@ -2272,7 +2340,9 @@ timeline; Get-IntuneAgentLog -Log AgentExecutor shows them by time.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentTimeline -Log HealthScripts | Format-Table Id, Started, Duration, Runs, Outcome</maml:para>
+          <maml:para>```powershell
+Get-IntuneAgentTimeline -Log HealthScripts | Format-Table Id, Started, Duration, Runs, Outcome
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every remediation the agent processed, with how long each took and how it ended.</maml:para>
         </maml:introduction>
@@ -2282,8 +2352,10 @@ timeline; Get-IntuneAgentLog -Log AgentExecutor shows them by time.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>(Get-IntuneAgentTimeline -Id bbf7e139-fe9d-4783-80df-627b8e084059).Steps |
-    Format-Table Time, Log, Event, Detail</maml:para>
+          <maml:para>```powershell
+(Get-IntuneAgentTimeline -Id bbf7e139-fe9d-4783-80df-627b8e084059).Steps |
+    Format-Table Time, Log, Event, Detail
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Step by step for one policy.</maml:para>
         </maml:introduction>
@@ -2293,8 +2365,10 @@ timeline; Get-IntuneAgentLog -Log AgentExecutor shows them by time.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneAgentTimeline -Path .\Logs -After (Get-Date).AddHours(-1) |
-    Where-Object Outcome -like 'App*Report*' | Select-Object Name, Outcome, Summary</maml:para>
+          <maml:para>```powershell
+Get-IntuneAgentTimeline -Path .\Logs -After (Get-Date).AddHours(-1) |
+    Where-Object Outcome -like 'App*Report*' | Select-Object Name, Outcome, Summary
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The apps a copied log folder shows in the last hour, by name, with their reported states.</maml:para>
         </maml:introduction>
@@ -2381,7 +2455,9 @@ returns none of them and -Severity Warning returns all of them, whatever each re
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-ScriptAnalyzer -Path .\Remediations -Recurse -CustomRulePath (Get-IntuneAnalyzerRulePath) -IncludeDefaultRules</maml:para>
+          <maml:para>```powershell
+Invoke-ScriptAnalyzer -Path .\Remediations -Recurse -CustomRulePath (Get-IntuneAnalyzerRulePath) -IncludeDefaultRules
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every script under Remediations checked by the built-in rules and the IntuneScriptLab rules. Without
 -IncludeDefaultRules a -CustomRulePath runs the custom rules alone.</maml:para>
@@ -2392,8 +2468,10 @@ returns none of them and -Severity Warning returns all of them, whatever each re
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-ScriptAnalyzer -Path .\Detect-App.ps1 -CustomRulePath (Get-IntuneAnalyzerRulePath) `
-    -IncludeDefaultRules:$false -ExcludeRule Measure-IslAssumedContext</maml:para>
+          <maml:para>```powershell
+Invoke-ScriptAnalyzer -Path .\Detect-App.ps1 -CustomRulePath (Get-IntuneAnalyzerRulePath) `
+    -IncludeDefaultRules:$false -ExcludeRule Measure-IslAssumedContext
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Only the IntuneScriptLab rules, without the note about the assumed script type.</maml:para>
         </maml:introduction>
@@ -2403,9 +2481,11 @@ returns none of them and -Severity Warning returns all of them, whatever each re
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$rules = Get-IntuneAnalyzerRulePath
+          <maml:para>```powershell
+$rules = Get-IntuneAnalyzerRulePath
 "@{ CustomRulePath = '$rules'; IncludeDefaultRules = `$true }" |
-    Set-Content .\PSScriptAnalyzerSettings.psd1</maml:para>
+    Set-Content .\PSScriptAnalyzerSettings.psd1
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Writes a PSScriptAnalyzerSettings.psd1 that includes the rules in every run.</maml:para>
         </maml:introduction>
@@ -2736,9 +2816,11 @@ the run in the 2026-09-29 measurement, seconds after the upload itself); platfor
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
+          <maml:para>```powershell
+Connect-MgGraph -Scopes DeviceManagementConfiguration.Read.All, DeviceManagementApps.ReadWrite.All,
     DeviceManagementScripts.Read.All, GroupMember.ReadBasic.All
-Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
+Get-IntuneScriptHealth | Where-Object Health -ne Healthy
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every policy that needs a look, with the reasons in Notes.</maml:para>
         </maml:introduction>
@@ -2748,7 +2830,9 @@ Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneScriptHealth -Path C:\Repos\intune-scripts -MarkdownPath .\intune-health.md</maml:para>
+          <maml:para>```powershell
+Get-IntuneScriptHealth -Path C:\Repos\intune-scripts -MarkdownPath .\intune-health.md
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The full report with the drift column, written to a Markdown file as well.</maml:para>
         </maml:introduction>
@@ -2758,8 +2842,10 @@ Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-IntuneScriptHealth -Kind Remediation -SkipRunState |
-    Sort-Object Health | Format-Table Health, PolicyName, Errors, Warnings, Assigned, Notes</maml:para>
+          <maml:para>```powershell
+Get-IntuneScriptHealth -Kind Remediation -SkipRunState |
+    Sort-Object Health | Format-Table Health, PolicyName, Errors, Warnings, Assigned, Notes
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The remediations judged on their scripts and assignments alone, without the lagging run states.</maml:para>
         </maml:introduction>
@@ -2769,7 +2855,9 @@ Get-IntuneScriptHealth | Where-Object Health -ne Healthy</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>(Get-IntuneScriptHealth -Name 'Fix-*').Findings | Format-Table RuleName, Role, Message</maml:para>
+          <maml:para>```powershell
+(Get-IntuneScriptHealth -Name 'Fix-*').Findings | Format-Table RuleName, Role, Message
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The findings behind the counts of one policy family.</maml:para>
         </maml:introduction>
@@ -3012,7 +3100,9 @@ PERFORMANCE: one Windows PowerShell process per run; the default timeout is 5 mi
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneDetectionTest -Path .\Detect-App.ps1</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneDetectionTest -Path .\Detect-App.ps1
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Runs the script in the 64-bit host and reports whether Intune would consider the app
 installed, and why not if it wouldn't.</maml:para>
@@ -3023,7 +3113,9 @@ installed, and why not if it wouldn't.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 | Select-Object Detected, Reason</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 -Architecture x86 | Select-Object Detected, Reason
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The same script with "Run script as 32-bit process" on, which changes what HKLM:\SOFTWARE
 and Program Files resolve to.</maml:para>
@@ -3034,7 +3126,9 @@ and Program Files resolve to.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>(Invoke-IntuneDetectionTest -Path .\Detect-App.ps1).Detected | Should -BeTrue</maml:para>
+          <maml:para>```powershell
+(Invoke-IntuneDetectionTest -Path .\Detect-App.ps1).Detected | Should -BeTrue
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Inside a Pester test.</maml:para>
         </maml:introduction>
@@ -3265,7 +3359,9 @@ access denied and is reported Failed despite exit 0 (Findings, "The Enrollment S
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1</maml:para>
+          <maml:para>```powershell
+Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Runs the script in the 32-bit host as the current user and reports Success or Failed
 with the full output.</maml:para>
@@ -3276,7 +3372,9 @@ with the full output.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1 -Architecture x64 -TimeoutSeconds 60</maml:para>
+          <maml:para>```powershell
+Invoke-IntunePlatformScriptTest -Path .\Configure-Proxy.ps1 -Architecture x64 -TimeoutSeconds 60
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>64-bit host with a short timeout.</maml:para>
         </maml:introduction>
@@ -3286,7 +3384,9 @@ with the full output.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>'x86', 'arm64' | ForEach-Object { Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture $_ }</maml:para>
+          <maml:para>```powershell
+'x86', 'arm64' | ForEach-Object { Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture $_ }
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Both hosts that exist on a Windows on ARM device.</maml:para>
         </maml:introduction>
@@ -3555,7 +3655,9 @@ the page's apps need (Findings, "The Enrollment Status Page").</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Runs the full flow in the 32-bit host and reports Without issues, Fixed, Recurred or Failed.</maml:para>
         </maml:introduction>
@@ -3565,7 +3667,9 @@ the page's apps need (Findings, "The Enrollment Status Page").</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 -Architecture x64</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 -Architecture x64
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The same pair with "Run script in 64-bit PowerShell" on.
 A Recurred here and Fixed in x86
@@ -3577,8 +3681,10 @@ A Recurred here and Fixed in x86
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$r = Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1
-$r.PreDetection.StdOut</maml:para>
+          <maml:para>```powershell
+$r = Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1
+$r.PreDetection.StdOut
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Detection only, with the complete captured output rather than the last line Intune keeps.</maml:para>
         </maml:introduction>
@@ -3863,7 +3969,9 @@ PERFORMANCE: one Windows PowerShell process per run; the default timeout is 5 mi
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Runs the script in the 64-bit host and reports whether the app would be applicable, and
 why not if it would not.</maml:para>
@@ -3874,8 +3982,10 @@ why not if it would not.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRequirementTest -Path .\Get-AgentVersion.ps1 -OutputType Version `
-    -Operator GreaterThanOrEqual -Value '2.9.0'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRequirementTest -Path .\Get-AgentVersion.ps1 -OutputType Version `
+    -Operator GreaterThanOrEqual -Value '2.9.0'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A version rule: "2.10.0" meets it, which a string comparison would deny.</maml:para>
         </maml:introduction>
@@ -3885,8 +3995,10 @@ why not if it would not.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType Integer -Operator GreaterThan `
-    -Value '3' -Context System | Should-BeIntuneApplicable</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType Integer -Operator GreaterThan `
+    -Value '3' -Context System | Should-BeIntuneApplicable
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>As SYSTEM from an elevated session, inside a Pester test.</maml:para>
         </maml:introduction>
@@ -4271,7 +4383,7 @@ Default 10 minutes (Intune: 60).</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="12" aliases="none">
         <maml:name>ReturnCodes</maml:name>
         <maml:description>
-          <maml:para>Exit code → outcome map for the install command.
+          <maml:para>Map from exit code to outcome for the install command.
 Default is Intune's:
 0 and 1707 success, 3010 soft reboot, 1641 hard reboot, 1618 retry.</maml:para>
         </maml:description>
@@ -4362,8 +4474,10 @@ PERFORMANCE: the content folder is copied; installers run with a 10-minute defau
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
-    -InstallCommand 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
+    -InstallCommand 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Full flow as the current user, 64-bit detection, 32-bit install command.</maml:para>
         </maml:introduction>
@@ -4373,8 +4487,10 @@ PERFORMANCE: the content folder is copied; installers run with a 10-minute defau
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
-    -InstallCommand 'setup.exe /S' -Context System -InstallTimeoutSeconds 1800</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
+    -InstallCommand 'setup.exe /S' -Context System -InstallTimeoutSeconds 1800
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>As SYSTEM from an elevated session, which is what Intune does by default.</maml:para>
         </maml:introduction>
@@ -4384,9 +4500,11 @@ PERFORMANCE: the content folder is copied; installers run with a 10-minute defau
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$r = Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
+          <maml:para>```powershell
+$r = Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'msiexec /i app.msi /qn'
-$r.Status; $r.Install.StdOut</maml:para>
+$r.Status; $r.Install.StdOut
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Inspect the installer's output after the run.</maml:para>
         </maml:introduction>
@@ -4396,13 +4514,15 @@ $r.Status; $r.Install.StdOut</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$rules = @(
+          <maml:para>```powershell
+$rules = @(
     @{ Type = 'File'; Path = '%ProgramFiles%\Vendor'; FileOrFolderName = 'app.exe'; OperationType = 'version'
        Operator = 'greaterThanOrEqual'; ComparisonValue = '2.0' }
     @{ Type = 'Registry'; KeyPath = 'HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App'; ValueName = 'Installed'
        OperationType = 'integer'; Operator = 'equal'; ComparisonValue = '1' }
 )
-Invoke-IntuneWin32AppTest -DetectionRule $rules -ContentPath .\Package -InstallCommand 'setup.exe /S'</maml:para>
+Invoke-IntuneWin32AppTest -DetectionRule $rules -ContentPath .\Package -InstallCommand 'setup.exe /S'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Detection by two portal-style rules with no script; both must be met, and the ones that are not
 are listed in Warnings with the reason.</maml:para>
@@ -4413,8 +4533,10 @@ are listed in Warnings with the reason.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 5 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package -Intent Uninstall `
-    -UninstallCommand 'setup.exe /uninstall /S' | Should-HaveIntuneStatus 'Uninstalled'</maml:para>
+          <maml:para>```powershell
+Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package -Intent Uninstall `
+    -UninstallCommand 'setup.exe /uninstall /S' | Should-HaveIntuneStatus 'Uninstalled'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The uninstall flow the agent runs for an uninstall assignment: detect, run the uninstall command,
 detect again.</maml:para>
@@ -4425,7 +4547,8 @@ detect again.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 6 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$runtime = @{
+          <maml:para>```powershell
+$runtime = @{
     Name = 'Vendor Runtime'; DetectionPath = '.\Runtime\Detect-Runtime.ps1'
     ContentPath = '.\Runtime\Package'; InstallCommand = 'runtime.exe /S'
 }
@@ -4436,7 +4559,8 @@ $previous = @{
 $r = Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'setup.exe /S' -DependsOn $runtime -Supersedes $previous
 $r.Dependencies | Format-Table Name, Relationship, Status
-$r.Superseded | Format-Table Name, Relationship, Status</maml:para>
+$r.Superseded | Format-Table Name, Relationship, Status
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The relationships page of an app: the runtime is installed first if it is missing, the 1.x
 package is uninstalled if it is present, then the app installs.</maml:para>
@@ -4743,7 +4867,9 @@ script already did, or changes the file's encoding, never what the script decide
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Repair-IntuneScript -Path .\Remediations -WhatIf</maml:para>
+          <maml:para>```powershell
+Repair-IntuneScript -Path .\Remediations -WhatIf
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Lists the edits that would be made, per script, without touching anything.</maml:para>
         </maml:introduction>
@@ -4753,7 +4879,9 @@ script already did, or changes the file's encoding, never what the script decide
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Repair-IntuneScript -Path .\Remediations\Widget\Detect.ps1</maml:para>
+          <maml:para>```powershell
+Repair-IntuneScript -Path .\Remediations\Widget\Detect.ps1
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Applies the fixes and reports how many findings the script still has.</maml:para>
         </maml:introduction>
@@ -4763,7 +4891,9 @@ script already did, or changes the file's encoding, never what the script decide
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -IncludeRule IslOutputIssue</maml:para>
+          <maml:para>```powershell
+Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -IncludeRule IslOutputIssue
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Trims padded requirement values only, in every requirement script under Win32.</maml:para>
         </maml:introduction>
@@ -4773,7 +4903,9 @@ script already did, or changes the file's encoding, never what the script decide
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System</maml:para>
+          <maml:para>```powershell
+Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
 on either, and the Remaining count, match Test-IntuneScript run with the same options.</maml:para>
@@ -4973,8 +5105,10 @@ TROUBLESHOOTING:
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$rule = '(device.deviceName -startsWith "LAB-") and (device.cpuArchitecture -eq "arm64")'
-Test-IntuneAssignmentFilter -Rule $rule</maml:para>
+          <maml:para>```powershell
+$rule = '(device.deviceName -startsWith "LAB-") and (device.cpuArchitecture -eq "arm64")'
+Test-IntuneAssignmentFilter -Rule $rule
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Applicable : False
 Matched    : False
@@ -4994,9 +5128,11 @@ Rule       : (device.deviceName -startsWith "LAB-") and (device.cpuArchitecture 
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$device = @{ deviceName = 'LAB-042'; operatingSystemVersion = '10.0.26100.4652' }
+          <maml:para>```powershell
+$device = @{ deviceName = 'LAB-042'; operatingSystemVersion = '10.0.26100.4652' }
 $rule = '(device.operatingSystemVersion -lt 10.0.26100.5000)'
-Test-IntuneAssignmentFilter -Rule $rule -Device $device -Mode Exclude</maml:para>
+Test-IntuneAssignmentFilter -Rule $rule -Device $device -Mode Exclude
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Applicable : False
 Matched    : True
@@ -5015,10 +5151,12 @@ match excludes the device.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Get-MgBetaDeviceManagementAssignmentFilter -All |
+          <maml:para>```powershell
+Get-MgBetaDeviceManagementAssignmentFilter -All |
     Where-Object { "$($_.Platform)" -eq 'windows10AndLater' } |
     Test-IntuneAssignmentFilter -SyntaxOnly |
-    Where-Object Warnings | Select-Object Rule, Warnings</maml:para>
+    Where-Object Warnings | Select-Object Rule, Warnings
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every Windows filter in the tenant whose rule can never match a Windows device (a "x64"
 architecture, a "Microsoft Entra joined" trust type), without evaluating anything. The platform
@@ -5032,8 +5170,10 @@ isRooted is refused.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$result = Test-IntuneAssignmentFilter -Rule $rule -Device $device
-$result.Clauses | Format-Table Property, Operator, Value, Actual, Matched</maml:para>
+          <maml:para>```powershell
+$result = Test-IntuneAssignmentFilter -Rule $rule -Device $device
+$result.Clauses | Format-Table Property, Operator, Value, Actual, Matched
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The per-clause table: the value the rule asked for, the value the device had, and whether
 that clause matched.</maml:para>
@@ -5321,9 +5461,11 @@ modified.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
+          <maml:para>```powershell
+Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
     DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
-Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
+Test-IntuneDeployedScript -MinimumSeverity Warning
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every deployed script with a warning or an error, as the agent will run it.</maml:para>
         </maml:introduction>
@@ -5333,8 +5475,10 @@ Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneDeployedScript -Kind Remediation -Name 'Fix-*' |
-    Format-Table Severity, RuleName, Role, Line, Message</maml:para>
+          <maml:para>```powershell
+Test-IntuneDeployedScript -Kind Remediation -Name 'Fix-*' |
+    Format-Table Severity, RuleName, Role, Line, Message
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>The remediations named Fix-* only, detection and remediation scripts alike.</maml:para>
         </maml:introduction>
@@ -5344,8 +5488,10 @@ Test-IntuneDeployedScript -MinimumSeverity Warning</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneDeployedScript -Kind Win32App -SkipGroupLookup |
-    Group-Object PolicyName | Sort-Object Count -Descending | Select-Object Count, Name</maml:para>
+          <maml:para>```powershell
+Test-IntuneDeployedScript -Kind Win32App -SkipGroupLookup |
+    Group-Object PolicyName | Sort-Object Count -Descending | Select-Object Count, Name
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Which apps collect the most findings, script and policy checks together, without touching
 groups.</maml:para>
@@ -5393,9 +5539,9 @@ explicitly, put a directive in the script, or let them be inferred from the file
     # IntuneScriptLab: ScriptType=Detection Context=System Architecture=x64
 
 Inference from the file name and the two nearest folder names, each word matched at its
-start: requirement → Win32Requirement; detect with app, apps, win32, package, software,
-install, installed, msi or exe in the name or a folder → Win32Detection; detect → Detection;
-remediate/remediation/fix → Remediation; anything else → PlatformScript.
+start: requirement gives Win32Requirement; detect with app, apps, win32, package, software,
+install, installed, msi or exe in the name or a folder gives Win32Detection; detect alone gives
+Detection; remediate, remediation or fix gives Remediation; anything else is a PlatformScript.
 An
 IslAssumedContext note is emitted whenever the type was inferred rather than given by a
 parameter, a directive or a settings file, because the wrong type silently skips whole rule
@@ -5677,7 +5823,9 @@ SECURITY: reads the file bytes and AST only; nothing is executed.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneScript -Path .\Detect-LegacyTls.ps1 -ScriptType Detection</maml:para>
+          <maml:para>```powershell
+Test-IntuneScript -Path .\Detect-LegacyTls.ps1 -ScriptType Detection
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Runs every rule against a remediation detection script assumed to run as SYSTEM in the
 32-bit host.</maml:para>
@@ -5688,8 +5836,10 @@ SECURITY: reads the file bytes and AST only; nothing is executed.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneScript -Path .\Detect-App.ps1 -ScriptType Win32Detection -Architecture x64 |
-    Where-Object Severity -eq Error</maml:para>
+          <maml:para>```powershell
+Test-IntuneScript -Path .\Detect-App.ps1 -ScriptType Win32Detection -Architecture x64 |
+    Where-Object Severity -eq Error
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Only the findings that will make a Win32 detection rule report "not detected".</maml:para>
         </maml:introduction>
@@ -5699,10 +5849,12 @@ SECURITY: reads the file bytes and AST only; nothing is executed.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$ErrorActionPreference = 'Stop'
+          <maml:para>```powershell
+$ErrorActionPreference = 'Stop'
 $findings = @(Get-ChildItem .\Remediations -Recurse -Filter *.ps1 |
     Test-IntuneScript -MinimumSeverity Warning -ErrorAction Stop)
-if ($findings.Count -gt 0) { exit 1 }</maml:para>
+if ($findings.Count -gt 0) { exit 1 }
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Analyzes a whole folder, letting each file's name decide its type, and fails a CI step when
 anything comes back.
@@ -5718,7 +5870,9 @@ call, and the script ends with it only under an error preference of Stop.</maml:
       <command:example>
         <maml:title>--------- EXAMPLE 4 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneScript -Path .\Fix-Proxy.ps1 -ExcludeRule IslArchitectureIssue -Context User</maml:para>
+          <maml:para>```powershell
+Test-IntuneScript -Path .\Fix-Proxy.ps1 -ExcludeRule IslArchitectureIssue -Context User
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A user-context remediation where the 32-bit redirection is handled elsewhere.</maml:para>
         </maml:introduction>
@@ -5728,7 +5882,9 @@ call, and the script ends with it only under an error preference of Stop.</maml:
       <command:example>
         <maml:title>--------- EXAMPLE 5 ---------</maml:title>
         <maml:introduction>
-          <maml:para>'x86', 'arm64' | ForEach-Object { Test-IntuneScript -Path .\Detect-Agent.ps1 -Architecture $_ }</maml:para>
+          <maml:para>```powershell
+'x86', 'arm64' | ForEach-Object { Test-IntuneScript -Path .\Detect-Agent.ps1 -Architecture $_ }
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>A fleet with both x64 and Windows on ARM devices, where the remediation runs in the
 default 32-bit host on the former and someone wants to know what changes on the latter.</maml:para>
@@ -5939,7 +6095,9 @@ on an ARM64 device follows the same rule but was not run there.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneWin32Requirement -Architecture x64 -MinimumWindowsRelease Windows11_23H2</maml:para>
+          <maml:para>```powershell
+Test-IntuneWin32Requirement -Architecture x64 -MinimumWindowsRelease Windows11_23H2
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Applicable on a 64-bit Windows 11 24H2 device.</maml:para>
         </maml:introduction>
@@ -5949,7 +6107,9 @@ on an ARM64 device follows the same rule but was not run there.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneWin32Requirement -Architecture arm64</maml:para>
+          <maml:para>```powershell
+Test-IntuneWin32Requirement -Architecture arm64
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Not applicable on an x64 device, with the portal's architecture message and code 1000.</maml:para>
         </maml:introduction>
@@ -5959,8 +6119,10 @@ on an ARM64 device follows the same rule but was not run there.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$r = Test-IntuneWin32Requirement -MinimumFreeDiskSpaceMB 100000000 -MinimumMemoryMB 1000000
-PS&gt; $r.Checks | Format-Table Requirement, Met, Actual, Details</maml:para>
+          <maml:para>```powershell
+$r = Test-IntuneWin32Requirement -MinimumFreeDiskSpaceMB 100000000 -MinimumMemoryMB 1000000
+PS&gt; $r.Checks | Format-Table Requirement, Met, Actual, Details
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Every check with the value read from the device; the first failed check decides the verdict,
 as the agent reports one reason.</maml:para>
@@ -6360,7 +6522,9 @@ detection rules and is assumed for requirement rules.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 1 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneWin32Rule -Path '%ProgramFiles%\Vendor' -FileOrFolderName 'app.exe' -FileOperation Exists</maml:para>
+          <maml:para>```powershell
+Test-IntuneWin32Rule -Path '%ProgramFiles%\Vendor' -FileOrFolderName 'app.exe' -FileOperation Exists
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Met when C:\Program Files\Vendor\app.exe exists.</maml:para>
         </maml:introduction>
@@ -6370,8 +6534,10 @@ detection rules and is assumed for requirement rules.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 2 ---------</maml:title>
         <maml:introduction>
-          <maml:para>Test-IntuneWin32Rule -KeyPath 'HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App' -ValueName Version `
-        -RegistryOperation Version -Operator GreaterThanOrEqual -Value '9.0'</maml:para>
+          <maml:para>```powershell
+Test-IntuneWin32Rule -KeyPath 'HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App' -ValueName Version `
+        -RegistryOperation Version -Operator GreaterThanOrEqual -Value '9.0'
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Met when the Version value, read from the 64-bit registry view, is 9.0 or higher as a version.</maml:para>
         </maml:introduction>
@@ -6381,8 +6547,10 @@ detection rules and is assumed for requirement rules.</maml:para>
       <command:example>
         <maml:title>--------- EXAMPLE 3 ---------</maml:title>
         <maml:introduction>
-          <maml:para>$rule = @{ Type = 'ProductCode'; ProductCode = '{FBE4D84C-C935-4F54-B96F-49316CEB5149}' }
-Test-IntuneWin32Rule -Rule $rule</maml:para>
+          <maml:para>```powershell
+$rule = @{ Type = 'ProductCode'; ProductCode = '{FBE4D84C-C935-4F54-B96F-49316CEB5149}' }
+Test-IntuneWin32Rule -Rule $rule
+```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Met when the product is installed, in either registry view or per user.</maml:para>
         </maml:introduction>

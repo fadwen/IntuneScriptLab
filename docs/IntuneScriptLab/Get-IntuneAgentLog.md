@@ -62,21 +62,27 @@ reads that file.
 
 ### EXAMPLE 1
 
+```powershell
 Get-IntuneAgentLog -Log HealthScripts -EventName RemediationStart, DetectionResult -Last 10
+```
 
 The last ten remediation launches and detection verdicts on this device.
 
 ### EXAMPLE 2
 
+```powershell
 Get-IntuneAgentLog -Id bbf7e139-fe9d-4783-80df-627b8e084059 -After (Get-Date).AddHours(-2) |
     Format-Table Time, Log, Event, Detail, Message
+```
 
 Everything the agent logged about one policy in the last two hours, across all four logs.
 
 ### EXAMPLE 3
 
+```powershell
 Get-IntuneAgentLog -Path .\Logs -Log AppWorkload -EventName AppDetection, AppReport |
     Group-Object Id | ForEach-Object { $_.Group | Select-Object -Last 1 }
+```
 
 From a copied log folder: the last detection or report per app. An install exit code line
 carries no app id, so read those with -EventName AppInstallExit on their own.

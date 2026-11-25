@@ -71,13 +71,17 @@ script sets $ErrorActionPreference to Stop.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1
+```
 
 Runs the full flow in the 32-bit host and reports Without issues, Fixed, Recurred or Failed.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 -Architecture x64
+```
 
 The same pair with "Run script in 64-bit PowerShell" on.
 A Recurred here and Fixed in x86
@@ -85,8 +89,10 @@ A Recurred here and Fixed in x86
 
 ### EXAMPLE 3
 
+```powershell
 $r = Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1
 $r.PreDetection.StdOut
+```
 
 Detection only, with the complete captured output rather than the last line Intune keeps.
 
