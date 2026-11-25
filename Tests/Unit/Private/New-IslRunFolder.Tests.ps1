@@ -91,22 +91,21 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
     }
 
     Context 'A run as another account' {
-        It 'makes a folder of its own directly under ProgramData and grants the account that folder' {
+        It 'makes a folder of its own directly under ProgramData, and grants nobody' {
             $id = [guid]::NewGuid().ToString('N')
             $folder = InModuleScope IntuneScriptLab -Parameters @{ Id = $id } {
-                New-IslRunFolder -Account 'isl-user' -RunId $Id
+                New-IslRunFolder -AnotherAccount -RunId $Id
             }
 
             $folder | Should-Be (Join-Path $env:ProgramData "IntuneScriptLabRun-$id")
             Test-Path -LiteralPath $folder -PathType Container | Should-BeTrue
-            Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 1 -Exactly -ParameterFilter {
-                $Path -eq $folder -and $Account -eq 'isl-user'
-            }
+            # The caller grants the run's account once its copy is in the folder
+            Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
 
         It 'gives each run a new name, so that no other user can take the name first' {
-            $first = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
-            $second = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
+            $first = InModuleScope IntuneScriptLab { New-IslRunFolder -AnotherAccount }
+            $second = InModuleScope IntuneScriptLab { New-IslRunFolder -AnotherAccount }
 
             $second | Should-NotBe $first
             (Split-Path -Path $first -Leaf) | Should-BeLikeString 'IntuneScriptLabRun-*'
@@ -114,7 +113,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
         }
 
         It 'creates the folder closed to everyone but SYSTEM, the administrators and the caller' {
-            $folder = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
+            $folder = InModuleScope IntuneScriptLab { New-IslRunFolder -AnotherAccount }
 
             (Get-Acl -LiteralPath $folder).AreAccessRulesProtected | Should-BeTrue
             $rules = @(Get-RuleSid -Path $folder)
@@ -132,7 +131,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
             $null = New-Item -ItemType Directory -Path $plain
             @(Get-RuleSid -Path $plain).Sid | Should-ContainCollection $script:UsersSid
 
-            $folder = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
+            $folder = InModuleScope IntuneScriptLab { New-IslRunFolder -AnotherAccount }
             @(Get-RuleSid -Path $folder).Sid | Should-NotContainCollection $script:UsersSid
         }
     }
@@ -157,7 +156,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
             $before = (Get-Acl -LiteralPath $path).Sddl
 
             $failure = { InModuleScope IntuneScriptLab -Parameters @{ Id = $id } {
-                    New-IslRunFolder -Account 'isl-user' -RunId $Id
+                    New-IslRunFolder -AnotherAccount -RunId $Id
                 } } | Should-Throw
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'RunFolderUnsafe,*'
             $failure.Exception.Message | Should-BeLikeString "*$path $Problem*"
@@ -183,7 +182,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
                 $acl
             }
 
-            $failure = { InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' } } | Should-Throw
+            $failure = { InModuleScope IntuneScriptLab { New-IslRunFolder -AnotherAccount } } | Should-Throw
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'RunFolderUnsafe,*'
             $failure.Exception.Message | Should-BeLikeString "*$Problem*"
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly

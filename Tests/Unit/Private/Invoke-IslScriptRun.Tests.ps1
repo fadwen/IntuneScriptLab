@@ -151,8 +151,11 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
             $env:ProgramData = $script:SavedProgramData
         }
 
-        It 'runs from a ProgramData cache the account is granted, and passes the credential through' {
-            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
+        It 'runs from a ProgramData cache the account is granted after the copy, and passes the credential' {
+            # What the folder holds when the account is let in: the copy must be there already
+            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab {
+                $script:CopiesAtGrant = @(Get-ChildItem -LiteralPath $Path -Filter '*.ps1').Count
+            }
             Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
                 ConvertTo-FakeRunResult -TypeName IntuneScriptLab.ProcessResult -Member @{
                     ExitCode = 0; TimedOut = $false; StdErr = ''; Duration = [timespan]::Zero
@@ -175,6 +178,7 @@ Describe 'Invoke-IslScriptRun' -Tag 'Unit', 'Private' {
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Exactly -Times 1 -ParameterFilter {
                 $Account -eq 'isl-user' -and $Path -eq $workFolder
             }
+            $script:CopiesAtGrant | Should-Be 1
             Test-Path $workFolder | Should-BeFalse
         }
 

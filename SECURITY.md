@@ -53,8 +53,10 @@ account has a signed-in session the task runs interactively in it and no passwor
 otherwise the password goes to the Task Scheduler for the life of the task, which is deleted at
 the end of the run. Each run copies the script to a folder of its own,
 `ProgramData\IntuneScriptLabRun-<id>`, created already closed: SYSTEM, the Administrators group
-and the user who runs the harness have full control, the run's account is granted Modify, and no
-other account can open it. The name is new for each run, so no other user can take it first, and
+and the user who runs the harness have full control, and no other account can open it. Once the
+script is copied in, the run's account is granted Modify on what is in the folder and the rights
+to list it and add to it, but not to delete or rename the folder itself, so it cannot redirect the
+copy. The name is new for each run, so no other user can take it first, and
 a run is refused when something is already there under the name. The folder is removed after the
 run. Graph access is the session you already opened.
 
@@ -80,7 +82,7 @@ the reason none applies.
 | --- | --- | --- |
 | Spoofing | A Graph request made under an identity other than the caller's. | The module never signs in, prompts for or holds a token: every request goes through the caller's own Microsoft.Graph session. |
 | Spoofing | The download link of a report export, read from Graph's reply, leads to a host that poses as Microsoft's storage. | The link comes from Graph's own reply, which reaches the module over TLS through the caller's session, so another host would need that reply forged. The download carries no credential header and refuses a redirect (`-MaximumRedirection 0`), and the zip is read only as data: the counts in its CSV, with nothing in it run. The module does not check the link's host itself. |
-| Tampering | Another local user changes the script copy that a run as another account starts, or the output the harness reads back, in the run folder under ProgramData. | Each run gets its own `ProgramData\IntuneScriptLabRun-<id>`, created with an access list for SYSTEM, the Administrators group, the caller and the run's account only, under a name new for each run; anything already at the name refuses the run (`RunFolderUnsafe`). A run as the current user or as SYSTEM uses the caller's temp folder. |
+| Tampering | Another local user changes the script copy that a run as another account starts, or the output the harness reads back, in the run folder under ProgramData. | Each run gets its own `ProgramData\IntuneScriptLabRun-<id>`, created with an access list for SYSTEM, the Administrators group and the caller only, under a name new for each run; anything already at the name refuses the run (`RunFolderUnsafe`). The run's account is let in only after the copy, with Modify on what is in the folder and no Delete on the folder itself, so it cannot redirect the elevated copy or rename the folder away. A run as the current user or as SYSTEM uses the caller's temp folder. |
 | Tampering | A policy id or a script name read from the tenant leads a write outside the work folder. | The pre-flight refuses a policy id that is not letters, digits, `_` and `-`, and a script path that resolves outside its work folder (`PolicyIdInvalid`, `PolicyPathOutsideWorkFolder`). |
 | Tampering | `Repair-IntuneScript` rewrites a script into something other than what it was. | It makes only the fixed edit that a rule attaches to a finding it reports, at the place the finding names; it previews with `-WhatIf`, and refuses a file whose text does not survive the round trip through its encoding. |
 | Repudiation | A change made without a record of who made it. | The module changes nothing outside the files a caller names and its own run folders, and reads the tenant, apart from the report export job, which changes nothing there. It keeps no log of its own; the scheduled tasks it registers are named `IntuneScriptLab-<id>`, so an entry in the Task Scheduler's operational log, where that log is turned on, names the module as their source. |

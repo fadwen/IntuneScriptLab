@@ -116,13 +116,17 @@ function Invoke-IslWin32ContentCommand {
     try {
         # Another account cannot reach the caller's temp folder; its copy lives under ProgramData,
         # closed to other users (New-IslRunFolder)
-        $runAccount = if ($asAccount) { $Credential.UserName } else { $null }
-        $cache = New-IslRunFolder -Account $runAccount
+        $cache = New-IslRunFolder -AnotherAccount:$asAccount
         $copy = Join-Path -Path $cache -ChildPath 'content'
         $null = New-Item -ItemType Directory -Path $copy -Force -ErrorAction Stop @script:IslInternal
         $contentItems = Join-Path -Path $source -ChildPath '*'
         $copySplat = @{ Path = $contentItems; Destination = $copy; Recurse = $true; Force = $true }
         Copy-Item @copySplat -ErrorAction Stop @script:IslInternal
+        # Only once the content is in place: an account that could write to the folder before
+        # could put a link at a copy's name and send this elevated copy elsewhere
+        if ($asAccount) {
+            Grant-IslFolderAccess -Path $cache -Account $Credential.UserName
+        }
         $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
         $cmd = Join-Path -Path (Join-Path -Path $env:WINDIR -ChildPath $cmdFolder) -ChildPath 'cmd.exe'
         $processSplat = @{

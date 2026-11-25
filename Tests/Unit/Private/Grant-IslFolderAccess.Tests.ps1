@@ -72,20 +72,30 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         $null = New-Item -ItemType Directory -Path $script:Folder
     }
 
-    It 'grants Modify, inherited by files and folders, by the SID of an account Windows resolves' {
+    It 'grants Modify on what is in the folder, and no Delete on the folder, by the SID Windows resolves' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
             [pscustomobject]@{ Name = 'AzureAD\IslVerylongdisplayna'; Sid = 'S-1-5-32-545' }
         }
         # S-1-5-32-545 is BUILTIN\Users, standing in for the account: the grant has to land on the
         # SID it was given, whatever the name passed in
         Grant-Access -Path $script:Folder -Account 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
-        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
-            -not $_.IsInherited -and
-            $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value -eq 'S-1-5-32-545'
-        }
-        @($rule).Count | Should-Be 1
-        "$($rule.FileSystemRights)" | Should-BeLikeString '*Modify*'
-        "$($rule.InheritanceFlags)" | Should-Be 'ContainerInherit, ObjectInherit'
+        $sidType = [System.Security.Principal.SecurityIdentifier]
+        $rules = @((Get-Acl -Path $script:Folder).Access | Where-Object {
+                -not $_.IsInherited -and $_.IdentityReference.Translate($sidType).Value -eq 'S-1-5-32-545'
+            })
+        $rules | Should-BeCollection -Count 2
+        $below = @($rules | Where-Object { "$($_.PropagationFlags)" -eq 'InheritOnly' })
+        $below | Should-BeCollection -Count 1
+        "$($below[0].FileSystemRights)" | Should-BeLikeString '*Modify*'
+        "$($below[0].InheritanceFlags)" | Should-Be 'ContainerInherit, ObjectInherit'
+        $itself = @($rules | Where-Object { "$($_.InheritanceFlags)" -eq 'None' })
+        $itself | Should-BeCollection -Count 1
+        $rights = $itself[0].FileSystemRights
+        # Listing and adding, which the run needs; deleting or renaming the folder, which it must not
+        $wanted = [System.Security.AccessControl.FileSystemRights]'ListDirectory, CreateFiles, CreateDirectories'
+        ($rights -band $wanted) | Should-Be $wanted
+        $deleting = [System.Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles'
+        [int]($rights -band $deleting) | Should-Be 0
     }
 
     It 'grants by the name as given when Windows does not resolve it' {
@@ -94,7 +104,8 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
             -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
         }
-        @($rule).Count | Should-Be 1
+        # One entry for the folder's contents and one for the folder itself
+        @($rule).Count | Should-Be 2
     }
 
     It 'grants on a folder path that ends in a backslash' {
@@ -105,7 +116,8 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
             -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
         }
-        @($rule).Count | Should-Be 1
+        # One entry for the folder's contents and one for the folder itself
+        @($rule).Count | Should-Be 2
     }
 
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(

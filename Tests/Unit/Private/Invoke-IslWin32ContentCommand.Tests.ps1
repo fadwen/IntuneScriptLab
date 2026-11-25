@@ -132,7 +132,12 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
             # The copy goes under ProgramData, which the test points at its own drive
             $script:SavedProgramData = $env:ProgramData
             $env:ProgramData = Join-Path $TestDrive "programdata-$([guid]::NewGuid().ToString('N'))"
-            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { $script:Seen['Granted'] = $Account }
+            # What the folder holds when the account is let in: the content must be there already
+            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab {
+                $script:Seen['Granted'] = $Account
+                $copied = Join-Path $Path 'content'
+                $script:Seen['ContentAtGrant'] = @(Get-ChildItem -LiteralPath $copied -File).Count
+            }
             $script:Account = [System.Management.Automation.PSCredential]::new(
                 'LAB\tester', [System.Security.SecureString]::new())
         }
@@ -141,12 +146,13 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
             $env:ProgramData = $script:SavedProgramData
         }
 
-        It 'copies the content under ProgramData, grants the account the folder and runs as it' {
+        It 'copies the content under ProgramData, grants the account the folder after the copy, and runs as it' {
             $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = 'setup.exe' }
             $null = Invoke-Content ($run + $script:Base + @{ Credential = $script:Account })
 
             $script:Seen['WorkFolder'] | Should-BeLikeString (Join-Path $env:ProgramData 'IntuneScriptLabRun-*')
             $script:Seen['Granted'] | Should-Be 'LAB\tester'
+            $script:Seen['ContentAtGrant'] | Should-BeGreaterThan 0
             $script:Seen['Credential'].UserName | Should-Be 'LAB\tester'
             $script:Seen['Copied'] | Should-BeTrue
             Test-Path -LiteralPath $script:Seen['WorkFolder'] | Should-BeFalse
