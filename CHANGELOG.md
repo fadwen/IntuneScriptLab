@@ -42,6 +42,11 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- `Test-IntuneDeployedScript` checks the folder it writes each deployed script to: the policy is
+  refused with `PolicyIdInvalid` when its id holds anything but letters, digits, `-` and `_`, as
+  a Graph id does, and with `PolicyPathOutsideWorkFolder` when the resolved path would leave the
+  work folder. The characters of the display name are still replaced to keep the folder name
+  readable (#131).
 - `-Name`, `-Id`, `-IncludeRule` and `-ExcludeRule` refuse a value of more than 1,000 characters
   with `InputTooLong` before the command does anything (SEC-16); `$null` and an empty value still
   mean "not given". `Test-IntuneAssignmentFilter -Rule` refuses one of more than 3,072 characters

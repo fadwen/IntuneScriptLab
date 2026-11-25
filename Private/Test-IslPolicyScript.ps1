@@ -130,10 +130,46 @@ function Test-IslPolicyScript {
     $context = if ("$RunAsAccount" -eq 'user') { 'User' } else { 'System' }
     $architecture = if ([bool]$RunAs32Bit) { 'x86' } else { 'x64' }
     try {
+        # The folder is named after the policy, which comes from the tenant (SEC-12, SEC-17). The
+        # display name keeps only the characters a folder name can hold, so that it stays
+        # readable. The id is refused unless it holds only letters, digits, '-' and '_', as every
+        # Graph id, a GUID, does. And the resolved path must stay inside the work folder, whatever
+        # the name and the id were
+        # \A and \z, not ^ and $: $ also matches before a final line feed, which would let one through
+        if ($policyId -notmatch '\A[\w-]+\z') {
+            $recordSplat = @{
+                Message = "$PolicyKind '$policyName' has an id that cannot name a folder; it was not written"
+                ErrorId = 'PolicyIdInvalid'
+                Category = 'InvalidData'
+                TargetObject = $policyId
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+        }
         $safeName = [regex]::Replace($policyName, '[^\w.-]', '_')
-        $folder = Join-Path -Path $WorkFolder -ChildPath "$PolicyKind\$safeName-$policyId"
-        $null = New-Item -ItemType Directory -Path $folder -Force -ErrorAction Stop @script:IslInternal
+        $kindFolder = Join-Path -Path $WorkFolder -ChildPath $PolicyKind
+        $folder = Join-Path -Path $kindFolder -ChildPath "$safeName-$policyId"
         $file = Join-Path -Path $folder -ChildPath "$Role.ps1"
+        $separators = [char[]]@(
+            [System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        $workRoot = [System.IO.Path]::GetFullPath($WorkFolder).TrimEnd($separators) +
+        [System.IO.Path]::DirectorySeparatorChar
+        $fullFile = [System.IO.Path]::GetFullPath($file)
+        # Windows compares paths without regard to case; a file system with '/' does not
+        $comparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+            [System.StringComparison]::OrdinalIgnoreCase
+        } else {
+            [System.StringComparison]::Ordinal
+        }
+        if (-not $fullFile.StartsWith($workRoot, $comparison)) {
+            $recordSplat = @{
+                Message = "$PolicyKind '$policyName' would be written outside the work folder; it was not written"
+                ErrorId = 'PolicyPathOutsideWorkFolder'
+                Category = 'SecurityError'
+                TargetObject = $policyId
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+        }
+        $null = New-Item -ItemType Directory -Path $folder -Force -ErrorAction Stop @script:IslInternal
         [System.IO.File]::WriteAllBytes($file, [System.Convert]::FromBase64String($Content))
         $testSplat = @{
             Path = $file
