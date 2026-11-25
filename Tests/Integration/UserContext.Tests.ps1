@@ -63,8 +63,8 @@ Describe 'User context as another account' -Tag $script:UserContextTags -Skip:(-
 
     It 'maps the remediation flow as the account' {
         $markerName = "user-context-$([guid]::NewGuid().ToString('N')).marker"
-        # ProgramData itself, where every user may create a file: the module's own folder there is
-        # closed to the account (New-IslRunFolder)
+        # ProgramData itself, where every user may create a file, so that the test needs no folder
+        # prepared for it
         $marker = Join-Path $env:ProgramData $markerName
         $detect = New-TestScript 'Detect.ps1' ("if (Test-Path '$marker') { 'present'; exit 0 } " +
             "else { 'missing'; exit 1 }") -Bom

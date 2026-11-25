@@ -3,9 +3,9 @@
 <#
     The folder a harness run copies its script into. A run as another account has it under
     ProgramData, where every local user may create folders and add files and a new folder inherits
-    that; the module's two levels there get an access list of their own, and a level that someone
-    else owns or that links elsewhere refuses the run. ProgramData is pointed at the test's own drive
-    and given the write access the real one has.
+    that; the module's folder of runs there gets an access list of its own, and a folder that
+    someone else owns or that links elsewhere refuses the run. ProgramData is pointed at the test's
+    own drive and given the write access the real one has.
 #>
 
 BeforeAll {
@@ -93,7 +93,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
         It 'makes the folder under ProgramData and grants the account that folder only' {
             $folder = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
 
-            $runs = Join-Path $env:ProgramData 'IntuneScriptLab\Runs'
+            $runs = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
             (Split-Path -Path $folder -Parent) | Should-Be $runs
             Test-Path -LiteralPath $folder -PathType Container | Should-BeTrue
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 1 -Exactly -ParameterFilter {
@@ -101,13 +101,10 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
             }
         }
 
-        It 'closes <Level> to everyone but SYSTEM, the administrators and the caller' -ForEach @(
-            @{ Level = 'IntuneScriptLab' }
-            @{ Level = 'IntuneScriptLab\Runs' }
-        ) {
+        It 'closes the folder of the runs to everyone but SYSTEM, the administrators and the caller' {
             $null = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
 
-            $path = Join-Path $env:ProgramData $Level
+            $path = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
             (Get-Acl -LiteralPath $path).AreAccessRulesProtected | Should-BeTrue
             $rules = @(Get-RuleSid -Path $path)
             $rules | Should-All { -not $_.Inherited }
@@ -117,7 +114,6 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
             $sids | Should-ContainCollection 'S-1-5-32-544'
             $sids | Should-ContainCollection $script:CallerSid
         }
-
         It 'leaves the run folder nothing of the write access ProgramData gives every user' {
             # The same folder without the module's access list inherits Users' right to add files
             $plain = Join-Path $env:ProgramData 'plain\child'
@@ -128,37 +124,39 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
             @(Get-RuleSid -Path $folder).Sid | Should-NotContainCollection $script:UsersSid
         }
 
-        It 'restricts a module folder that was there before it, with the write access inherited' {
-            $existing = Join-Path $env:ProgramData 'IntuneScriptLab\Runs'
+        It 'restricts a folder of runs that was there before, with an entry of its own for every user' {
+            # What the validation kit gives every user on ProgramData\IntuneScriptLab for its probes
+            $existing = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
             $null = New-Item -ItemType Directory -Path $existing
-            @(Get-RuleSid -Path $existing).Sid | Should-ContainCollection $script:UsersSid
+            $icacls = Join-Path ([System.Environment]::SystemDirectory) 'icacls.exe'
+            $null = & $icacls $existing /grant "*$($script:UsersSid):(OI)(CI)M"
+            @(Get-RuleSid -Path $existing | Where-Object { -not $_.Inherited }).Sid |
+                Should-ContainCollection $script:UsersSid
 
             $null = InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' }
             @(Get-RuleSid -Path $existing).Sid | Should-NotContainCollection $script:UsersSid
         }
     }
-
-    Context 'A module folder that cannot be trusted' {
-        It 'refuses a module folder that is a link to another folder, and changes nothing there' {
+    Context 'A folder of runs that cannot be trusted' {
+        It 'refuses a folder of runs that is a link to another folder, and changes nothing there' {
             $elsewhere = Join-Path $TestDrive "elsewhere-$([guid]::NewGuid().ToString('N'))"
             $null = New-Item -ItemType Directory -Path $elsewhere
-            $link = Join-Path $env:ProgramData 'IntuneScriptLab'
+            $link = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
             $null = New-Item -ItemType Junction -Path $link -Value $elsewhere
             $before = (Get-Acl -LiteralPath $elsewhere).Sddl
 
             $failure = { InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' } } | Should-Throw
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'RunFolderUnsafe,*'
-            $failure.Exception.Message | Should-BeLikeString "*$link is a link to another folder*"
+            $failure.Exception.Message | Should-BeLikeString "*$link, is a link to another folder*"
             (Get-Acl -LiteralPath $elsewhere).Sddl | Should-Be $before
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
 
-        It 'refuses a module folder that another user owns' {
+        It 'refuses a folder of runs that another user owns' {
             # Another user's SID as the owner: a test cannot hand its folder to someone else
             Mock Get-Acl -ModuleName IntuneScriptLab {
                 $acl = [pscustomobject]@{}
                 $acl | Add-Member -MemberType ScriptMethod -Name GetOwner -Value {
-                    param($type)
                     [System.Security.Principal.SecurityIdentifier]::new('S-1-5-21-1-2-3-1001')
                 }
                 $acl
@@ -177,7 +175,7 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
 
             $failure = { InModuleScope IntuneScriptLab { New-IslRunFolder -Account 'isl-user' } } | Should-Throw
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'RunFolderNotRestricted,*'
-            $failure.Exception.Message | Should-BeLikeString '*IntuneScriptLab: Access is denied.*'
+            $failure.Exception.Message | Should-BeLikeString '*IntuneScriptLabRuns: Access is denied.*'
             Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
     }
