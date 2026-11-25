@@ -63,8 +63,10 @@ evaluate as empty; pass them in -Device when a rule depends on them.
 
 ### EXAMPLE 1
 
+```powershell
 $rule = '(device.deviceName -startsWith "LAB-") and (device.cpuArchitecture -eq "arm64")'
 Test-IntuneAssignmentFilter -Rule $rule
+```
 
 Applicable : False
 Matched    : False
@@ -80,9 +82,11 @@ The rule against this device; each clause reports what it saw.
 
 ### EXAMPLE 2
 
+```powershell
 $device = @{ deviceName = 'LAB-042'; operatingSystemVersion = '10.0.26100.4652' }
 $rule = '(device.operatingSystemVersion -lt 10.0.26100.5000)'
 Test-IntuneAssignmentFilter -Rule $rule -Device $device -Mode Exclude
+```
 
 Applicable : False
 Matched    : True
@@ -97,10 +101,12 @@ match excludes the device.
 
 ### EXAMPLE 3
 
+```powershell
 Get-MgBetaDeviceManagementAssignmentFilter -All |
     Where-Object { "$($_.Platform)" -eq 'windows10AndLater' } |
     Test-IntuneAssignmentFilter -SyntaxOnly |
     Where-Object Warnings | Select-Object Rule, Warnings
+```
 
 Every Windows filter in the tenant whose rule can never match a Windows device (a "x64"
 architecture, a "Microsoft Entra joined" trust type), without evaluating anything. The platform
@@ -110,8 +116,10 @@ isRooted is refused.
 
 ### EXAMPLE 4
 
+```powershell
 $result = Test-IntuneAssignmentFilter -Rule $rule -Device $device
 $result.Clauses | Format-Table Property, Operator, Value, Actual, Matched
+```
 
 The per-clause table: the value the rule asked for, the value the device had, and whether
 that clause matched.

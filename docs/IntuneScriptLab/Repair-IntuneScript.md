@@ -81,25 +81,33 @@ as an error for that one item, and the other scripts are still repaired.
 
 ### EXAMPLE 1
 
+```powershell
 Repair-IntuneScript -Path .\Remediations -WhatIf
+```
 
 Lists the edits that would be made, per script, without touching anything.
 
 ### EXAMPLE 2
 
+```powershell
 Repair-IntuneScript -Path .\Remediations\Widget\Detect.ps1
+```
 
 Applies the fixes and reports how many findings the script still has.
 
 ### EXAMPLE 3
 
+```powershell
 Get-ChildItem .\Win32 -Recurse -Filter Requirement*.ps1 | Repair-IntuneScript -IncludeRule IslOutputIssue
+```
 
 Trims padded requirement values only, in every requirement script under Win32.
 
 ### EXAMPLE 4
 
+```powershell
 Repair-IntuneScript -Path .\Remediations -Architecture x64 -Context System
+```
 
 Repairs the scripts as deployed to the 64-bit host in system context, so the findings that depend
 on either, and the Remaining count, match Test-IntuneScript run with the same options.

@@ -54,20 +54,26 @@ detection run.
 
 ### EXAMPLE 1
 
+```powershell
 Test-IntuneWin32Requirement -Architecture x64 -MinimumWindowsRelease Windows11_23H2
+```
 
 Applicable on a 64-bit Windows 11 24H2 device.
 
 ### EXAMPLE 2
 
+```powershell
 Test-IntuneWin32Requirement -Architecture arm64
+```
 
 Not applicable on an x64 device, with the portal's architecture message and code 1000.
 
 ### EXAMPLE 3
 
+```powershell
 $r = Test-IntuneWin32Requirement -MinimumFreeDiskSpaceMB 100000000 -MinimumMemoryMB 1000000
 PS> $r.Checks | Format-Table Requirement, Met, Actual, Details
+```
 
 Every check with the value read from the device; the first failed check decides the verdict,
 as the agent reports one reason.

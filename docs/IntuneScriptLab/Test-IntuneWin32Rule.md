@@ -78,21 +78,27 @@ rule must be met for the app to count as installed.
 
 ### EXAMPLE 1
 
+```powershell
 Test-IntuneWin32Rule -Path '%ProgramFiles%\Vendor' -FileOrFolderName 'app.exe' -FileOperation Exists
+```
 
 Met when C:\Program Files\Vendor\app.exe exists.
 
 ### EXAMPLE 2
 
+```powershell
 Test-IntuneWin32Rule -KeyPath 'HKEY_LOCAL_MACHINE\SOFTWARE\Vendor\App' -ValueName Version `
         -RegistryOperation Version -Operator GreaterThanOrEqual -Value '9.0'
+```
 
 Met when the Version value, read from the 64-bit registry view, is 9.0 or higher as a version.
 
 ### EXAMPLE 3
 
+```powershell
 $rule = @{ Type = 'ProductCode'; ProductCode = '{FBE4D84C-C935-4F54-B96F-49316CEB5149}' }
 Test-IntuneWin32Rule -Rule $rule
+```
 
 Met when the product is installed, in either registry view or per user.
 

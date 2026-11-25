@@ -56,21 +56,27 @@ live agent is no obstacle; a copied log folder works with -Path.
 
 ### EXAMPLE 1
 
+```powershell
 Get-IntuneAgentTimeline -Log HealthScripts | Format-Table Id, Started, Duration, Runs, Outcome
+```
 
 Every remediation the agent processed, with how long each took and how it ended.
 
 ### EXAMPLE 2
 
+```powershell
 (Get-IntuneAgentTimeline -Id bbf7e139-fe9d-4783-80df-627b8e084059).Steps |
     Format-Table Time, Log, Event, Detail
+```
 
 Step by step for one policy.
 
 ### EXAMPLE 3
 
+```powershell
 Get-IntuneAgentTimeline -Path .\Logs -After (Get-Date).AddHours(-1) |
     Where-Object Outcome -like 'App*Report*' | Select-Object Name, Outcome, Summary
+```
 
 The apps a copied log folder shows in the last hour, by name, with their reported states.
 

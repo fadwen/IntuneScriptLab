@@ -35,19 +35,25 @@ the exit code and stdout that made Intune count the app as installed.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-NotBeIntuneDetected
+```
 
 On a machine without the app, the rule must not report it installed.
 
 ### EXAMPLE 2
 
+```powershell
 $result | Should-NotBeIntuneDetected -Because 'the package was uninstalled in BeforeAll'
+```
 
 With the reason in the failure message.
 
 ### EXAMPLE 3
 
+```powershell
 $result | Should-BeIntuneDetected
+```
 
 The opposite check.
 

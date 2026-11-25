@@ -12,7 +12,9 @@
 
             1. Update-MarkdownCommandHelp folds signature changes into the existing Markdown.
             2. The module page is regenerated from the command files.
-            3. Test-MarkdownCommandHelp, a relative-link check and a placeholder check gate the build.
+            3. Test-MarkdownCommandHelp, a relative-link check, a placeholder check and a drift check
+               gate the build. The drift check compares the documented commands with the exported
+               ones, and each command's documented parameters with its real ones.
             4. Export-MamlCommandHelp compiles the Markdown to en-US\IntuneScriptLab-Help.xml, the file
                Get-Help reads.
 
@@ -44,8 +46,8 @@
     .EXAMPLE
         .\Build\Build-Help.ps1 -ValidateOnly
 
-        Checks the committed Markdown for structure, placeholders and relative links, and writes
-        nothing.
+        Checks the committed Markdown for structure, placeholders, relative links and drift from the
+        module, and writes nothing.
 
     .EXAMPLE
         .\Build\Build-Help.ps1 -SkipUpdate -Verbose
@@ -182,10 +184,56 @@ if ($unfilled.Count -gt 0) {
     throw "Help templates still contain placeholders: $names"
 }
 
+# Drift: the Markdown is the help a user reads, so a command or parameter it does not know of, or
+# one it still documents after the code dropped it, is stale help. Compared on the loaded module,
+# which is the one in this tree
+Write-Verbose 'Comparing the documented commands and parameters with the module'
+$commandPages = @(Measure-PlatyPSMarkdown -Path $markdownPattern |
+        Where-Object -Property Filetype -Match -Value 'CommandHelp')
+$documentedCommands = @($commandPages |
+        ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.FilePath) })
+$exportedCommands = @($module.ExportedFunctions.Keys)
+# Each problem names its own remedy: the build writes a page for a new command and folds a changed
+# signature into its page, but it deletes no page
+$drift = [System.Collections.Generic.List[string]]::new()
+$rebuild = 'run .\Build\Build-Help.ps1 and commit the result'
+foreach ($name in $exportedCommands | Where-Object { $_ -notin $documentedCommands } | Sort-Object) {
+    $drift.Add("$name is exported and has no help Markdown: $rebuild")
+}
+foreach ($name in $documentedCommands | Where-Object { $_ -notin $exportedCommands } | Sort-Object) {
+    $drift.Add("$name has help Markdown and is not exported: delete docs\IntuneScriptLab\$name.md")
+}
+# WhatIf and Confirm are compared too: PlatyPS documents them, and whether a command declares
+# SupportsShouldProcess is part of its contract
+$commonParameters = @([System.Management.Automation.PSCmdlet]::CommonParameters)
+foreach ($page in $commandPages) {
+    $name = [System.IO.Path]::GetFileNameWithoutExtension($page.FilePath)
+    if ($name -notin $exportedCommands) {
+        continue
+    }
+
+    $help = Import-MarkdownCommandHelp -Path $page.FilePath
+    $documented = @($help.Parameters | ForEach-Object { $_.Name } | Where-Object { $_ -notin $commonParameters })
+    $actual = @((Get-Command -Name $name -Module IntuneScriptLab).Parameters.Keys |
+            Where-Object { $_ -notin $commonParameters })
+    $undocumented = @($actual | Where-Object { $_ -notin $documented } | Sort-Object)
+    $stale = @($documented | Where-Object { $_ -notin $actual } | Sort-Object)
+    if ($undocumented.Count -gt 0) {
+        $drift.Add("$name does not document -$($undocumented -join ', -'): $rebuild")
+    }
+    if ($stale.Count -gt 0) {
+        $drift.Add("$name documents -$($stale -join ', -'), which it no longer has: $rebuild")
+    }
+}
+if ($drift.Count -gt 0) {
+    throw "Help Markdown is out of date. $($drift -join '; ')."
+}
+
 $markdownCount = @(Get-ChildItem -LiteralPath $docs -Filter '*.md').Count
 if ($ValidateOnly) {
     Write-Information -InformationAction Continue -MessageData (
-        "Help Markdown valid: $markdownCount files, no placeholders, no relative links")
+        "Help Markdown valid: $markdownCount files, every exported command and parameter documented, " +
+        'no placeholders, no relative links')
     return
 }
 
@@ -225,7 +273,12 @@ try {
         }
     }
     $shippedStream.Write($builtBytes, $copyFrom, $builtBytes.Length - $copyFrom)
-    [System.IO.File]::WriteAllBytes($shipped, $shippedStream.ToArray())
+    # Export-MamlCommandHelp 1.0.3 writes a paragraph that holds only U+0080 after the code of
+    # every example, fenced or not, and Get-Help prints that character. The paragraph is dropped.
+    # A UTF-8 decode and encode gives back the same bytes, the byte order mark included.
+    $shippedText = [System.Text.Encoding]::UTF8.GetString($shippedStream.ToArray())
+    $shippedText = [regex]::Replace($shippedText, '\n[ \t]*<maml:para>&#x80;</maml:para>(?=\n)', '')
+    [System.IO.File]::WriteAllBytes($shipped, [System.Text.Encoding]::UTF8.GetBytes($shippedText))
 } finally {
     $shippedStream.Dispose()
 }

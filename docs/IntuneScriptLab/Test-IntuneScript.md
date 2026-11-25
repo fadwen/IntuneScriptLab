@@ -44,9 +44,9 @@ explicitly, put a directive in the script, or let them be inferred from the file
     # IntuneScriptLab: ScriptType=Detection Context=System Architecture=x64
 
 Inference from the file name and the two nearest folder names, each word matched at its
-start: requirement → Win32Requirement; detect with app, apps, win32, package, software,
-install, installed, msi or exe in the name or a folder → Win32Detection; detect → Detection;
-remediate/remediation/fix → Remediation; anything else → PlatformScript.
+start: requirement gives Win32Requirement; detect with app, apps, win32, package, software,
+install, installed, msi or exe in the name or a folder gives Win32Detection; detect alone gives
+Detection; remediate, remediation or fix gives Remediation; anything else is a PlatformScript.
 An
 IslAssumedContext note is emitted whenever the type was inferred rather than given by a
 parameter, a directive or a settings file, because the wrong type silently skips whole rule
@@ -77,24 +77,30 @@ A -Settings argument that is wrong ends the command before any script is analyze
 
 ### EXAMPLE 1
 
+```powershell
 Test-IntuneScript -Path .\Detect-LegacyTls.ps1 -ScriptType Detection
+```
 
 Runs every rule against a remediation detection script assumed to run as SYSTEM in the
 32-bit host.
 
 ### EXAMPLE 2
 
+```powershell
 Test-IntuneScript -Path .\Detect-App.ps1 -ScriptType Win32Detection -Architecture x64 |
     Where-Object Severity -eq Error
+```
 
 Only the findings that will make a Win32 detection rule report "not detected".
 
 ### EXAMPLE 3
 
+```powershell
 $ErrorActionPreference = 'Stop'
 $findings = @(Get-ChildItem .\Remediations -Recurse -Filter *.ps1 |
     Test-IntuneScript -MinimumSeverity Warning -ErrorAction Stop)
 if ($findings.Count -gt 0) { exit 1 }
+```
 
 Analyzes a whole folder, letting each file's name decide its type, and fails a CI step when
 anything comes back.
@@ -106,13 +112,17 @@ call, and the script ends with it only under an error preference of Stop.
 
 ### EXAMPLE 4
 
+```powershell
 Test-IntuneScript -Path .\Fix-Proxy.ps1 -ExcludeRule IslArchitectureIssue -Context User
+```
 
 A user-context remediation where the 32-bit redirection is handled elsewhere.
 
 ### EXAMPLE 5
 
+```powershell
 'x86', 'arm64' | ForEach-Object { Test-IntuneScript -Path .\Detect-Agent.ps1 -Architecture $_ }
+```
 
 A fleet with both x64 and Windows on ARM devices, where the remediation runs in the
 default 32-bit host on the former and someone wants to know what changes on the latter.

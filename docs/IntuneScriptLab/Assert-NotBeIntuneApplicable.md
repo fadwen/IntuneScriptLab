@@ -35,20 +35,26 @@ quotes the output that met the rule.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok' |
     Should-NotBeIntuneApplicable
+```
 
 Fails, quoting the output, when the rule would be met.
 
 ### EXAMPLE 2
 
+```powershell
 $result | Should-NotBeIntuneApplicable -Because 'the prerequisite is absent here'
+```
 
 With a reason for the failure message.
 
 ### EXAMPLE 3
 
+```powershell
 Assert-NotBeIntuneApplicable $result
+```
 
 The function name, without the Should- alias.
 

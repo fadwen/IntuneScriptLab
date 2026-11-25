@@ -51,22 +51,28 @@ pipeline still runs.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType String -Value 'ok'
+```
 
 Runs the script in the 64-bit host and reports whether the app would be applicable, and
 why not if it would not.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntuneRequirementTest -Path .\Get-AgentVersion.ps1 -OutputType Version `
     -Operator GreaterThanOrEqual -Value '2.9.0'
+```
 
 A version rule: "2.10.0" meets it, which a string comparison would deny.
 
 ### EXAMPLE 3
 
+```powershell
 Invoke-IntuneRequirementTest -Path .\Requirement.ps1 -OutputType Integer -Operator GreaterThan `
     -Value '3' -Context System | Should-BeIntuneApplicable
+```
 
 As SYSTEM from an elevated session, inside a Pester test.
 

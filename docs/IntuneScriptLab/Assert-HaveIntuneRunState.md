@@ -36,20 +36,26 @@ the message carries the actual state, the exit code and the start of the output.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 | Should-HaveIntuneRunState 'Success'
+```
 
 The script must succeed.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 -Architecture x64 |
     Should-HaveIntuneRunState 'Success' -Because 'the policy runs it in 64-bit'
+```
 
 In the 64-bit host, with the reason.
 
 ### EXAMPLE 3
 
+```powershell
 $result | Should-HaveIntuneRunState 'Failed'
+```
 
 A script that is expected to fail on this machine.
 

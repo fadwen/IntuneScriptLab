@@ -87,28 +87,35 @@ script sets $ErrorActionPreference to Stop.
 
 ### EXAMPLE 1
 
+```powershell
 Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'powershell.exe -ExecutionPolicy Bypass -File install.ps1'
+```
 
 Full flow as the current user, 64-bit detection, 32-bit install command.
 
 ### EXAMPLE 2
 
+```powershell
 Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'setup.exe /S' -Context System -InstallTimeoutSeconds 1800
+```
 
 As SYSTEM from an elevated session, which is what Intune does by default.
 
 ### EXAMPLE 3
 
+```powershell
 $r = Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package `
     -InstallCommand 'msiexec /i app.msi /qn'
 $r.Status; $r.Install.StdOut
+```
 
 Inspect the installer's output after the run.
 
 ### EXAMPLE 4
 
+```powershell
 $rules = @(
     @{ Type = 'File'; Path = '%ProgramFiles%\Vendor'; FileOrFolderName = 'app.exe'; OperationType = 'version'
        Operator = 'greaterThanOrEqual'; ComparisonValue = '2.0' }
@@ -116,20 +123,24 @@ $rules = @(
        OperationType = 'integer'; Operator = 'equal'; ComparisonValue = '1' }
 )
 Invoke-IntuneWin32AppTest -DetectionRule $rules -ContentPath .\Package -InstallCommand 'setup.exe /S'
+```
 
 Detection by two portal-style rules with no script; both must be met, and the ones that are not
 are listed in Warnings with the reason.
 
 ### EXAMPLE 5
 
+```powershell
 Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Package -Intent Uninstall `
     -UninstallCommand 'setup.exe /uninstall /S' | Should-HaveIntuneStatus 'Uninstalled'
+```
 
 The uninstall flow the agent runs for an uninstall assignment: detect, run the uninstall command,
 detect again.
 
 ### EXAMPLE 6
 
+```powershell
 $runtime = @{
     Name = 'Vendor Runtime'; DetectionPath = '.\Runtime\Detect-Runtime.ps1'
     ContentPath = '.\Runtime\Package'; InstallCommand = 'runtime.exe /S'
@@ -142,6 +153,7 @@ $r = Invoke-IntuneWin32AppTest -DetectionPath .\Detect-App.ps1 -ContentPath .\Pa
     -InstallCommand 'setup.exe /S' -DependsOn $runtime -Supersedes $previous
 $r.Dependencies | Format-Table Name, Relationship, Status
 $r.Superseded | Format-Table Name, Relationship, Status
+```
 
 The relationships page of an app: the runtime is installed first if it is missing, the 1.x
 package is uninstalled if it is present, then the app installs.
@@ -443,7 +455,7 @@ HelpMessage: ''
 
 ### -ReturnCodes
 
-Exit code → outcome map for the install command.
+Map from exit code to outcome for the install command.
 Default is Intune's:
 0 and 1707 success, 3010 soft reboot, 1641 hard reboot, 1618 retry.
 

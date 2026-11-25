@@ -93,23 +93,29 @@ script sets $ErrorActionPreference to Stop.
 
 ### EXAMPLE 1
 
+```powershell
 Connect-MgGraph -Scopes DeviceManagementScripts.Read.All, DeviceManagementConfiguration.Read.All,
     DeviceManagementApps.Read.All, GroupMember.ReadBasic.All
 Test-IntuneDeployedScript -MinimumSeverity Warning
+```
 
 Every deployed script with a warning or an error, as the agent will run it.
 
 ### EXAMPLE 2
 
+```powershell
 Test-IntuneDeployedScript -Kind Remediation -Name 'Fix-*' |
     Format-Table Severity, RuleName, Role, Line, Message
+```
 
 The remediations named Fix-* only, detection and remediation scripts alike.
 
 ### EXAMPLE 3
 
+```powershell
 Test-IntuneDeployedScript -Kind Win32App -SkipGroupLookup |
     Group-Object PolicyName | Sort-Object Count -Descending | Select-Object Count, Name
+```
 
 Which apps collect the most findings, script and policy checks together, without touching
 groups.

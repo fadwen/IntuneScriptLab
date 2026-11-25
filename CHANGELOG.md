@@ -73,6 +73,13 @@ entries are carried over from the manifest's release notes.
   switch is obsolete, and 7 writes no type line without it. The seven `Assert-*` functions keep
   their end block, which `New-ShouldAssertion` needs to read the whole pipeline, and say so in
   a `# Exception to FUN-21` comment (#67).
+- The command of every help example is in a fenced `powershell` block in the help Markdown,
+  and the help pages use words where they used arrows. `Build/Build-Help.ps1 -ValidateOnly`,
+  which the `help` job runs, fails when an exported command has no help page, a page has no
+  command, or a command's documented parameters differ from its real ones, `-WhatIf` and
+  `-Confirm` included; each failure says how to put it right (#68). `Get-Help` no longer prints
+  a U+0080 character after the code of each example: PlatyPS 1.0.3 writes a paragraph that holds
+  only that character, and the help build drops it.
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,
