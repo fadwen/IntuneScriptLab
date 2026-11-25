@@ -42,6 +42,8 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- `SECURITY.md` classifies the data the module handles and lists the threats to it by STRIDE
+  category, each with the control the module has (#132).
 - The rule order, the table of in-box modules, the Windows release builds and the events of the
   agent logs are data files under `Data`, read when the module is imported, and ship in the
   package. A data file that is missing or does not parse fails the import, as a function file
