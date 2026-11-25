@@ -8,7 +8,8 @@ function ConvertTo-IslSettingsObject {
     -Settings. Every key is optional. A key the module does not know is named in a warning and
     otherwise ignored. A value outside its set ends the function with the error SettingsInvalid,
     which names the source and the first value that is wrong, checked in this order:
-    MinimumSeverity, ScriptType, Context, Architecture, then the entries of Severity.
+    MinimumSeverity, ScriptType, Context, Architecture, Severity, which must be a hashtable, then
+    the entries of Severity.
 
     .PARAMETER Table
     The settings, in the shape of a settings file.
@@ -68,9 +69,16 @@ function ConvertTo-IslSettingsObject {
         $problem = 'Context must be System or User'
     } elseif ($architecture -and "$architecture" -notin 'x86', 'x64', 'arm64') {
         $problem = 'Architecture must be x86, x64 or arm64'
+    } elseif ($null -ne $severityTable -and $severityTable -isnot [System.Collections.IDictionary]) {
+        # A falsy value such as 0, $false, '' or @() is refused too: an empty hashtable is the way
+        # to give no overrides
+        $problem = 'Severity must be a hashtable of rule names and severities'
     }
     $severity = @{}
-    $severityKeys = if ($severityTable) { @($severityTable.Keys | Where-Object { $null -ne $_ }) } else { @() }
+    $severityKeys = @()
+    if ($severityTable -is [System.Collections.IDictionary]) {
+        $severityKeys = @($severityTable.Keys | Where-Object { $null -ne $_ })
+    }
     foreach ($key in $severityKeys) {
         if ($null -eq $problem -and "$($severityTable[$key])" -notin $validSeverities) {
             $problem = "Severity for $key must be one of $($validSeverities -join ', ')"

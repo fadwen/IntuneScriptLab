@@ -93,6 +93,19 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
             Should-Invoke Get-IslScriptContext -ModuleName IntuneScriptLab -Times 0 -Exactly
         }
 
+        It 'reports a settings file whose Severity is not a hashtable with SettingsInvalid, naming the file' {
+            $scriptPath = New-TestScript 'severitytext\Detect-One.ps1' 'exit 2'
+            $settingsFile = Join-Path (Split-Path $scriptPath -Parent) 'IntuneScriptLab.settings.psd1'
+            Set-Content -LiteralPath $settingsFile -Value "@{ Severity = 'Error' }" -Encoding ascii
+
+            $output = Test-IntuneScript -Path $scriptPath -ErrorAction Continue 2>&1
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            $errors[0].FullyQualifiedErrorId | Should-BeLikeString 'SettingsInvalid*'
+            $errors[0].Exception.Message | Should-BeLikeString "$settingsFile*Severity must be a hashtable*"
+        }
+
         It 'leaves a calling script one error for a path that is not there, and the findings of the other' {
             $good = New-TestScript 'caller\Detect-Good.ps1' 'exit 2'
             $missing = Join-Path $TestDrive 'caller\missing.ps1'

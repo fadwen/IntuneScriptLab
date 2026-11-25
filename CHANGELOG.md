@@ -159,6 +159,11 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- A `Severity` setting that is not a hashtable, such as `Severity = 'Error'` in a settings file
+  or in `-Settings`, ends `Test-IntuneScript` with `SettingsInvalid` and a message that names the
+  source. It ended with a strict-mode error, `PropertyNotFoundStrict`, that named neither the
+  source nor the setting (#105). A value such as `0`, `$false`, `''` or `@()`, which was ignored,
+  is refused the same way; an empty hashtable gives no overrides.
 - `Export-IntuneAgentDiagnostic` left every registry value whose name starts with `PS`, such as
   `PSVersion`, out of the registry text. Only the five properties that the PowerShell provider
   adds to each key are left out now.
