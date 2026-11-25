@@ -42,7 +42,7 @@ function Invoke-IntuneDetectionTest {
             }
             $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
-        Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+        Write-Verbose "Starting $($MyInvocation.MyCommand.Name)"
         # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
         # host exists, and x64 elsewhere
         $runArchitecture = $Architecture
@@ -51,6 +51,8 @@ function Invoke-IntuneDetectionTest {
 
     process {
         foreach ($scriptItem in $Path) {
+            # Path is bound only here when it comes from the pipeline, so each script is named here
+            Write-Verbose "Testing $scriptItem"
             # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
             $action = "Run as a Win32 detection script ($Context context, $runArchitecture)"
             if (-not $PSCmdlet.ShouldProcess($scriptItem, $action)) {
