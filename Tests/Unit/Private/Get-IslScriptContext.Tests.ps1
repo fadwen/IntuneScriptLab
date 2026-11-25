@@ -79,8 +79,8 @@ Describe 'Get-IslScriptContext' -Tag 'Unit', 'Private' {
         }
 
         It 'reads EnforceSignatureCheck=<Word> from the directive as <Expected>' -ForEach @(
-            @{ Word = 'true';  Expected = $true }
-            @{ Word = 'True';  Expected = $true }
+            @{ Word = 'true'; Expected = $true }
+            @{ Word = 'True'; Expected = $true }
             @{ Word = 'false'; Expected = $false }
         ) {
             $body = "# IntuneScriptLab: ScriptType=Win32Detection EnforceSignatureCheck=$Word`nexit 0"
@@ -101,15 +101,15 @@ Describe 'Get-IslScriptContext' -Tag 'Unit', 'Private' {
 
     Context 'Type inference from the file name' {
         It 'infers <Expected> from <Name>' -ForEach @(
-            @{ Name = 'Detect-App.ps1';          Expected = 'Win32Detection' }
-            @{ Name = 'detect-win32-agent.ps1';  Expected = 'Win32Detection' }
-            @{ Name = 'Detect-LegacyTls.ps1';    Expected = 'Detection' }
+            @{ Name = 'Detect-App.ps1'; Expected = 'Win32Detection' }
+            @{ Name = 'detect-win32-agent.ps1'; Expected = 'Win32Detection' }
+            @{ Name = 'Detect-LegacyTls.ps1'; Expected = 'Detection' }
             @{ Name = 'Remediate-LegacyTls.ps1'; Expected = 'Remediation' }
-            @{ Name = 'Fix-Proxy.ps1';           Expected = 'Remediation' }
-            @{ Name = 'prefix-check.ps1';        Expected = 'PlatformScript' }
-            @{ Name = 'undetectable.ps1';        Expected = 'PlatformScript' }
-            @{ Name = 'App-Requirement.ps1';     Expected = 'Win32Requirement' }
-            @{ Name = 'Configure-Proxy.ps1';     Expected = 'PlatformScript' }
+            @{ Name = 'Fix-Proxy.ps1'; Expected = 'Remediation' }
+            @{ Name = 'prefix-check.ps1'; Expected = 'PlatformScript' }
+            @{ Name = 'undetectable.ps1'; Expected = 'PlatformScript' }
+            @{ Name = 'App-Requirement.ps1'; Expected = 'Win32Requirement' }
+            @{ Name = 'Configure-Proxy.ps1'; Expected = 'PlatformScript' }
         ) {
             $scriptContext = Get-ScriptContext -Path (New-TestScript $Name 'exit 0')
             $scriptContext.ScriptType | Should-Be $Expected
@@ -117,10 +117,10 @@ Describe 'Get-IslScriptContext' -Tag 'Unit', 'Private' {
         }
 
         It 'lets a nearby folder settle a detection: <Path> is <Expected>' -ForEach @(
-            @{ Path = 'Win32\Agent\Detect.ps1';            Expected = 'Win32Detection' }
-            @{ Path = 'Apps\Agent\Detect-Agent.ps1';       Expected = 'Win32Detection' }
-            @{ Path = 'Remediations\Tls\Detect-App.ps1';   Expected = 'Detection' }
-            @{ Path = 'HealthScripts\Detect-Install.ps1';  Expected = 'Detection' }
+            @{ Path = 'Win32\Agent\Detect.ps1'; Expected = 'Win32Detection' }
+            @{ Path = 'Apps\Agent\Detect-Agent.ps1'; Expected = 'Win32Detection' }
+            @{ Path = 'Remediations\Tls\Detect-App.ps1'; Expected = 'Detection' }
+            @{ Path = 'HealthScripts\Detect-Install.ps1'; Expected = 'Detection' }
         ) {
             $scriptContext = Get-ScriptContext -Path (New-TestScript $Path 'exit 0')
             $scriptContext.ScriptType | Should-Be $Expected
@@ -191,10 +191,10 @@ Describe 'Get-IslScriptContext' -Tag 'Unit', 'Private' {
 
     Context 'Portal defaults' {
         It 'gives <Type> the context <Context> and the <Architecture> host' -ForEach @(
-            @{ Type = 'PlatformScript';   Context = 'User';   Architecture = 'x86' }
-            @{ Type = 'Detection';        Context = 'System'; Architecture = 'x86' }
-            @{ Type = 'Remediation';      Context = 'System'; Architecture = 'x86' }
-            @{ Type = 'Win32Detection';   Context = 'System'; Architecture = 'x64' }
+            @{ Type = 'PlatformScript'; Context = 'User'; Architecture = 'x86' }
+            @{ Type = 'Detection'; Context = 'System'; Architecture = 'x86' }
+            @{ Type = 'Remediation'; Context = 'System'; Architecture = 'x86' }
+            @{ Type = 'Win32Detection'; Context = 'System'; Architecture = 'x64' }
             @{ Type = 'Win32Requirement'; Context = 'System'; Architecture = 'x64' }
         ) {
             $path = New-TestScript 'x.ps1' 'exit 0'

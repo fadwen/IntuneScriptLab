@@ -51,22 +51,26 @@ Describe 'Compare-IslRuleValue' -Tag 'Unit', 'Private' {
 
     It 'compares strings case-insensitively (W32-REG-STR-CASE)' {
         $result = Compare-Value @{ Actual = 'IntuneScriptLab'; Expected = 'intunescriptlab'; Type = 'String'
-            Operator = 'Equal' }
+            Operator = 'Equal'
+        }
         $result.Met | Should-BeTrue
         $result.PSObject.TypeNames | Should-ContainCollection 'IntuneScriptLab.RuleComparison'
         $other = Compare-Value @{ Actual = 'IntuneScriptLab'; Expected = 'other'; Type = 'String'
-            Operator = 'Equal' }
+            Operator = 'Equal'
+        }
         $other.Met | Should-BeFalse
     }
 
     It 'compares versions as versions, so 10.0.1 is above 9.0 (W32-REG-VER-GE, W32-FILE-VER-GE)' {
         $ge = Compare-Value @{ Actual = '10.0.1'; Expected = '9.0'; Type = 'Version'
-            Operator = 'GreaterThanOrEqual' }
+            Operator = 'GreaterThanOrEqual'
+        }
         $ge.Met | Should-BeTrue
         (Compare-Value @{ Actual = '10.0.1'; Expected = '9.0'; Type = 'Version'; Operator = 'LessThan' }).Met |
             Should-BeFalse
         $msi = Compare-Value @{ Actual = '110.0.2'; Expected = '99.0.0'; Type = 'Version'
-            Operator = 'GreaterThanOrEqual' }
+            Operator = 'GreaterThanOrEqual'
+        }
         $msi.Met | Should-BeTrue
     }
 
@@ -94,18 +98,20 @@ Describe 'Compare-IslRuleValue' -Tag 'Unit', 'Private' {
     It 'compares dates in UTC from strings and DateTime values (W32-FILE-DATE-GT)' {
         $stamp = [datetime]::new(2024, 6, 15, 12, 0, 0, [DateTimeKind]::Utc)
         (Compare-Value @{ Actual = $stamp; Expected = '2024-01-01T00:00:00Z'; Type = 'DateTime'
-            Operator = 'GreaterThan' }).Met | Should-BeTrue
+            Operator = 'GreaterThan'
+        }).Met | Should-BeTrue
         (Compare-Value @{ Actual = '2024-06-15'; Expected = '2024-01-01T00:00:00Z'; Type = 'DateTime'
-            Operator = 'LessThan' }).Met | Should-BeFalse
+            Operator = 'LessThan'
+        }).Met | Should-BeFalse
     }
 
     It 'applies every operator: <Operator> on 5 vs 3 is <Expected>' -ForEach @(
-        @{ Operator = 'Equal';              Expected = $false }
-        @{ Operator = 'NotEqual';           Expected = $true }
-        @{ Operator = 'GreaterThan';        Expected = $true }
+        @{ Operator = 'Equal'; Expected = $false }
+        @{ Operator = 'NotEqual'; Expected = $true }
+        @{ Operator = 'GreaterThan'; Expected = $true }
         @{ Operator = 'GreaterThanOrEqual'; Expected = $true }
-        @{ Operator = 'LessThan';           Expected = $false }
-        @{ Operator = 'LessThanOrEqual';    Expected = $false }
+        @{ Operator = 'LessThan'; Expected = $false }
+        @{ Operator = 'LessThanOrEqual'; Expected = $false }
     ) {
         (Compare-Value @{ Actual = 5; Expected = '3'; Type = 'Integer'; Operator = $Operator }).Met |
             Should-Be $Expected

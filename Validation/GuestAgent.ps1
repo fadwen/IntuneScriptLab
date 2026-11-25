@@ -3,6 +3,7 @@
 # $VmId parameters the function reads, and kept apart from them so it can be unit-tested with ssh
 # mocked and without the driver's #Requires lines.
 
+
 function Get-GuestReplyProperty {
     <#
     .SYNOPSIS
@@ -312,7 +313,7 @@ function Send-GuestFile {
             $part = $b64.Substring($offset, [Math]::Min($PartSize, $b64.Length - $offset))
             $partPath = '{0}.b64.{1:D4}' -f $RemotePath, $index++
             $command = "pvesh create /nodes/`$(hostname)/qemu/$VmId/agent/file-write " +
-                "--file '$partPath' --content '$part'"
+            "--file '$partPath' --content '$part'"
             $raw = ssh -o BatchMode=yes $ProxmoxHost $command 2>&1
             if ($LASTEXITCODE -ne 0) {
                 $message = "file-write of $partPath failed on ${ProxmoxHost}: $(($raw -join ' ').Trim())"
@@ -324,9 +325,9 @@ function Send-GuestFile {
             }
         }
         $join = "`$parts = Get-ChildItem -Path '$RemotePath.b64.*' | Sort-Object Name | " +
-            "ForEach-Object { (Get-Content -Path `$_.FullName -Raw).Trim() }; " +
-            "[IO.File]::WriteAllBytes('$RemotePath', [Convert]::FromBase64String((-join `$parts))); " +
-            "Remove-Item -Path '$RemotePath.b64.*'; (Get-FileHash -Path '$RemotePath' -Algorithm SHA256).Hash"
+        "ForEach-Object { (Get-Content -Path `$_.FullName -Raw).Trim() }; " +
+        "[IO.File]::WriteAllBytes('$RemotePath', [Convert]::FromBase64String((-join `$parts))); " +
+        "Remove-Item -Path '$RemotePath.b64.*'; (Get-FileHash -Path '$RemotePath' -Algorithm SHA256).Hash"
         $remoteHash = "$(Invoke-GuestPowerShell -Script $join)".Trim()
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)

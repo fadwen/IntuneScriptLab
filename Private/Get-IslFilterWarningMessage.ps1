@@ -44,10 +44,8 @@
     $note = if ($Mode -ne 'Exclude') { '' }
     elseif ($Warning.Kind -eq 'NeverMatches') {
         '; as an exclude filter it excludes nobody, so the assignment reaches every device in the group'
-    }
-    elseif ($Warning.Kind -eq 'AlwaysMatches') {
+    } elseif ($Warning.Kind -eq 'AlwaysMatches') {
         '; as an exclude filter it excludes every device, so the assignment reaches nobody'
-    }
-    else { '' }
+    } else { '' }
     "$($Warning.Message)$note"
 }

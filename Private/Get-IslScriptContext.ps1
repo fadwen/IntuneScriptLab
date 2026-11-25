@@ -89,7 +89,7 @@ function Get-IslScriptContext {
         if ($token.Text -match '^#\s*IntuneScriptLab\s*:\s*(.+)$') {
             foreach ($pair in ($Matches[1] -split '[\s;,]+')) {
                 if ($pair -match ('^(ScriptType|Context|' +
-                    'Architecture|EnforceSignatureCheck)=(\w+)$')) { $directive[$Matches[1]] = $Matches[2] }
+                        'Architecture|EnforceSignatureCheck)=(\w+)$')) { $directive[$Matches[1]] = $Matches[2] }
             }
         }
     }
@@ -106,8 +106,7 @@ function Get-IslScriptContext {
         $leaf = Split-Path -Path $folder -Leaf
         if ($leaf -match '(?i)(^|[^a-z])(win32|apps?|packages?|installers?|intunewin)([^a-z]|$)') {
             $folderHint = 'Win32'
-        }
-        elseif ($leaf -match '(?i)(^|[^a-z])(remediations?|healthscripts?|proactive)([^a-z]|$)') {
+        } elseif ($leaf -match '(?i)(^|[^a-z])(remediations?|healthscripts?|proactive)([^a-z]|$)') {
             $folderHint = 'Remediation'
         }
         $folder = Split-Path -Path $folder -Parent
@@ -163,21 +162,20 @@ function Get-IslScriptContext {
     $signatureCheck = if ($EnforceSignatureCheck -ne 'Auto') { $EnforceSignatureCheck -eq 'True' }
     elseif ($directive.ContainsKey('EnforceSignatureCheck')) {
         "$($directive['EnforceSignatureCheck'])" -in 'true', '1', 'yes'
-    }
-    elseif ($null -ne $settingsSignatureCheck) { [bool]$settingsSignatureCheck }
+    } elseif ($null -ne $settingsSignatureCheck) { [bool]$settingsSignatureCheck }
     else { $false }
 
     [pscustomobject]@{
-        PSTypeName            = 'IntuneScriptLab.ScriptContext'
-        Path                  = $resolved
-        Ast                   = $ast
-        Tokens                = $tokens
-        ParseErrors           = @($errors)
-        Bytes                 = $bytes
-        ScriptType            = $resolvedType
-        TypeSource            = $typeSource
-        Context               = $resolvedContext
-        Architecture          = $resolvedArchitecture
+        PSTypeName = 'IntuneScriptLab.ScriptContext'
+        Path = $resolved
+        Ast = $ast
+        Tokens = $tokens
+        ParseErrors = @($errors)
+        Bytes = $bytes
+        ScriptType = $resolvedType
+        TypeSource = $typeSource
+        Context = $resolvedContext
+        Architecture = $resolvedArchitecture
         EnforceSignatureCheck = $signatureCheck
     }
 }

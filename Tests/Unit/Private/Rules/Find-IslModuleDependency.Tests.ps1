@@ -21,7 +21,7 @@ Describe 'Find-IslModuleDependency' -Tag 'Unit', 'Private', 'Rule' {
 
     It 'warns about Import-Module of a module that is not in-box, by name or by -Name, one per module' {
         $body = "Import-Module ActiveDirectory`n" +
-            "Import-Module -Name Az.Accounts, Microsoft.Graph.Authentication`nexit 0"
+        "Import-Module -Name Az.Accounts, Microsoft.Graph.Authentication`nexit 0"
         $findings = @(Get-RuleFinding (New-TestScript 'Detect-Ad.ps1' $body) IslModuleDependency)
         $findings.Count | Should-Be 3
         $findings.Severity | Should-All { $_ -eq 'Warning' }
@@ -44,7 +44,7 @@ Describe 'Find-IslModuleDependency' -Tag 'Unit', 'Private', 'Rule' {
 
     It 'reads #Requires -Modules and using module' {
         $body = "#Requires -Modules ActiveDirectory, @{ ModuleName = 'PSReadLine'; ModuleVersion = '2.0' }`n" +
-            "using module Pester`nexit 0"
+        "using module Pester`nexit 0"
         $findings = @(Get-RuleFinding (New-TestScript 'Detect-Req.ps1' $body) IslModuleDependency)
         $findings.Count | Should-Be 1
         $findings[0].Message | Should-BeLikeString '#Requires -Modules names ActiveDirectory*'

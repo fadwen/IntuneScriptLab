@@ -84,17 +84,16 @@ function Test-IntuneDeployedScript {
                             ScriptType = 'Remediation'; Content = $remediationContent
                         }
                         Test-IslPolicyScript @remediateSplat @policySettings @scriptOptions
-                    }
-                    else {
+                    } else {
                         $detectOnlyEvidence = ('A remediation created without remediationScriptContent ran ' +
                             'its detection alone every cycle; Graph reports remediationState skipped ' +
                             '(REM-DETECTONLY)')
                         $noteSplat = @{
                             PolicyKind = 'Remediation'; Policy = $policy; Rule = 'IslDetectOnly'
-                            Severity   = 'Information'
-                            Message    = 'No remediation script: the detection runs alone on its schedule and ' +
-                                'the portal shows the issue without fixing it'
-                            Evidence   = $detectOnlyEvidence
+                            Severity = 'Information'
+                            Message = 'No remediation script: the detection runs alone on its schedule and ' +
+                            'the portal shows the issue without fixing it'
+                            Evidence = $detectOnlyEvidence
                         }
                         ConvertTo-IslPolicyFinding @noteSplat @ruleOptions
                     }
@@ -176,21 +175,20 @@ function Test-IntuneDeployedScript {
                                 EnforceSignatureCheck = $signatureCheck
                             }
                             Test-IslPolicyScript @detectSplat @scriptOptions
-                        }
-                        elseif ($ruleType -eq '#microsoft.graph.win32LobAppFileSystemDetection' -and
+                        } elseif ($ruleType -eq '#microsoft.graph.win32LobAppFileSystemDetection' -and
                             $detectionType -eq 'doesNotExist') {
                             $rulePath = Get-IslPropertyValue -InputObject $rule -Name 'path'
                             $ruleFile = Get-IslPropertyValue -InputObject $rule -Name 'fileOrFolderName'
                             $ruleSplat = @{
                                 PolicyKind = 'Win32App'; Policy = $app; Rule = 'IslDetectionRuleIssue'
-                                Severity   = 'Error'
-                                Message    = "Detection rule $ruleIndex is a file rule with detectionType " +
-                                    "doesNotExist ($rulePath\$ruleFile): the agent does " +
-                                    'not evaluate it. Use a registry doesNotExist rule or a script'
-                                Evidence   = 'File doesNotExist: on a missing file the app was not detected ' +
-                                    'and the install ran; on a present file the detection ended "Invalid ' +
-                                    'detection rule or unable to parse detection rule" 0x87D30004 ' +
-                                    '(W32-FILE-NOTEXIST, W32-FILE-NOTEXIST-FALSE)'
+                                Severity = 'Error'
+                                Message = "Detection rule $ruleIndex is a file rule with detectionType " +
+                                "doesNotExist ($rulePath\$ruleFile): the agent does " +
+                                'not evaluate it. Use a registry doesNotExist rule or a script'
+                                Evidence = 'File doesNotExist: on a missing file the app was not detected ' +
+                                'and the install ran; on a present file the detection ended "Invalid ' +
+                                'detection rule or unable to parse detection rule" 0x87D30004 ' +
+                                '(W32-FILE-NOTEXIST, W32-FILE-NOTEXIST-FALSE)'
                             }
                             ConvertTo-IslPolicyFinding @ruleSplat @ruleOptions
                         }
@@ -235,13 +233,13 @@ function Test-IntuneDeployedScript {
                         if ($deviceGroups) {
                             $assignmentSplat = @{
                                 PolicyKind = 'Win32App'; Policy = $app; Rule = 'IslAssignmentIssue'
-                                Severity   = 'Warning'
-                                Message    = 'Install behavior User, assigned to devices ' +
-                                    "($($deviceGroups -join ', ')): the app is never installed there. Assign " +
-                                    'it to users'
-                                Evidence   = 'A user-context app assigned to a device group was never installed ' +
-                                    'on either join type: "user install context and this is a userless ' +
-                                    'check-in", Not applicable, Applicability 1011 (W32-USER-INSTALL)'
+                                Severity = 'Warning'
+                                Message = 'Install behavior User, assigned to devices ' +
+                                "($($deviceGroups -join ', ')): the app is never installed there. Assign " +
+                                'it to users'
+                                Evidence = 'A user-context app assigned to a device group was never installed ' +
+                                'on either join type: "user install context and this is a userless ' +
+                                'check-in", Not applicable, Applicability 1011 (W32-USER-INSTALL)'
                             }
                             ConvertTo-IslPolicyFinding @assignmentSplat @ruleOptions
                         }
@@ -256,8 +254,7 @@ function Test-IntuneDeployedScript {
                 $policyOutput
             }
         }
-    }
-    finally {
+    } finally {
         Remove-Item -LiteralPath $workFolder -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"

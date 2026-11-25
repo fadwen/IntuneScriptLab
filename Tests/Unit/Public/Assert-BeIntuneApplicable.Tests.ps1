@@ -17,12 +17,12 @@ BeforeAll {
     $script:Met = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.RequirementResult'
         Applicable = $true
-        Reason     = "Output 'ok' meets String Equal 'ok'"
+        Reason = "Output 'ok' meets String Equal 'ok'"
     }
     $script:Unmet = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.RequirementResult'
         Applicable = $false
-        Reason     = "Output 'five' is not an integer, so the rule fails"
+        Reason = "Output 'five' is not an integer, so the rule fails"
     }
 }
 

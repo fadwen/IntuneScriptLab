@@ -38,16 +38,20 @@ function Find-IslRebootCommand {
 
     $found = @(Find-IslCommand -Ast $ast -Name 'Restart-Computer', 'Stop-Computer')
     $found += @(Find-IslCommand -Ast $ast -Name 'shutdown', 'shutdown.exe' |
-        Where-Object { $_.Extent.Text -match '(?i)\s[/-][rsg]\b' })
+            Where-Object { $_.Extent.Text -match '(?i)\s[/-][rsg]\b' })
 
     foreach ($command in $found) {
         $message = switch ($Context.ScriptType) {
-            'Win32Detection' { ('A detection script must not restart the device; signal a pending reboot from ' +
+            'Win32Detection' {
+                ('A detection script must not restart the device; signal a pending reboot from ' +
                 'the ' +
-                'install command with return code 3010 instead') }
+                'install command with return code 3010 instead')
+            }
             'Win32Requirement' { 'A requirement script must not restart the device' }
-            'PlatformScript' { ('Restarting from a platform script ends the run before the result is reported; ' +
-                'prefer a scheduled restart or a separate policy') }
+            'PlatformScript' {
+                ('Restarting from a platform script ends the run before the result is reported; ' +
+                'prefer a scheduled restart or a separate policy')
+            }
             default { 'Restarting from a detection or remediation script is unsupported and loses the run result' }
         }
         $severity = if ($Context.ScriptType -in 'Detection', 'Remediation', 'Win32Detection',
@@ -55,9 +59,9 @@ function Find-IslRebootCommand {
         $findingSplat = @{
             RuleName = $rule
             Severity = $severity
-            Context  = $Context
-            Extent   = $command.Extent
-            Message  = $message
+            Context = $Context
+            Extent = $command.Extent
+            Message = $message
             Evidence = $evidence
         }
         New-IslFinding @findingSplat

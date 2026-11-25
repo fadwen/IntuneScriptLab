@@ -76,9 +76,9 @@ function Compare-IslRequirementOutput {
     $output = $StdOut -replace '\r?\n\z', ''
     $verdict = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.RequirementVerdict'
-        Met        = $false
-        Output     = $output
-        Reason     = ''
+        Met = $false
+        Output = $output
+        Reason = ''
     }
 
     if ($TimedOut) {
@@ -162,7 +162,7 @@ function Compare-IslRequirementOutput {
         'DateTime' {
             $stamp = [datetime]::MinValue
             $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor
-                [System.Globalization.DateTimeStyles]::AdjustToUniversal
+            [System.Globalization.DateTimeStyles]::AdjustToUniversal
             if (-not [datetime]::TryParse($output.Trim(), $culture, $styles, [ref]$stamp)) {
                 $verdict.Reason = "Output '$output' is not a date/time, so the rule fails"
                 return $verdict
@@ -178,11 +178,9 @@ function Compare-IslRequirementOutput {
 
     $comparison = if ($OutputType -eq 'String') {
         [string]::Compare($parsed, $expected, [System.StringComparison]::InvariantCultureIgnoreCase)
-    }
-    elseif ($OutputType -eq 'Boolean') {
+    } elseif ($OutputType -eq 'Boolean') {
         if ($parsed -eq $expected) { 0 } else { 1 }
-    }
-    else { $parsed.CompareTo($expected) }
+    } else { $parsed.CompareTo($expected) }
 
     $verdict.Met = switch ($Operator) {
         'Equal' { $comparison -eq 0 }

@@ -18,7 +18,7 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     # Stands in for the Graph module in a calling script: every request fails
     $script:GraphDown = 'function global:Invoke-MgGraphRequest { ' +
-        "throw [System.InvalidOperationException]::new('Graph is down') }"
+    "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:ConvertTo-Base64 {
         <#
@@ -72,42 +72,56 @@ BeforeAll {
     $script:Tenant = @{
         assignmentFilters = @{
             'flt-x64' = @{ id = 'flt-x64'; displayName = 'x64 only'; platform = 'windows10AndLater'
-                rule = '(device.cpuArchitecture -eq "x64")' }
+                rule = '(device.cpuArchitecture -eq "x64")'
+            }
             'flt-lab' = @{ id = 'flt-lab'; displayName = 'Lab devices'; platform = 'windows10AndLater'
-                rule = '(device.deviceName -startsWith "LAB-")' }
+                rule = '(device.deviceName -startsWith "LAB-")'
+            }
         }
         remediations = @(
             @{ id = 'rem-a'; displayName = 'Fix-Widget'; runAsAccount = 'user'; runAs32Bit = $true
                 enforceSignatureCheck = $false; detectionScriptContent = $script:DetectContent
                 remediationScriptContent = $script:RemediateContent
-                assignments = @(@{ target = $filteredGroup }) }
+                assignments = @(@{ target = $filteredGroup })
+            }
             @{ id = 'rem-b'; displayName = 'Report-Only'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; detectionScriptContent = $script:CleanContent
-                remediationScriptContent = $null }
+                remediationScriptContent = $null
+            }
             # A run-once schedule that has passed, and one still to come
             @{ id = 'rem-c'; displayName = 'Old-Once'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; detectionScriptContent = $script:CleanContent
                 remediationScriptContent = $script:CleanContent
                 assignments = @(@{ target = $deviceGroup; runSchedule = @{
                             '@odata.type' = '#microsoft.graph.deviceHealthScriptRunOnceSchedule'
-                            useUtc = $true; date = '2026-01-15'; time = '08:30:00' } }) }
+                            useUtc = $true; date = '2026-01-15'; time = '08:30:00'
+                        }
+                    })
+            }
             @{ id = 'rem-d'; displayName = 'Next-Once'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; detectionScriptContent = $script:CleanContent
                 remediationScriptContent = $script:CleanContent
                 assignments = @(@{ target = $deviceGroup; runSchedule = @{
                             '@odata.type' = '#microsoft.graph.deviceHealthScriptRunOnceSchedule'
-                            useUtc = $true; date = '2099-01-15'; time = '08:30:00' } }) }
+                            useUtc = $true; date = '2099-01-15'; time = '08:30:00'
+                        }
+                    })
+            }
             # Only an exclusion
             @{ id = 'rem-e'; displayName = 'Excluded'; runAsAccount = 'system'; runAs32Bit = $false
                 enforceSignatureCheck = $false; detectionScriptContent = $script:CleanContent
                 remediationScriptContent = $script:CleanContent
                 assignments = @(@{ target = @{
                             '@odata.type' = '#microsoft.graph.exclusionGroupAssignmentTarget'
-                            groupId = 'grp-devices' } }) }
+                            groupId = 'grp-devices'
+                        }
+                    })
+            }
         )
         platformScripts = @(
             @{ id = 'ps-a'; displayName = 'Set-Wallpaper'; runAsAccount = 'user'; runAs32Bit = $false
-                enforceSignatureCheck = $false; scriptContent = $script:PlatformContent }
+                enforceSignatureCheck = $false; scriptContent = $script:PlatformContent
+            }
         )
         apps = @(
             @{
@@ -115,23 +129,29 @@ BeforeAll {
                 installExperience = @{ runAsAccount = 'user' }
                 detectionRules = @(
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptDetection'
-                        scriptContent = $script:CleanContent; enforceSignatureCheck = $true; runAs32Bit = $false }
+                        scriptContent = $script:CleanContent; enforceSignatureCheck = $true; runAs32Bit = $false
+                    }
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppFileSystemDetection'
-                        detectionType = 'doesNotExist'; path = 'C:\Legacy'; fileOrFolderName = 'old.exe' }
+                        detectionType = 'doesNotExist'; path = 'C:\Legacy'; fileOrFolderName = 'old.exe'
+                    }
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppFileSystemDetection'
-                        detectionType = 'exists'; path = 'C:\Widget'; fileOrFolderName = 'widget.exe' }
+                        detectionType = 'exists'; path = 'C:\Widget'; fileOrFolderName = 'widget.exe'
+                    }
                 )
                 requirementRules = @(
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppPowerShellScriptRequirement'
                         scriptContent = $script:DetectContent; runAsAccount = 'system'; runAs32Bit = $true
-                        enforceSignatureCheck = $false }
+                        enforceSignatureCheck = $false
+                    }
                     @{ '@odata.type' = '#microsoft.graph.win32LobAppRegistryRequirement' }
                 )
                 assignments = @(
                     @{ target = $deviceGroup }
                     @{ target = @{ '@odata.type' = '#microsoft.graph.allLicensedUsersAssignmentTarget'
                             deviceAndAppManagementAssignmentFilterId = 'flt-x64'
-                            deviceAndAppManagementAssignmentFilterType = 'include' } }
+                            deviceAndAppManagementAssignmentFilterType = 'include'
+                        }
+                    }
                     # All devices is a device target too: a user-context app never installs through it
                     @{ target = @{ '@odata.type' = '#microsoft.graph.allDevicesAssignmentTarget' } }
                 )
@@ -145,12 +165,14 @@ BeforeAll {
                 requirementRules = @()
                 assignments = @(@{ target = @{ '@odata.type' = '#microsoft.graph.groupAssignmentTarget'
                             groupId = 'grp-devices'; deviceAndAppManagementAssignmentFilterId = 'flt-lab'
-                            deviceAndAppManagementAssignmentFilterType = 'exclude' } })
+                            deviceAndAppManagementAssignmentFilterType = 'exclude'
+                        }
+                    })
             }
         )
         groups = @{
             'grp-devices' = @{ value = @(@{ '@odata.type' = '#microsoft.graph.device'; id = 'd1' }) }
-            'grp-users'   = @{ value = @(@{ '@odata.type' = '#microsoft.graph.user'; id = 'u1' }) }
+            'grp-users' = @{ value = @(@{ '@odata.type' = '#microsoft.graph.user'; id = 'u1' }) }
         }
     }
 }
@@ -279,7 +301,7 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $findings.Severity | Should-All { $_ -eq 'Warning' }
             $findings.Role | Should-All { $_ -eq 'policy' }
             $expected = "Filter 'x64 only' (include): 'x64'*never matches*" +
-                "Rule: (device.cpuArchitecture -eq `"x64`")"
+            "Rule: (device.cpuArchitecture -eq `"x64`")"
             $findings[0].Message | Should-BeLikeString $expected
             Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
                 $Uri -like '*/assignmentFilters/flt-x64'
@@ -295,8 +317,7 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             $target.deviceAndAppManagementAssignmentFilterId = 'flt-x64'
             try {
                 $findings = @(Test-IntuneDeployedScript -IncludeRule IslFilterIssue)
-            }
-            finally {
+            } finally {
                 $target.deviceAndAppManagementAssignmentFilterId = 'flt-lab'
             }
             $excluded = @($findings | Where-Object PolicyName -eq 'Widget 1.0')
@@ -324,7 +345,7 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
 
         It 'warns about a policy with no assignment or only exclusions (ASSIGN-NONE, ASSIGN-EXCLONLY)' {
             $findings = @(Test-IntuneDeployedScript -IncludeRule IslAssignmentIssue -MinimumSeverity Warning |
-                Where-Object Message -like '*never runs anywhere*')
+                    Where-Object Message -like '*never runs anywhere*')
             @($findings.PolicyName | Sort-Object) |
                 Should-BeCollection @('Excluded', 'Report-Only', 'Set-Wallpaper')
             ($findings | Where-Object PolicyName -eq 'Excluded').Message | Should-BeLikeString 'Only exclusion*'

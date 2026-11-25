@@ -51,7 +51,7 @@ function Get-IslVariableCredentialSource {
     }
     foreach ($assignment in $assignments) {
         $typed = $assignment.Left.GetType().Name -eq 'ConvertExpressionAst' -and
-            $assignment.Left.Type.TypeName.FullName -match $credentialType
+        $assignment.Left.Type.TypeName.FullName -match $credentialType
         $source = if ($typed) { 'a [pscredential] variable' }
         else { Get-IslCredentialSource -Expression $assignment.Right }
         if (-not $source) { return }

@@ -118,7 +118,7 @@ Describe 'Get-IslAssignmentSummary' -Tag 'Unit', 'Private' {
     It 'reads a policy that is an object, as a recorded fixture is' {
         $summary = InModuleScope IntuneScriptLab {
             $json = '{ "id": "p", "assignments": [ { "target": ' +
-                '{ "@odata.type": "#microsoft.graph.groupAssignmentTarget" } } ] }'
+            '{ "@odata.type": "#microsoft.graph.groupAssignmentTarget" } } ] }'
             Get-IslAssignmentSummary -Policy ($json | ConvertFrom-Json)
         }
 

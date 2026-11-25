@@ -40,8 +40,7 @@ function ConvertFrom-IslRuleSpec {
             'productcode' { 'ProductCode' }
             default { 'Script' }
         }
-    }
-    else { '' }
+    } else { '' }
 
     $splat = @{}
     $operator = if ($Rule['Operator']) { "$($Rule['Operator'])" } else { '' }

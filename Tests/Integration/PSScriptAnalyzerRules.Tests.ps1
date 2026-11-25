@@ -14,9 +14,9 @@ BeforeDiscovery {
     $script:AnalyzerModule = if (Get-Module -ListAvailable PSScriptAnalyzer) { 'PSScriptAnalyzer' }
     else {
         $childItemSplat = @{
-            Path        = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\PSScriptAnalyzer'
-            Filter      = 'PSScriptAnalyzer.psd1'
-            Recurse     = $true
+            Path = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\PSScriptAnalyzer'
+            Filter = 'PSScriptAnalyzer.psd1'
+            Recurse = $true
             ErrorAction = 'SilentlyContinue'
         }
         $pwshCopy = Get-ChildItem @childItemSplat | Select-Object -Last 1
@@ -36,9 +36,9 @@ BeforeAll {
     $analyzer = if (Get-Module -ListAvailable PSScriptAnalyzer) { 'PSScriptAnalyzer' }
     else {
         $childItemSplat = @{
-            Path        = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\PSScriptAnalyzer'
-            Filter      = 'PSScriptAnalyzer.psd1'
-            Recurse     = $true
+            Path = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\PSScriptAnalyzer'
+            Filter = 'PSScriptAnalyzer.psd1'
+            Recurse = $true
             ErrorAction = 'SilentlyContinue'
         }
         $pwshCopy = Get-ChildItem @childItemSplat | Select-Object -Last 1
@@ -66,18 +66,18 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
     It 'exposes one Measure- rule per IntuneScriptLab rule, plus the assumed-context note' {
         $rules = @(Get-ScriptAnalyzerRule -CustomRulePath $script:RulePath)
         $expected = @(InModuleScope IntuneScriptLab { $script:RuleOrder } |
-            ForEach-Object { $_ -replace '^Find-', 'Measure-' }) + 'Measure-IslAssumedContext'
+                ForEach-Object { $_ -replace '^Find-', 'Measure-' }) + 'Measure-IslAssumedContext'
         @($rules.RuleName | Sort-Object) | Should-BeCollection @($expected | Sort-Object)
         $rules.SourceName | Should-All { $_ -eq 'IntuneScriptLab.Rules' }
     }
 
     It 'reports the findings Test-IntuneScript reports, once each, with rule, severity and line' {
         $records = @($scriptAnalyzerSplat = @{
-                         Path                = $script:Detect
-                         CustomRulePath      = $script:RulePath
-                         IncludeDefaultRules = $false
-                     }
-                     Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                Path = $script:Detect
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $false
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $script:Direct.Count | Should-BeGreaterThan 2
         $records.Count | Should-Be $script:Direct.Count
         # A finding with no extent (line 0) is reported at the root script block, line 1
@@ -92,11 +92,11 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
 
     It 'points each record at the finding text and keeps the script path' {
         $records = @($scriptAnalyzerSplat = @{
-                         Path                = $script:Detect
-                         CustomRulePath      = $script:RulePath
-                         IncludeDefaultRules = $false
-                     }
-                     Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                Path = $script:Detect
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $false
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $sleep = $records | Where-Object RuleName -eq 'Measure-IslLongSleep'
         $sleep.Extent.Text | Should-BeLikeString 'Start-Sleep -Seconds 4000*'
         $sleep.ScriptPath | Should-Be $script:Detect
@@ -104,21 +104,21 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
 
     It 'honours -ExcludeRule and -IncludeRule with the Measure- names' {
         $without = @($scriptAnalyzerSplat = @{
-                         Path                = $script:Detect
-                         CustomRulePath      = $script:RulePath
-                         IncludeDefaultRules = $false
-                         ExcludeRule         = 'Measure-IslAssumedContext'
-                     }
-                     Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                Path = $script:Detect
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $false
+                ExcludeRule = 'Measure-IslAssumedContext'
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $without.RuleName | Should-NotContainCollection 'Measure-IslAssumedContext'
         $without.Count | Should-Be ($script:Direct.Count - 1)
         $only = @($scriptAnalyzerSplat = @{
-                      Path                = $script:Detect
-                      CustomRulePath      = $script:RulePath
-                      IncludeDefaultRules = $false
-                      IncludeRule         = 'Measure-IslLongSleep'
-                  }
-                  Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                Path = $script:Detect
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $false
+                IncludeRule = 'Measure-IslLongSleep'
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $only.RuleName | Should-All { $_ -eq 'Measure-IslLongSleep' }
         $only.Count | Should-Be 1
     }
@@ -127,8 +127,8 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
         # The README and the help say so; a PSScriptAnalyzer that filters on the record fails this
         # and both need rewriting
         $scriptAnalyzerSplat = @{
-            Path                = $script:Detect
-            CustomRulePath      = $script:RulePath
+            Path = $script:Detect
+            CustomRulePath = $script:RulePath
             IncludeDefaultRules = $false
         }
         @($script:Direct | Where-Object Severity -eq 'Error').Count | Should-BeGreaterThan 0
@@ -145,11 +145,11 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
         # type earns no assumed-context note
         $definition = "# IntuneScriptLab: ScriptType=Detection`r`n" + [System.IO.File]::ReadAllText($script:Detect)
         $records = @($scriptAnalyzerSplat = @{
-                         ScriptDefinition    = $definition
-                         CustomRulePath      = $script:RulePath
-                         IncludeDefaultRules = $false
-                     }
-                     Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                ScriptDefinition = $definition
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $false
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $records.Count | Should-Be ($script:Direct.Count - 1)
         $records.RuleName | Should-NotContainCollection 'Measure-IslAssumedContext'
         $records.RuleName | Should-ContainCollection 'Measure-IslExitCodeIssue'
@@ -158,11 +158,11 @@ Describe 'PSScriptAnalyzer wrapper' -Tag 'Integration', 'Analyzer' -Skip:(-not $
     It 'runs next to the built-in rules in one pass with -IncludeDefaultRules' {
         # A -CustomRulePath switches the built-in rules off unless -IncludeDefaultRules asks for them
         $records = @($scriptAnalyzerSplat = @{
-                         Path                = $script:Detect
-                         CustomRulePath      = $script:RulePath
-                         IncludeDefaultRules = $true
-                     }
-                     Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
+                Path = $script:Detect
+                CustomRulePath = $script:RulePath
+                IncludeDefaultRules = $true
+            }
+            Invoke-ScriptAnalyzer @scriptAnalyzerSplat)
         $records.RuleName | Should-ContainCollection 'Measure-IslExitCodeIssue'
         $records.RuleName | Should-ContainCollection 'PSAvoidUsingCmdletAliases'
     }

@@ -130,6 +130,7 @@ $prefix = 'ISL-'
 . (Join-Path -Path $PSScriptRoot -ChildPath 'GraphRules.ps1')
 . (Join-Path -Path $PSScriptRoot -ChildPath 'GuestAgent.ps1')
 
+
 function New-ValidationErrorRecord {
     <#
     .SYNOPSIS
@@ -319,8 +320,8 @@ function Get-Win32InstallStatusReport {
     try {
         $job = Invoke-MgGraphRequest -Method POST -Uri $exportJobs -Body @{
             reportName = 'DeviceInstallStatusByApp'
-            filter     = "(ApplicationId eq '$AppId')"
-            format     = 'csv'
+            filter = "(ApplicationId eq '$AppId')"
+            format = 'csv'
         }
         $deadline = (Get-Date).AddMinutes(3)
         do {
@@ -589,7 +590,7 @@ function Invoke-GuestScriptFile {
             $runner = @(
                 '@echo off'
                 ("powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$remote`" " +
-                    "1>`"$remote.out`" 2>`"$remote.err`"")
+                "1>`"$remote.out`" 2>`"$remote.err`"")
                 "echo done>`"$remote.done`""
             ) -join "`r`n"
             $runnerB64 = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($runner))
@@ -597,9 +598,9 @@ function Invoke-GuestScriptFile {
             # held by the first, skip the script and write the done marker at once: the started marker
             # makes a repeated launch a no-op
             $launch = "if (-not (Test-Path -Path '$remote.started')) { " +
-                "Set-Content -Path '$remote.started' -Value started; [IO.File]::WriteAllText('$remote.cmd', " +
-                "[Text.Encoding]::ASCII.GetString([Convert]::FromBase64String('$runnerB64'))); " +
-                "Start-Process -FilePath '$remote.cmd' -WindowStyle Hidden }"
+            "Set-Content -Path '$remote.started' -Value started; [IO.File]::WriteAllText('$remote.cmd', " +
+            "[Text.Encoding]::ASCII.GetString([Convert]::FromBase64String('$runnerB64'))); " +
+            "Start-Process -FilePath '$remote.cmd' -WindowStyle Hidden }"
             $null = Invoke-GuestPowerShell -Script $launch
             $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
             do {
@@ -681,11 +682,11 @@ function Invoke-Deploy {
         $group = (Invoke-MgGraphRequest -Method GET -Uri $groupQuery)['value'] | Select-Object -First 1
         if (-not $group -and $PSCmdlet.ShouldProcess($GroupName, 'Create group')) {
             $group = Invoke-MgGraphRequest -Method POST -Uri '/v1.0/groups' -Body @{
-                displayName     = $GroupName
-                mailEnabled     = $false
-                mailNickname    = ($GroupName -replace '[^A-Za-z0-9]', '')
+                displayName = $GroupName
+                mailEnabled = $false
+                mailNickname = ($GroupName -replace '[^A-Za-z0-9]', '')
                 securityEnabled = $true
-                description     = 'IntuneScriptLab validation target. Safe to delete.'
+                description = 'IntuneScriptLab validation target. Safe to delete.'
             }
         }
         # No group when -WhatIf declined to create it
@@ -744,10 +745,10 @@ function Invoke-Deploy {
             }
             $detection = ConvertTo-ScriptContent @detectionSplat
             $body = @{
-                displayName            = $policyName
-                description            = "$($exp['Question']) | detectionSha256=$($detection.Sha256)"
-                publisher              = 'IntuneScriptLab'
-                enforceSignatureCheck  = $false
+                displayName = $policyName
+                description = "$($exp['Question']) | detectionSha256=$($detection.Sha256)"
+                publisher = 'IntuneScriptLab'
+                enforceSignatureCheck = $false
                 detectionScriptContent = $detection.Base64
             }
             # A detect-only remediation is one created without a remediation script. The assignment's
@@ -766,9 +767,9 @@ function Invoke-Deploy {
             $policy = Invoke-MgGraphRequest -Method POST -Uri $policyUri -Body $body
             Invoke-MgGraphRequest -Method POST -Uri "$policyUri/$($policy['id'])/assign" -Body @{
                 deviceHealthScriptAssignments = @(@{
-                        target               = $target
+                        target = $target
                         runRemediationScript = -not [bool]$exp['DetectOnly']
-                        runSchedule          = $schedule
+                        runSchedule = $schedule
                     })
             }
             Write-Information -InformationAction Continue -MessageData (
@@ -792,11 +793,11 @@ function Invoke-Deploy {
             }
             $content = ConvertTo-ScriptContent @contentSplat
             $body = @{
-                displayName           = $policyName
-                description           = "$($exp['Question']) | sha256=$($content.Sha256)"
-                fileName              = "$policyName.ps1"
+                displayName = $policyName
+                description = "$($exp['Question']) | sha256=$($content.Sha256)"
+                fileName = "$policyName.ps1"
                 enforceSignatureCheck = $false
-                scriptContent         = $content.Base64
+                scriptContent = $content.Base64
             }
             if ($exp.ContainsKey('RunAs32Bit')) { $body.runAs32Bit = $exp['RunAs32Bit'] }
             if ($exp.ContainsKey('RunAsAccount')) { $body.runAsAccount = $exp['RunAsAccount'] }
@@ -871,7 +872,7 @@ function Invoke-DeployWin32 {
             $downloadMessage = "Downloading IntuneWinAppUtil.exe to $IntuneWinAppUtilPath"
             Write-Information -InformationAction Continue -MessageData $downloadMessage
             $toolUri = 'https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/' +
-                'raw/master/IntuneWinAppUtil.exe'
+            'raw/master/IntuneWinAppUtil.exe'
             Invoke-WebRequest -Uri $toolUri -OutFile $IntuneWinAppUtilPath
         }
         $signature = Get-AuthenticodeSignature -LiteralPath $IntuneWinAppUtilPath
@@ -921,11 +922,11 @@ function Invoke-DeployWin32 {
         $scriptContent = Get-IntuneWinContent -PackagePath $package.FullName -WorkFolder $build
         Write-Information -InformationAction Continue -MessageData (
             "Packaged install.ps1: $($scriptContent.UnencryptedSize) bytes " +
-                "($($scriptContent.EncryptedSize) encrypted)")
+            "($($scriptContent.EncryptedSize) encrypted)")
         $packages = @{}
 
         $win32Query = "/beta/deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')" +
-            "&`$select=id,displayName"
+        "&`$select=id,displayName"
         $existingApps = @(Get-AllGraphItem -Uri $win32Query)
         $existing = @($existingApps | ForEach-Object { $_['displayName'] })
         $appIds = @{}
@@ -977,19 +978,19 @@ function Invoke-DeployWin32 {
                 $uninstallCommand = "$installScript -Uninstall"
             }
             $body = @{
-                '@odata.type'                  = '#microsoft.graph.win32LobApp'
-                displayName                    = $appDisplayName
-                description                    = "$($exp['Question'])$sha"
-                publisher                      = 'IntuneScriptLab'
-                fileName                       = $content.FileName
-                setupFilePath                  = $content.SetupFile
-                installCommandLine             = $installCommand
-                uninstallCommandLine           = $uninstallCommand
-                installExperience              = @{ runAsAccount = $runAs; deviceRestartBehavior = 'suppress' }
-                allowedArchitectures           = 'x64,x86'
+                '@odata.type' = '#microsoft.graph.win32LobApp'
+                displayName = $appDisplayName
+                description = "$($exp['Question'])$sha"
+                publisher = 'IntuneScriptLab'
+                fileName = $content.FileName
+                setupFilePath = $content.SetupFile
+                installCommandLine = $installCommand
+                uninstallCommandLine = $uninstallCommand
+                installExperience = @{ runAsAccount = $runAs; deviceRestartBehavior = 'suppress' }
+                allowedArchitectures = 'x64,x86'
                 minimumSupportedWindowsRelease = '1607'
-                rules                          = @($rules)
-                returnCodes                    = @(
+                rules = @($rules)
+                returnCodes = @(
                     @{ returnCode = 0; type = 'success' }, @{ returnCode = 3010; type = 'softReboot' },
                     @{ returnCode = 1641; type = 'hardReboot' }, @{ returnCode = 1618; type = 'retry' }
                 )
@@ -1036,11 +1037,11 @@ function Invoke-DeployWin32 {
                     Invoke-MgGraphRequest -Method POST -Uri $assignUri -Body @{
                         mobileAppAssignments = @(@{
                                 '@odata.type' = '#microsoft.graph.mobileAppAssignment'
-                                intent        = $intent
-                                target        = $assignTarget
-                                settings      = @{
-                                    '@odata.type'                = '#microsoft.graph.win32LobAppAssignmentSettings'
-                                    notifications                = 'hideAll'
+                                intent = $intent
+                                target = $assignTarget
+                                settings = @{
+                                    '@odata.type' = '#microsoft.graph.win32LobAppAssignmentSettings'
+                                    notifications = 'hideAll'
                                     deliveryOptimizationPriority = 'notConfigured'
                                 }
                             })
@@ -1061,7 +1062,7 @@ function Invoke-DeployWin32 {
                     $supersedenceType = if ($supersedes['Type']) { $supersedes['Type'] } else { 'update' }
                     $relationships.Add(@{ App = $appDisplayName; Target = "$prefix$($supersedes['App'])"
                             Relationship = @{
-                                '@odata.type'    = '#microsoft.graph.mobileAppSupersedence'
+                                '@odata.type' = '#microsoft.graph.mobileAppSupersedence'
                                 supersedenceType = $supersedenceType
                             }
                         })
@@ -1142,12 +1143,12 @@ function Get-AssignmentFilterId {
             $filterId = $existing['id']
         } elseif ($PSCmdlet.ShouldProcess($DisplayName, "Create assignment filter ($Rule)")) {
             $filter = Invoke-MgGraphRequest -Method POST -Uri '/beta/deviceManagement/assignmentFilters' -Body @{
-                displayName                    = $DisplayName
-                description                    = 'IntuneScriptLab validation filter. Safe to delete.'
-                platform                       = 'windows10AndLater'
-                rule                           = $Rule
+                displayName = $DisplayName
+                description = 'IntuneScriptLab validation filter. Safe to delete.'
+                platform = 'windows10AndLater'
+                rule = $Rule
                 assignmentFilterManagementType = 'devices'
-                roleScopeTags                  = @('0')
+                roleScopeTags = @('0')
             }
             $createdMessage = "Created assignment filter $DisplayName ($Rule)"
             Write-Information -InformationAction Continue -MessageData $createdMessage
@@ -1228,9 +1229,9 @@ function Get-MsiPackageContent {
         $source = New-Item -ItemType Directory -Path $sourceFolder -Force -WhatIf:$false -Confirm:$false
         Copy-Item -LiteralPath $installer -Destination $source -WhatIf:$false -Confirm:$false
         $packageSplat = @{
-            ToolPath     = $IntuneWinAppUtilPath
+            ToolPath = $IntuneWinAppUtilPath
             SourceFolder = $source
-            SetupFile    = $fileName
+            SetupFile = $fileName
             OutputFolder = Join-Path -Path $Build -ChildPath "Package-$fileName"
         }
         $built = New-IntuneWinPackage @packageSplat
@@ -1380,12 +1381,12 @@ function Invoke-Collect {
         $remediations = foreach ($policy in (Get-AllGraphItem -Uri '/beta/deviceManagement/deviceHealthScripts')) {
             if (-not $policy['displayName'].StartsWith($prefix)) { continue }
             [ordered]@{
-                Name         = $policy['displayName']
-                Id           = $policy['id']
-                Description  = $policy['description']
-                RunAs32Bit   = $policy['runAs32Bit']
+                Name = $policy['displayName']
+                Id = $policy['id']
+                Description = $policy['description']
+                RunAs32Bit = $policy['runAs32Bit']
                 RunAsAccount = $policy['runAsAccount']
-                RunStates    = Get-AllGraphItem -Uri ("/beta/deviceManagement/deviceHealthScripts/" +
+                RunStates = Get-AllGraphItem -Uri ("/beta/deviceManagement/deviceHealthScripts/" +
                     "$($policy['id'])/deviceRunStates")
             }
         }
@@ -1393,17 +1394,17 @@ function Invoke-Collect {
         $platform = foreach ($policy in (Get-AllGraphItem -Uri $platformUri)) {
             if (-not $policy['displayName'].StartsWith($prefix)) { continue }
             [ordered]@{
-                Name         = $policy['displayName']
-                Id           = $policy['id']
-                Description  = $policy['description']
-                RunAs32Bit   = $policy['runAs32Bit']
+                Name = $policy['displayName']
+                Id = $policy['id']
+                Description = $policy['description']
+                RunAs32Bit = $policy['runAs32Bit']
                 RunAsAccount = $policy['runAsAccount']
-                RunStates    = Get-AllGraphItem -Uri "$platformUri/$($policy['id'])/deviceRunStates"
+                RunStates = Get-AllGraphItem -Uri "$platformUri/$($policy['id'])/deviceRunStates"
             }
         }
         $apps = @(Get-AllGraphItem -Uri ("/beta/deviceAppManagement/mobileApps?" +
                 "`$filter=isof('microsoft.graph.win32LobApp')") |
-            Where-Object { $_['displayName'].StartsWith($prefix) })
+                Where-Object { $_['displayName'].StartsWith($prefix) })
         if ($AppName) {
             $apps = @($apps | Where-Object {
                     $candidate = $_['displayName'].Substring($prefix.Length)
@@ -1418,18 +1419,18 @@ function Invoke-Collect {
             $intentValues = @($assignments | ForEach-Object { if ($_.Contains('intent')) { $_['intent'] } })
             if ($intentValues.Count -eq 0) { $intentValues = @($null) }
             [ordered]@{
-                Name          = $app['displayName']
-                Id            = $app['id']
-                Description   = $app['description']
-                Rules         = @($app['rules'] |
-                    ForEach-Object {
-                        $rule = [ordered]@{}
-                        foreach ($k in ($_.Keys | Sort-Object)) {
-                            if ($k -ne 'scriptContent') { $rule[$k] = $_[$k] }
-                        }
-                        $rule
-                    })
-                Intent        = @($intentValues)
+                Name = $app['displayName']
+                Id = $app['id']
+                Description = $app['description']
+                Rules = @($app['rules'] |
+                        ForEach-Object {
+                            $rule = [ordered]@{}
+                            foreach ($k in ($_.Keys | Sort-Object)) {
+                                if ($k -ne 'scriptContent') { $rule[$k] = $_[$k] }
+                            }
+                            $rule
+                        })
+                Intent = @($intentValues)
                 InstallStatus = @(Get-Win32InstallStatusReport -AppId $app['id'] |
                         Select-Object -Property DeviceName, UserPrincipalName, AppInstallState_loc,
                         AppInstallStateDetails_loc, HexErrorCode, LastModifiedDateTime)
@@ -1529,11 +1530,11 @@ $ime = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension'
         $null = New-Item -ItemType Directory -Path $ResultsPath -Force
         $file = Join-Path -Path $ResultsPath -ChildPath ("round-{0:yyyyMMdd-HHmmss}.json" -f (Get-Date))
         [ordered]@{
-            CollectedUtc    = (Get-Date).ToUniversalTime().ToString('o')
-            Remediations    = @($remediations)
+            CollectedUtc = (Get-Date).ToUniversalTime().ToString('o')
+            Remediations = @($remediations)
             PlatformScripts = @($platform)
-            Win32Apps       = @($win32)
-            Device          = $device
+            Win32Apps = @($win32)
+            Device = $device
         } | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $file -Encoding utf8
         Write-Information -InformationAction Continue -MessageData "Results written to $file"
     } catch {
@@ -1569,7 +1570,7 @@ function Invoke-Remove {
 
     try {
         $win32Query = "/beta/deviceAppManagement/mobileApps?`$filter=isof('microsoft.graph.win32LobApp')" +
-            "&`$select=id,displayName"
+        "&`$select=id,displayName"
         foreach ($app in (Get-AllGraphItem -Uri $win32Query)) {
             $appDisplayName = $app['displayName']
             if ($appDisplayName.StartsWith($prefix) -and

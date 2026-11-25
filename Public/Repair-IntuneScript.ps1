@@ -56,8 +56,7 @@ function Repair-IntuneScript {
                 if (Test-Path -LiteralPath $resolved.ProviderPath -PathType Container) {
                     Get-ChildItem -LiteralPath $resolved.ProviderPath -Recurse -Filter *.ps1 -File |
                         ForEach-Object { $_.FullName }
-                }
-                else { $resolved.ProviderPath }
+                } else { $resolved.ProviderPath }
             }
         }
 
@@ -87,23 +86,19 @@ function Repair-IntuneScript {
                     $bytes = [System.IO.File]::ReadAllBytes($file)
                     $encoding = if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
                         [System.Text.Encoding]::Unicode
-                    }
-                    elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+                    } elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
                         [System.Text.Encoding]::BigEndianUnicode
-                    }
-                    elseif ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and
+                    } elseif ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and
                         $bytes[2] -eq 0xBF) {
                         [System.Text.UTF8Encoding]::new($true)
-                    }
-                    else {
+                    } else {
                         # No BOM: UTF-8 when the bytes decode as such, otherwise the ANSI code page
                         # Windows PowerShell 5.1 reads it in (a UTF-8 decode would turn every non-ASCII
                         # character into U+FFFD and lose it for good)
                         try {
                             $null = [System.Text.UTF8Encoding]::new($false, $true).GetString($bytes)
                             [System.Text.UTF8Encoding]::new($false)
-                        }
-                        catch { Get-IslOemEncoding -Kind ANSI }
+                        } catch { Get-IslOemEncoding -Kind ANSI }
                     }
                     $text = $encoding.GetString($bytes).TrimStart([char]0xFEFF)
                     $lineStarts = [System.Collections.Generic.List[int]]::new()
@@ -120,8 +115,7 @@ function Repair-IntuneScript {
                         $before = "$($finding.Text)"
                         $current = if ($start + $before.Length -le $text.Length) {
                             $text.Substring($start, $before.Length)
-                        }
-                        else { '' }
+                        } else { '' }
                         if ($current -ne $before) {
                             $place = "$file line $($finding.Line)"
                             Write-Warning "${place}: the text changed since the analysis; skipped"
@@ -135,10 +129,10 @@ function Repair-IntuneScript {
                         $text = $text.Substring(0, $edit.Start) + $after + $tail
                         $fixes.Add([pscustomobject]@{
                                 PSTypeName = 'IntuneScriptLab.Fix'
-                                RuleName   = $edit.Finding.RuleName
-                                Line       = $edit.Finding.Line
-                                Before     = $edit.Before
-                                After      = $after
+                                RuleName = $edit.Finding.RuleName
+                                Line = $edit.Finding.Line
+                                Before = $edit.Before
+                                After = $after
                             })
                     }
                     $encodingFix = @($fixable | Where-Object { $_.Fix.ContainsKey('Encoding') }) |
@@ -148,10 +142,10 @@ function Repair-IntuneScript {
                         $target = [System.Text.UTF8Encoding]::new($true)
                         $fixes.Add([pscustomobject]@{
                                 PSTypeName = 'IntuneScriptLab.Fix'
-                                RuleName   = $encodingFix.RuleName
-                                Line       = 0
-                                Before     = $encoding.WebName
-                                After      = 'utf-8 with BOM'
+                                RuleName = $encodingFix.RuleName
+                                Line = 0
+                                Before = $encoding.WebName
+                                After = 'utf-8 with BOM'
                             })
                     }
 
@@ -168,11 +162,11 @@ function Repair-IntuneScript {
                 else { $findings.Count - $fixes.Count }
                 $repair = [pscustomobject]@{
                     PSTypeName = 'IntuneScriptLab.Repair'
-                    Path       = $file
-                    Applied    = $fixes.Count
-                    Remaining  = $remaining
-                    Written    = $written
-                    Fixes      = $fixes.ToArray()
+                    Path = $file
+                    Applied = $fixes.Count
+                    Remaining = $remaining
+                    Written = $written
+                    Fixes = $fixes.ToArray()
                 }
             } catch {
                 $PSCmdlet.WriteError($_)

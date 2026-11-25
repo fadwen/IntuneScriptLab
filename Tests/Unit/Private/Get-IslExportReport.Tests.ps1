@@ -55,11 +55,10 @@ BeforeAll {
             $entry = $archive.CreateEntry('AppInstallStatusAggregate.csv')
             $writer = [System.IO.StreamWriter]::new($entry.Open())
             try { $writer.Write($Csv) } finally { $writer.Dispose() }
-        }
-        finally { $archive.Dispose() }
+        } finally { $archive.Dispose() }
     }
     $script:Csv = "ApplicationId,DisplayName,InstalledDeviceCount,FailedDeviceCount`r`n" +
-        "app-a,Widget 2.0,4,1`r`napp-b,Widget 1.0,0,0`r`n"
+    "app-a,Widget 2.0,4,1`r`napp-b,Widget 1.0,0,0`r`n"
 }
 
 Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {

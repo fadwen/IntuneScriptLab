@@ -36,5 +36,6 @@ function Assert-HaveIntuneRunState {
     $assert.Fail(
         'Expected run state <expected>,<because> but got <State> (exit <ExitCode>). Output: <Output>',
         @{ Expected = $Expected; Because = $Because; State = $state; ExitCode = $received.ExitCode
-           Output = $output })
+            Output = $output
+        })
 }

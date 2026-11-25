@@ -60,9 +60,11 @@ Describe 'Get-IslFilterWarningMessage' -Tag 'Unit', 'Private' {
 
     It 'appends what a <Kind> clause does to an exclude filter' -ForEach @(
         @{ Kind = 'NeverMatches'
-            Expected = '*never matches; as an exclude filter it excludes nobody, so the assignment reaches*' }
+            Expected = '*never matches; as an exclude filter it excludes nobody, so the assignment reaches*'
+        }
         @{ Kind = 'AlwaysMatches'
-            Expected = '*as an exclude filter it excludes every device, so the assignment reaches nobody' }
+            Expected = '*as an exclude filter it excludes every device, so the assignment reaches nobody'
+        }
     ) {
         Get-Message -Kind $Kind -Mode Exclude | Should-BeLikeString $Expected
     }

@@ -8,6 +8,7 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
 param()
 
+
 function New-TestScript {
     <#
     .SYNOPSIS

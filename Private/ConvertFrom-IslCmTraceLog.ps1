@@ -114,7 +114,7 @@ function ConvertFrom-IslCmTraceLog {
     $biasChars = [char[]]@('+', '-')
     $logName = [System.IO.Path]::GetFileNameWithoutExtension($file)
     $entryPattern = '<!\[LOG\[(?<message>.*?)\]LOG\]!><time="(?<time>[^"]*)" date="(?<date>[^"]*)"' +
-        '(?<attributes>[^>]*)>'
+    '(?<attributes>[^>]*)>'
     $entryRegex = [regex]::new($entryPattern, [System.Text.RegularExpressions.RegexOptions]::Singleline)
     $line = 1
     $counted = 0
@@ -166,19 +166,20 @@ function ConvertFrom-IslCmTraceLog {
         }
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.AgentLogEntry'
-            Time       = $time
-            Level      = if ($levels.ContainsKey($type)) { $levels[$type] } else { 'Information' }
-            Component  = if ($attributeMatch.Success) { $attributeMatch.Groups[1].Value } else { '' }
-            Thread     = if ($attributeMatch.Success) { [int]$attributeMatch.Groups[3].Value } else { $null }
-            Event      = $null
-            Detail     = $null
-            Id         = $null
-            Message    = $message.TrimEnd("`r", "`n")
-            Log        = $logName
-            Line       = $line
+            Time = $time
+            Level = if ($levels.ContainsKey($type)) { $levels[$type] } else { 'Information' }
+            Component = if ($attributeMatch.Success) { $attributeMatch.Groups[1].Value } else { '' }
+            Thread = if ($attributeMatch.Success) { [int]$attributeMatch.Groups[3].Value } else { $null }
+            Event = $null
+            Detail = $null
+            Id = $null
+            Message = $message.TrimEnd("`r", "`n")
+            Log = $logName
+            Line = $line
         }
     }
 }
+
 
 # component, then type, then thread, in the order every agent log writes them; context and file
 # sit between and after them and are not read

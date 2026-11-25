@@ -134,13 +134,14 @@ $severityRank = @{ Information = 0; Warning = 1; Error = 2 }
 $annotationLevel = @{ Information = 'notice'; Warning = 'warning'; Error = 'error' }
 $rootPath = (Resolve-Path -LiteralPath $Root).ProviderPath.TrimEnd('\', '/')
 
+
 function Get-RelativePath {
     param([string]$FullPath)
     if ($FullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
         $FullPath.Substring($rootPath.Length).TrimStart('\', '/').Replace('\', '/')
-    }
-    else { $FullPath }
+    } else { $FullPath }
 }
+
 
 function Write-GateLine {
     <#
@@ -177,11 +178,13 @@ function Write-GateLine {
     Write-Information -MessageData $Text -InformationAction Continue
 }
 
+
 function ConvertTo-AnnotationText {
     # Workflow commands take a percent-encoded message on one line
     param([string]$Text)
     $Text.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
 }
+
 
 function ConvertTo-AnnotationProperty {
     # A property value (file=, title=) also encodes the ':' and ',' that delimit the command, or a
@@ -189,6 +192,7 @@ function ConvertTo-AnnotationProperty {
     param([string]$Text)
     (ConvertTo-AnnotationText -Text $Text).Replace(':', '%3A').Replace(',', '%2C')
 }
+
 
 # Folders are searched here rather than by Test-IntuneScript, so that two kinds of file the suite
 # template puts under the script folders are not analyzed as Intune scripts: a Pester suite next to
@@ -205,8 +209,7 @@ $scriptFiles = @(foreach ($item in $Path) {
                         $_.Name -notlike '*.Tests.ps1' -and
                         "$($_.DirectoryName)\" -notmatch '(?i)[\\/]Package[\\/]'
                     } | ForEach-Object { $_.FullName }
-            }
-            else { $resolved.ProviderPath }
+            } else { $resolved.ProviderPath }
         }
     })
 # -ErrorAction Stop: the analysis reports a script it cannot read and goes on with the others,

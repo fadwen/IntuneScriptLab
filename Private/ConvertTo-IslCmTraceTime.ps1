@@ -57,6 +57,7 @@ function ConvertTo-IslCmTraceTime {
     $value
 }
 
+
 # M-d-yyyy and H:mm:ss as the agent writes them: no leading zero on the month, day or hour is
 # required, and the fraction is optional
 $script:IslCmTraceTimeFormat = 'M-d-yyyy H:mm:ss.FFFFFFF'

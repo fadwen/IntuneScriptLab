@@ -54,9 +54,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $parseError.Extent
-            Message  = "Parse error: $($parseError.Message)"
+            Context = $Context
+            Extent = $parseError.Extent
+            Message = "Parse error: $($parseError.Message)"
             Evidence = $evidence
         }
         New-IslFinding @findingSplat
@@ -72,9 +72,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = if ($requiresToken) { $requiresToken.Extent } else { $ast.Extent }
-            Message  = ("'#Requires -Version $($requires.RequiredPSVersion)' cannot be satisfied: Intune runs " +
+            Context = $Context
+            Extent = if ($requiresToken) { $requiresToken.Extent } else { $ast.Extent }
+            Message = ("'#Requires -Version $($requires.RequiredPSVersion)' cannot be satisfied: Intune runs " +
                 'Windows PowerShell 5.1, so the script exits 1 before its first line')
             Evidence = $requiresEvidence
         }
@@ -89,9 +89,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $node.Extent
-            Message  = "$what is PowerShell 7 only; Windows PowerShell 5.1 fails to parse the whole script"
+            Context = $Context
+            Extent = $node.Extent
+            Message = "$what is PowerShell 7 only; Windows PowerShell 5.1 fails to parse the whole script"
             Evidence = $evidence
         }
         New-IslFinding @findingSplat
@@ -104,9 +104,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $node.Extent
-            Message  = ('Null-coalescing operator (?? / ??=) is PowerShell 7 only; Windows PowerShell 5.1 ' +
+            Context = $Context
+            Extent = $node.Extent
+            Message = ('Null-coalescing operator (?? / ??=) is PowerShell 7 only; Windows PowerShell 5.1 ' +
                 'fails to parse the whole script')
             Evidence = $evidence
         }
@@ -123,9 +123,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $node.Extent
-            Message  = ('Null-conditional member access (?. / ?[]) is PowerShell 7 only; Windows PowerShell ' +
+            Context = $Context
+            Extent = $node.Extent
+            Message = ('Null-conditional member access (?. / ?[]) is PowerShell 7 only; Windows PowerShell ' +
                 '5.1 fails to parse the whole script')
             Evidence = $evidence
         }
@@ -139,9 +139,9 @@ function Find-IslPowerShell7Syntax {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('ForEach-Object -Parallel is PowerShell 7 only: under Windows PowerShell 5.1 the ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('ForEach-Object -Parallel is PowerShell 7 only: under Windows PowerShell 5.1 the ' +
                     'call fails with an error and the script carries on without its result')
                 Evidence = $runtimeEvidence
             }
@@ -154,9 +154,9 @@ function Find-IslPowerShell7Syntax {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $command.Extent
-            Message  = ("$($command.GetCommandName()) does not exist in Windows PowerShell 5.1: the call " +
+            Context = $Context
+            Extent = $command.Extent
+            Message = ("$($command.GetCommandName()) does not exist in Windows PowerShell 5.1: the call " +
                 'fails with an error and the script carries on without its result')
             Evidence = $runtimeEvidence
         }
@@ -170,9 +170,9 @@ function Find-IslPowerShell7Syntax {
                     $findingSplat = @{
                         RuleName = $rule
                         Severity = 'Error'
-                        Context  = $Context
-                        Extent   = $command.Extent
-                        Message  = ("$commandName -$parameter does not exist in Windows PowerShell 5.1: the " +
+                        Context = $Context
+                        Extent = $command.Extent
+                        Message = ("$commandName -$parameter does not exist in Windows PowerShell 5.1: the " +
                             'call fails with an error and the script carries on without its result')
                         Evidence = $runtimeEvidence
                     }
@@ -199,9 +199,9 @@ function Find-IslPowerShell7Syntax {
                     $findingSplat = @{
                         RuleName = $rule
                         Severity = 'Error'
-                        Context  = $Context
-                        Extent   = $command.Extent
-                        Message  = ("$commandName -$parameter $($argument.Value) is a PowerShell 7 value: " +
+                        Context = $Context
+                        Extent = $command.Extent
+                        Message = ("$commandName -$parameter $($argument.Value) is a PowerShell 7 value: " +
                             'under Windows PowerShell 5.1 the call fails with an error, writes nothing, and ' +
                             'the script carries on')
                         Evidence = $valueEvidence

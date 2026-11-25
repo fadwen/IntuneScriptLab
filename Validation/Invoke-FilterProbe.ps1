@@ -80,7 +80,7 @@ $name = $device.deviceName
 $osVersion = $device.osVersion
 $osShort = ($osVersion -split '\.')[0..2] -join '.'
 "Device: $name $($device.manufacturer)/$($device.model) os=$osVersion sku=$($device.skuNumber) " +
-    "join=$($device.joinType)"
+"join=$($device.joinType)"
 
 $syntax = @(
     @{ Id = 'FLT-V01'; Rule = '(device.deviceName -eq "X")' }
@@ -117,7 +117,8 @@ $syntax = @(
     @{ Id = 'FLT-V32'; Rule = '(device.noSuchProperty -eq "X")' }
     @{ Id = 'FLT-V33'; Rule = '(app.deviceModel -eq "X")' }
     @{ Id = 'FLT-V34'; Rule = '((device.deviceName -eq "A") or (device.deviceName -eq "B")) and ' +
-        '(device.model -eq "C")' }
+        '(device.model -eq "C")'
+    }
     @{ Id = 'FLT-V35'; Rule = "(device.deviceName`n  -eq   `"X`" )`n" }
     @{ Id = 'FLT-V36'; Rule = '(device.deviceName -contains "")' }
     @{ Id = 'FLT-V37'; Rule = '(device.isRooted -eq "True")' }
@@ -141,7 +142,8 @@ $syntax = @(
     @{ Id = 'FLT-V55'; Rule = '(device.deviceName -notContains "A")' }
     @{ Id = 'FLT-V56'; Rule = '(device.operatingSystemVersion -in ["10.0.22000.1000"])' }
     @{ Id = 'FLT-V57'; Rule = '(device.deviceName -eq "A") and (device.deviceName -eq "B") or ' +
-        '(device.deviceName -eq "C")' }
+        '(device.deviceName -eq "C")'
+    }
     @{ Id = 'FLT-V58'; Rule = '(device.deviceName -eq 42)' }
     @{ Id = 'FLT-V59'; Rule = '(device.model -Contains "X")' }
     @{ Id = 'FLT-V60'; Rule = '(device.deviceManagementType -eq "Corporate-owned fully managed")' }
@@ -179,7 +181,8 @@ $syntax = @(
     @{ Id = 'FLT-W28'; Rule = '(device.deviceName -eq "X") and' }
     @{ Id = 'FLT-W29'; Rule = '(device.deviceName -eq "X") -AND (device.model -eq "Y")' }
     @{ Id = 'FLT-W30'; Rule = '(device.operatingSystemVersion -gt 10.0.22000.1000) or ' +
-        '(device.operatingSystemSKU -in ["Enterprise"])' }
+        '(device.operatingSystemSKU -in ["Enterprise"])'
+    }
     @{ Id = 'FLT-W31'; Rule = '(device.deviceTrustType -eq $null)' }
     @{ Id = 'FLT-W32'; Rule = '(device.cpuArchitecture -eq $null)' }
     @{ Id = 'FLT-W33'; Rule = '(device.operatingSystemVersion -gt 10.0.22000.1000 )' }
@@ -198,7 +201,8 @@ $syntax = @(
     @{ Id = 'FLT-X06'; Rule = '(device.operatingSystemVersion -eq [10.0])' }
     @{ Id = 'FLT-X07'; Rule = '(device.deviceTrustType -eq "Azure AD joined") and' }
     @{ Id = 'FLT-X08'; Rule = '(device.deviceName -eq "X") and (device.deviceName -eq "Y") and ' +
-        '(device.deviceName -eq "Z")' }
+        '(device.deviceName -eq "Z")'
+    }
     @{ Id = 'FLT-X09'; Rule = '(device.deviceName -in ["A"] )' }
     @{ Id = 'FLT-X10'; Rule = '(device.manufacturer -eq "Microsoft Corporation")' }
 )
@@ -231,9 +235,11 @@ $matching = @(
     @{ Id = 'FLT-E25'; Rule = '(device.deviceCategory -eq $null)' }
     @{ Id = 'FLT-E26'; Rule = '(device.deviceCategory -eq "Unknown")' }
     @{ Id = 'FLT-E27'; Rule = '(device.deviceName -eq "{name}") or (device.deviceName -eq "nope") and ' +
-        '(device.deviceName -eq "nope")' }
+        '(device.deviceName -eq "nope")'
+    }
     @{ Id = 'FLT-E28'; Rule = '(device.deviceName -eq "nope") and (device.deviceName -eq "nope") or ' +
-        '(device.deviceName -eq "{name}")' }
+        '(device.deviceName -eq "{name}")'
+    }
     @{ Id = 'FLT-E29'; Rule = '(device.deviceName -contains "")' }
     @{ Id = 'FLT-E30'; Rule = '(device.deviceName -eq "{name} ")' }
     @{ Id = 'FLT-E31'; Rule = '(device.deviceName -eq " {name}")' }
@@ -256,11 +262,14 @@ $matching = @(
     @{ Id = 'FLT-F04'; Rule = '(device.osVersion -contains "{os.build}")' }
     @{ Id = 'FLT-F05'; Rule = '(device.manufacturer -in ["{manufacturer.lower}"])' }
     @{ Id = 'FLT-F07'; Rule = '(device.deviceName -eq "{name}") and ' +
-        '(device.deviceTrustType -eq "Azure AD registered")' }
+        '(device.deviceTrustType -eq "Azure AD registered")'
+    }
     @{ Id = 'FLT-F08'; Rule = '((device.deviceName -eq "nope") or (device.deviceName -eq "{name}")) and ' +
-        '(device.deviceTrustType -eq "Azure AD registered")' }
+        '(device.deviceTrustType -eq "Azure AD registered")'
+    }
     @{ Id = 'FLT-F09'; Rule = '(device.deviceName -eq "nope") or (device.deviceName -eq "{name}") and ' +
-        '(device.deviceTrustType -eq "Azure AD registered")' }
+        '(device.deviceTrustType -eq "Azure AD registered")'
+    }
     @{ Id = 'FLT-F11'; Rule = '(device.deviceName -startsWith " {name.head}")' }
     @{ Id = 'FLT-F13'; Rule = '(device.operatingSystemSKU -eq "EnterpriseSEval")' }
     @{ Id = 'FLT-F14'; Rule = '(device.operatingSystemSKU -startsWith "enterprise")' }
@@ -280,7 +289,8 @@ $matching = @(
     @{ Id = 'FLT-F30'; Rule = '(device.deviceName -notContains "{name.head.lower}")' }
     @{ Id = 'FLT-F31'; Rule = '(device.deviceName -notIn ["nope"])' }
     @{ Id = 'FLT-F32'; Rule = '(device.operatingSystemVersion -gt {os}) or ' +
-        '(device.operatingSystemVersion -lt {os})' }
+        '(device.operatingSystemVersion -lt {os})'
+    }
     @{ Id = 'FLT-F33'; Rule = '(device.model -eq "{model}")' }
     @{ Id = 'FLT-F34'; Rule = '(device.osVersion -eq "{os} ")' }
     @{ Id = 'FLT-F35'; Rule = '(device.operatingSystemVersion -eq "{os} ")' }
@@ -290,20 +300,21 @@ $matching = @(
     @{ Id = 'FLT-Y04'; Rule = '(device.isTpmAttested -ne "True")' }
 )
 $tokens = @{
-    '{name}'               = $name
-    '{name.lower}'         = $name.ToLowerInvariant()
-    '{name.head}'          = $name.Substring(0, 3)
-    '{name.head.lower}'    = $name.Substring(0, 3).ToLowerInvariant()
-    '{name.mid.lower}'     = $name.Substring(2, [Math]::Min(5, $name.Length - 2)).ToLowerInvariant()
-    '{name.offset}'        = $name.Substring(1, 3)
-    '{os}'                 = $osVersion
-    '{os3}'                = $osShort
-    '{os.build}'           = ($osVersion -split '\.')[2]
-    '{model}'              = $device.model
-    '{model.lower}'        = $device.model.ToLowerInvariant()
-    '{model.head.upper}'   = $device.model.Substring(0, 4).ToUpperInvariant()
+    '{name}' = $name
+    '{name.lower}' = $name.ToLowerInvariant()
+    '{name.head}' = $name.Substring(0, 3)
+    '{name.head.lower}' = $name.Substring(0, 3).ToLowerInvariant()
+    '{name.mid.lower}' = $name.Substring(2, [Math]::Min(5, $name.Length - 2)).ToLowerInvariant()
+    '{name.offset}' = $name.Substring(1, 3)
+    '{os}' = $osVersion
+    '{os3}' = $osShort
+    '{os.build}' = ($osVersion -split '\.')[2]
+    '{model}' = $device.model
+    '{model.lower}' = $device.model.ToLowerInvariant()
+    '{model.head.upper}' = $device.model.Substring(0, 4).ToUpperInvariant()
     '{manufacturer.lower}' = $device.manufacturer.ToLowerInvariant()
 }
+
 
 function Get-ReplyValue {
     <#
@@ -479,6 +490,7 @@ function Get-FilterMatch {
     $nameIndex = [array]::IndexOf($columnNames, 'deviceName')
     @(Get-ReplyValue -InputObject $answer -Name 'Values') | ForEach-Object { $_[$nameIndex] }
 }
+
 
 $result = [ordered]@{ Device = $device; Syntax = @(); Matching = @() }
 foreach ($probe in $syntax) {

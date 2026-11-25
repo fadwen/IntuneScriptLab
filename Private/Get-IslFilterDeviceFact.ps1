@@ -53,8 +53,7 @@ function Get-IslFilterDeviceFact {
     $osVersion = if ($version -and $version.CurrentMajorVersionNumber) {
         "$($version.CurrentMajorVersionNumber).$($version.CurrentMinorVersionNumber)." +
         "$($version.CurrentBuildNumber).$($version.UBR)"
-    }
-    else { [Environment]::OSVersion.Version.ToString() }
+    } else { [Environment]::OSVersion.Version.ToString() }
 
     $architecture = switch ("$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)") {
         'Arm64' { 'arm64' }
@@ -94,17 +93,17 @@ function Get-IslFilterDeviceFact {
     }
 
     @{
-        deviceName             = $env:COMPUTERNAME
-        manufacturer           = if ($computer) { "$($computer.Manufacturer)" } else { '' }
-        model                  = if ($computer) { "$($computer.Model)" } else { '' }
-        osVersion              = $osVersion
+        deviceName = $env:COMPUTERNAME
+        manufacturer = if ($computer) { "$($computer.Manufacturer)" } else { '' }
+        model = if ($computer) { "$($computer.Model)" } else { '' }
+        osVersion = $osVersion
         operatingSystemVersion = $osVersion
-        operatingSystemSKU     = $sku
-        cpuArchitecture        = $architecture
-        deviceTrustType        = $trustType
-        deviceOwnership        = $ownership
-        enrollmentProfileName  = $null
-        deviceCategory         = $null
-        isTpmAttested          = $null
+        operatingSystemSKU = $sku
+        cpuArchitecture = $architecture
+        deviceTrustType = $trustType
+        deviceOwnership = $ownership
+        enrollmentProfileName = $null
+        deviceCategory = $null
+        isTpmAttested = $null
     }
 }

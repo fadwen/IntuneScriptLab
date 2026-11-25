@@ -80,7 +80,7 @@ Describe 'Resolve-IslAccount' -Tag 'Unit', 'Private' {
                     'AzureAD\IslVerylongdisplayna') {
                     [pscustomobject]@{
                         Name = 'AzureAD\IslVerylongdisplayna'
-                        Sid  = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
+                        Sid = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
                     }
                 }
             }

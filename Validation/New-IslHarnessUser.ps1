@@ -79,15 +79,14 @@ if (-not $PSCmdlet.ShouldProcess($UserName, 'Create the account and store its cr
 if (Get-LocalUser -Name $UserName -ErrorAction SilentlyContinue) {
     Set-LocalUser -Name $UserName -Password $secure
     Write-Information -InformationAction Continue -MessageData "$UserName existed; password rotated"
-}
-else {
+} else {
     $newUserSplat = @{
-        Name                 = $UserName
-        Password             = $secure
+        Name = $UserName
+        Password = $secure
         PasswordNeverExpires = $true
-        AccountNeverExpires  = $true
+        AccountNeverExpires = $true
         # New-LocalUser caps the description at 48 characters
-        Description          = 'IntuneScriptLab harness account (standard user)'
+        Description = 'IntuneScriptLab harness account (standard user)'
     }
     New-LocalUser @newUserSplat | Out-Null
     Add-LocalGroupMember -Group 'Users' -Member $UserName

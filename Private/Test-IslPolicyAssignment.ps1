@@ -109,8 +109,8 @@ function Test-IslPolicyAssignment {
             Severity = 'Warning'
             Message = "${what}: no device resolves the policy, so it never runs anywhere"
             Evidence = 'A remediation with no assignment and one with only an exclusion were absent ' +
-                'from every device''s resolved policies after an agent restart, while the same scripts ' +
-                'with an include assignment ran (ASSIGN-NONE, ASSIGN-EXCLONLY)'
+            'from every device''s resolved policies after an agent restart, while the same scripts ' +
+            'with an include assignment ran (ASSIGN-NONE, ASSIGN-EXCLONLY)'
         }
         ConvertTo-IslPolicyFinding @findingSplat @noneSplat
     }
@@ -133,10 +133,10 @@ function Test-IslPolicyAssignment {
             Rule = 'IslScheduleIssue'
             Severity = 'Information'
             Message = "Run-once schedule at $when ($zone) has passed: a device that already ran it " +
-                'will not again, and one that fetches the policy now runs it once at the fetch'
+            'will not again, and one that fetches the policy now runs it once at the fetch'
             Evidence = 'A run-once remediation dated two hours earlier ran once about six minutes ' +
-                'after a device fetched it, then never again; a device whose clock had not reached ' +
-                'the time waited for it (ASSIGN-PAST2, ASSIGN-PAST, REM-RUNONCE)'
+            'after a device fetched it, then never again; a device whose clock had not reached ' +
+            'the time waited for it (ASSIGN-PAST2, ASSIGN-PAST, REM-RUNONCE)'
         }
         ConvertTo-IslPolicyFinding @findingSplat @pastSplat
     }
@@ -158,11 +158,11 @@ function Test-IslPolicyAssignment {
             Rule = 'IslAssignmentIssue'
             Severity = 'Information'
             Message = "User context, assigned to devices ($($deviceGroups -join ', ')): runs as the " +
-                'signed-in user on Entra joined and hybrid joined devices only; an Entra registered ' +
-                'device downloads the policy and skips it'
+            'signed-in user on Entra joined and hybrid joined devices only; an Entra registered ' +
+            'device downloads the policy and skips it'
             Evidence = 'On the Entra registered device the agent logged "This is not AADJ/HAADJ device, ' +
-                'skip user context" for every user-context remediation and platform script and never ran ' +
-                'them; the joined device ran them as the signed-in user (rounds 1-3, "Join type")'
+            'skip user context" for every user-context remediation and platform script and never ran ' +
+            'them; the joined device ran them as the signed-in user (rounds 1-3, "Join type")'
         }
         ConvertTo-IslPolicyFinding @findingSplat @userSplat
     }

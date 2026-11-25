@@ -50,11 +50,11 @@ function Get-IslIntuneOutput {
     if ($errorTruncated) { $errorText = $errorText.Substring($errorText.Length - $Limit) }
 
     [pscustomobject]@{
-        PSTypeName      = 'IntuneScriptLab.IntuneOutput'
-        Output          = $lastLine
-        Error           = $errorText
-        DroppedLines    = [Math]::Max(0, $lines.Count - 1)
+        PSTypeName = 'IntuneScriptLab.IntuneOutput'
+        Output = $lastLine
+        Error = $errorText
+        DroppedLines = [Math]::Max(0, $lines.Count - 1)
         OutputTruncated = $outputTruncated
-        ErrorTruncated  = $errorTruncated
+        ErrorTruncated = $errorTruncated
     }
 }

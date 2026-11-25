@@ -44,7 +44,7 @@
     if ($type -in 'Detection', 'Remediation') {
         $hostEvidence = ('A trailing Write-Host, Write-Warning or Write-Verbose -Verbose was reported verbatim: ' +
             ('"host-last", "WARNING: warn-last", "VERBOSE: verbose-last" (REM-OUT-HOSTLAST/WARNLAST/VERBLAST); ' +
-                'otherwise the last Write-Output line wins (REM-OUT-STREAMS)'))
+            'otherwise the last Write-Output line wins (REM-OUT-STREAMS)'))
         $hostCommands = @(Find-IslCommand -Ast $ast -Name $notCaptured)
         $outputs = @(Find-IslCommand -Ast $ast -Name 'Write-Output', 'echo', 'write')
 
@@ -64,22 +64,21 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $last.Extent
-                Message  = ("$($last.GetCommandName()) is the last thing written, so its text$prefix is what " +
+                Context = $Context
+                Extent = $last.Extent
+                Message = ("$($last.GetCommandName()) is the last thing written, so its text$prefix is what " +
                     'Intune reports instead of your summary. Write the summary line last, with Write-Output')
                 Evidence = $hostEvidence
             }
             New-IslFinding @findingSplat
-        }
-        elseif ($hostCommands.Count -gt 0) {
+        } elseif ($hostCommands.Count -gt 0) {
             $names = ($hostCommands | ForEach-Object { $_.GetCommandName() } | Sort-Object -Unique) -join ', '
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $hostCommands[0].Extent
-                Message  = ("$names text lands in the same console output Intune reads; it is fine as logging " +
+                Context = $Context
+                Extent = $hostCommands[0].Extent
+                Message = ("$names text lands in the same console output Intune reads; it is fine as logging " +
                     'as long as the summary Write-Output stays last')
                 Evidence = $hostEvidence
             }
@@ -89,9 +88,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $outputs[0].Extent
-                Message  = ("$($outputs.Count) Write-Output calls: Intune reports only the last line " +
+                Context = $Context
+                Extent = $outputs[0].Extent
+                Message = ("$($outputs.Count) Write-Output calls: Intune reports only the last line " +
                     '(and only its last 2,048 characters). Put the summary last')
                 Evidence = ('Last line only (REM-OUT-STREAMS); a 6,000-character line was reported as its ' +
                     'final 2,048 characters (REM-OUT-LONG)')
@@ -112,9 +111,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('Write-Error puts text on stderr: Intune reports the remediation as a script error ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('Write-Error puts text on stderr: Intune reports the remediation as a script error ' +
                     'and skips the post-detection even when the script exits 0. Exit non-zero to fail on ' +
                     'purpose, or report the problem with Write-Output')
                 Evidence = $remediationEvidence
@@ -122,26 +121,26 @@
             New-IslFinding @findingSplat
         }
         $probing = 'Get-Item', 'Get-ItemProperty', 'Get-ItemPropertyValue', 'Get-ChildItem', 'Get-Package',
-            'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage',
-            'Set-ItemProperty', 'New-ItemProperty', 'Remove-Item', 'Remove-ItemProperty', 'Copy-Item', 'Move-Item'
+        'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage',
+        'Set-ItemProperty', 'New-ItemProperty', 'Remove-Item', 'Remove-ItemProperty', 'Copy-Item', 'Move-Item'
         $unguarded = @(Find-IslCommand -Ast $ast -Name $probing |
-            Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
+                Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
         $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
             param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
-                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore|Stop'
+            $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore|Stop'
         }
         if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $unguarded[0].Extent
-                Message  = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its target " +
+                Context = $Context
+                Extent = $unguarded[0].Extent
+                Message = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its target " +
                     'is missing, and the script carries on to exit 0: Intune then reports a script error, not ' +
                     'the Recurred the post-detection would have given. Use -ErrorAction Stop and let the ' +
                     'failure be one, or check the target first')
                 Evidence = $remediationEvidence
-                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction Stop' }
+                Fix = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction Stop' }
             }
             New-IslFinding @findingSplat
         }
@@ -153,9 +152,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('Write-Error puts text on stderr: the app is reported as not detected even with ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('Write-Error puts text on stderr: the app is reported as not detected even with ' +
                     'exit 0 and stdout')
                 Evidence = ('exit 0 + "installed" + Write-Error: AgentExecutor reported exitCode -1, ' +
                     'applicationDetected False (W32-DET-STDERR)')
@@ -169,9 +168,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $node.Extent
-                Message  = ('Writing to the error stream makes the app "not detected" regardless of exit code ' +
+                Context = $Context
+                Extent = $node.Extent
+                Message = ('Writing to the error stream makes the app "not detected" regardless of exit code ' +
                     'and stdout')
                 Evidence = 'Any stderr output → not detected (W32-DET-STDERR)'
             }
@@ -195,9 +194,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $extent
-                Message  = ('Nothing is ever written to stdout: exit 0 alone means "not detected". ' +
+                Context = $Context
+                Extent = $extent
+                Message = ('Nothing is ever written to stdout: exit 0 alone means "not detected". ' +
                     'Write-Output a line before exit 0 on the installed path')
                 Evidence = 'exit 0 with no stdout → NotDetected → install ran → 0x87D1041C (W32-DET-NOOUT)'
             }
@@ -206,25 +205,25 @@
 
         # Cmdlet error records also go to stderr
         $probing = 'Get-Item', 'Get-ItemProperty', 'Get-ItemPropertyValue', 'Get-ChildItem', 'Get-Package',
-            'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage'
+        'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage'
         $unguarded = @(Find-IslCommand -Ast $ast -Name $probing |
-            Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
+                Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
         $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
             param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
-                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
+            $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
         }
         if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $unguarded[0].Extent
-                Message  = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its " +
+                Context = $Context
+                Extent = $unguarded[0].Extent
+                Message = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its " +
                     "target is missing, which makes the app 'not detected'. Use -ErrorAction " +
                     'SilentlyContinue (or Test-Path first) on the not-installed path')
                 Evidence = ('A non-terminating cmdlet error appeared in the captured error output ' +
                     '(REM-EXIT-ERRNOEXIT); any stderr fails Win32 detection (W32-DET-STDERR)')
-                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
+                Fix = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
             }
             New-IslFinding @findingSplat
         }
@@ -239,9 +238,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('Write-Error puts text on stderr: the rule fails even with exit 0 and the right ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('Write-Error puts text on stderr: the rule fails even with exit 0 and the right ' +
                     'output')
                 Evidence = '"ok" plus Write-Error with exit 0: not applicable (W32-REQ-STDERR)'
             }
@@ -262,21 +261,20 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Error'
-                Context  = $Context
-                Extent   = $ast.Extent
-                Message  = ('Nothing is written to stdout, so the rule has nothing to compare and fails. ' +
+                Context = $Context
+                Extent = $ast.Extent
+                Message = ('Nothing is written to stdout, so the rule has nothing to compare and fails. ' +
                     'Write-Output the value the rule expects')
                 Evidence = 'No output against string equal ok: not applicable (W32-REQ-NOOUT)'
             }
             New-IslFinding @findingSplat
-        }
-        elseif ($writers.Count -gt 1) {
+        } elseif ($writers.Count -gt 1) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $writers[1].Extent
-                Message  = ("$($writers.Count) statements write to the console (Write-Host included): the " +
+                Context = $Context
+                Extent = $writers[1].Extent
+                Message = ("$($writers.Count) statements write to the console (Write-Host included): the " +
                     'rule compares the whole output, so a second line means no match. Write exactly one value')
                 Evidence = ($wholeEvidence + '; Write-Host "ok" alone met the rule (W32-REQ-HOST)')
             }
@@ -290,16 +288,16 @@
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = 'Warning'
-                    Context  = $Context
-                    Extent   = $literal.Extent
-                    Message  = ('The output has leading or trailing whitespace, which the rule does not trim, ' +
+                    Context = $Context
+                    Extent = $literal.Extent
+                    Message = ('The output has leading or trailing whitespace, which the rule does not trim, ' +
                         'so it will not match the portal value')
                     Evidence = $wholeEvidence
                     # The literal's own quotes around its trimmed source text, escapes untouched
-                    Fix      = @{
+                    Fix = @{
                         Replacement = $literal.Extent.Text.Substring(0, 1) +
-                            $literal.Extent.Text.Substring(1, $literal.Extent.Text.Length - 2).Trim() +
-                            $literal.Extent.Text.Substring($literal.Extent.Text.Length - 1)
+                        $literal.Extent.Text.Substring(1, $literal.Extent.Text.Length - 2).Trim() +
+                        $literal.Extent.Text.Substring($literal.Extent.Text.Length - 1)
                     }
                 }
                 New-IslFinding @findingSplat
@@ -312,33 +310,33 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $exit.Extent
-                Message  = ('A non-zero exit fails the rule without looking at the output; fine as a ' +
+                Context = $Context
+                Extent = $exit.Extent
+                Message = ('A non-zero exit fails the rule without looking at the output; fine as a ' +
                     'deliberate "not applicable", surprising if the output was meant to decide')
                 Evidence = '"ok" with exit 1 against string equal ok: not applicable (W32-REQ-EXIT1)'
             }
             New-IslFinding @findingSplat
         }
         $probing = 'Get-Item', 'Get-ItemProperty', 'Get-ItemPropertyValue', 'Get-ChildItem', 'Get-Package',
-            'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage'
+        'Get-Service', 'Get-Process', 'Get-WmiObject', 'Get-CimInstance', 'Get-AppxPackage'
         $unguarded = @(Find-IslCommand -Ast $ast -Name $probing |
-            Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
+                Where-Object { -not (Test-IslCommandParameter -Command $_ -ParameterName 'ErrorAction') })
         $preferenceSet = Find-IslAstNode -Ast $ast -TypeName AssignmentStatementAst -Where {
             param($node) $node.Left.Extent.Text -match '(?i)^\$ErrorActionPreference$' -and
-                $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
+            $node.Right.Extent.Text -match '(?i)SilentlyContinue|Ignore'
         }
         if ($unguarded.Count -gt 0 -and -not $preferenceSet) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $unguarded[0].Extent
-                Message  = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its " +
+                Context = $Context
+                Extent = $unguarded[0].Extent
+                Message = ("$($unguarded[0].GetCommandName()) writes an error record to stderr when its " +
                     'target is missing, which fails the rule. Use -ErrorAction SilentlyContinue or ' +
                     'Test-Path first')
                 Evidence = 'Any stderr fails the rule (W32-REQ-STDERR)'
-                Fix      = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
+                Fix = @{ Replacement = $unguarded[0].Extent.Text + ' -ErrorAction SilentlyContinue' }
             }
             New-IslFinding @findingSplat
         }

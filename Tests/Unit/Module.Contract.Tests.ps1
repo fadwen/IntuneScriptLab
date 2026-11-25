@@ -93,7 +93,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
 
     It 'registers every rule file in the run order, and nothing else' {
         $ruleFiles = @(Get-ChildItem (Join-Path $script:ModuleRoot 'Private\Rules\*.ps1') |
-            ForEach-Object BaseName | Sort-Object)
+                ForEach-Object BaseName | Sort-Object)
         $registered = @(InModuleScope IntuneScriptLab { $script:RuleOrder } | Sort-Object)
         $registered | Should-BeCollection $ruleFiles
     }
@@ -147,9 +147,9 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
             $source = Get-Content $file.FullName -Raw
             # Helpers a Public file defines for itself stay on comment-based help
             $functions = @([regex]::Matches($source, '(?m)^function ([\w-]+)') |
-                Where-Object { $_.Groups[1].Value -in $exported }).Count
+                    Where-Object { $_.Groups[1].Value -in $exported }).Count
             $keywords = ([regex]::Matches($source,
-                '(?m)^    <#\r?\n    \.EXTERNALHELP IntuneScriptLab-Help\.xml\r?$')).Count
+                    '(?m)^    <#\r?\n    \.EXTERNALHELP IntuneScriptLab-Help\.xml\r?$')).Count
             $keywords | Should-Be $functions -Because "$($file.Name) exports $functions function(s)"
         }
     }
@@ -157,9 +157,9 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
     It 'has PlatyPS Markdown for every exported command, with no placeholders left' {
         $docs = Join-Path $script:ModuleRoot 'docs\IntuneScriptLab'
         $documented = @((Get-ChildItem $docs -Filter *.md).BaseName | Where-Object { $_ -ne 'IntuneScriptLab' } |
-            Sort-Object)
+                Sort-Object)
         $documented | Should-BeCollection @((Get-Command -Module IntuneScriptLab -CommandType Function).Name |
-            Sort-Object)
+                Sort-Object)
         # A new command leaves "{{ Fill in ... }}", a new parameter "{{ Fill <Name> Description }}"
         @(Select-String -Path "$docs\*.md" -Pattern '\{\{\s*Fill' -List).Count | Should-Be 0
     }
@@ -170,19 +170,19 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         $rulesModule = Join-Path $script:ModuleRoot 'PSScriptAnalyzer\IntuneScriptLab.Rules.psm1'
         $source = Get-Content $rulesModule -Raw
         $defined = @([regex]::Matches($source, '(?m)^function (Measure-[\w]+)') |
-            ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+                ForEach-Object { $_.Groups[1].Value } | Sort-Object)
         $expected = @(InModuleScope IntuneScriptLab { $script:RuleOrder } |
-            ForEach-Object { $_ -replace '^Find-', 'Measure-' }) + 'Measure-IslAssumedContext'
+                ForEach-Object { $_ -replace '^Find-', 'Measure-' }) + 'Measure-IslAssumedContext'
         $defined | Should-BeCollection @($expected | Sort-Object)
         $exported = @([regex]::Matches($source, "(?m)^\s+'(Measure-[\w]+)'") |
-            ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+                ForEach-Object { $_.Groups[1].Value } | Sort-Object)
         $exported | Should-BeCollection $defined
     }
 
     It 'keeps the rules private' {
         $commandSplat = @{
-            Module      = 'IntuneScriptLab'
-            Name        = 'Find-IslExitCodeIssue'
+            Module = 'IntuneScriptLab'
+            Name = 'Find-IslExitCodeIssue'
             ErrorAction = 'SilentlyContinue'
         }
         Get-Command @commandSplat | Should-BeNull

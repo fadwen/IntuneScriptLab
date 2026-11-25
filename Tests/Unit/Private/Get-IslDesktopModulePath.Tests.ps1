@@ -70,7 +70,7 @@ Describe 'Get-IslDesktopModulePath' -Tag 'Unit', 'Private' {
         It 'removes the three folders PowerShell 7 adds for itself and keeps the rest in order' {
             $session = 'C:\Session\Modules'
             $given = @($script:CoreFolders[2], $script:CoreFolders[1], $script:CoreFolders[0]) +
-                $script:DesktopFolders[0] + $session + $script:DesktopFolders[1]
+            $script:DesktopFolders[0] + $session + $script:DesktopFolders[1]
             Get-ModulePath ($given -join ';') |
                 Should-Be (@($script:DesktopFolders[0], $session, $script:DesktopFolders[1]) -join ';')
         }

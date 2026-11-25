@@ -101,8 +101,7 @@ function Get-IslExportReport {
             }
             $reader = [System.IO.StreamReader]::new($entry.Open())
             try { $csv = $reader.ReadToEnd() } finally { $reader.Dispose() }
-        }
-        finally { $archive.Dispose() }
+        } finally { $archive.Dispose() }
         $rows = @($csv | ConvertFrom-Csv)
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)

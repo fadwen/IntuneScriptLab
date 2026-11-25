@@ -39,7 +39,7 @@
 
     $hasUtf8Bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
     $isUtf16 = $bytes.Length -ge 2 -and
-        (($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))
+    (($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))
     $hasNonAscii = $false
     foreach ($byte in $bytes) { if ($byte -gt 0x7F) { $hasNonAscii = $true; break } }
 
@@ -47,12 +47,12 @@
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $Context.Ast.Extent
-            Message  = 'File is UTF-16. Intune expects UTF-8; save as UTF-8 with BOM'
+            Context = $Context
+            Extent = $Context.Ast.Extent
+            Message = 'File is UTF-16. Intune expects UTF-8; save as UTF-8 with BOM'
             Evidence = ('Microsoft Learn: "Ensure the scripts are encoded in UTF-8"; files are delivered ' +
                 'byte-for-byte')
-            Fix      = @{ Encoding = 'UTF8BOM' }
+            Fix = @{ Encoding = 'UTF8BOM' }
         }
         New-IslFinding @findingSplat
         return
@@ -65,29 +65,28 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $Context.Ast.Extent
-                Message  = ('Non-ASCII characters in a UTF-8 file without a BOM: Windows PowerShell 5.1 ' +
+                Context = $Context
+                Extent = $Context.Ast.Extent
+                Message = ('Non-ASCII characters in a UTF-8 file without a BOM: Windows PowerShell 5.1 ' +
                     'decodes it as ANSI and corrupts them. Save as UTF-8 with BOM')
                 Evidence = ('Same bytes uploaded with and without BOM: without, the literal "Grüße — ✓" ran ' +
                     'as "GrÃ¼ÃŸe â€" âœ"" (REM-ENC-BOM vs REM-PROBE-SYS64)')
-                Fix      = @{ Encoding = 'UTF8BOM' }
+                Fix = @{ Encoding = 'UTF8BOM' }
             }
-        }
-        else {
+        } else {
             # Not UTF-8 at all: an ANSI file. 5.1 reads it in the ANSI code page, so the characters
             # survive on the device, but nothing else expects it. Repair decodes it as ANSI
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $Context.Ast.Extent
-                Message  = ('Non-ASCII bytes that are not UTF-8 (an ANSI code page): Windows PowerShell 5.1 ' +
+                Context = $Context
+                Extent = $Context.Ast.Extent
+                Message = ('Non-ASCII bytes that are not UTF-8 (an ANSI code page): Windows PowerShell 5.1 ' +
                     'reads the file as ANSI, but Intune expects UTF-8 and other tooling reads it as such. ' +
                     'Save as UTF-8 with BOM')
                 Evidence = ('Microsoft Learn: "Ensure the scripts are encoded in UTF-8"; Windows PowerShell ' +
                     'reads a file without a BOM in the system ANSI code page (about_Character_Encoding)')
-                Fix      = @{ Encoding = 'UTF8BOM' }
+                Fix = @{ Encoding = 'UTF8BOM' }
             }
         }
         New-IslFinding @findingSplat
@@ -100,9 +99,9 @@
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $literals.Extent
-                Message  = ('Non-ASCII text in output is mangled on the way to Intune (OEM code page); keep ' +
+                Context = $Context
+                Extent = $literals.Extent
+                Message = ('Non-ASCII text in output is mangled on the way to Intune (OEM code page); keep ' +
                     'reported output ASCII')
                 Evidence = ('With a BOM the script ran correctly, but Intune reported "Grüße - √" for ' +
                     '"Grüße — ✓" (REM-ENC-BOM)')

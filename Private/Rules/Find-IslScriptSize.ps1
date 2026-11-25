@@ -50,8 +50,7 @@ function Find-IslScriptSize {
     $refused = if ($kind -eq 'platform script') { 680KB } else { 512KB }
     $win32Note = if ($kind -like 'Win32*') {
         '; Win32 detection and requirement scripts were not measured, the remediation limits are assumed'
-    }
-    else { '' }
+    } else { '' }
     $evidence = ('Microsoft Learn: "must be less than 200 KB"; the Graph API accepted a 504 KB remediation ' +
         'and a 660 KB platform script and refused 512 KB and 680 KB; a 250 KB remediation and a 500 KB ' +
         'platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB)' + $win32Note)
@@ -61,21 +60,20 @@ function Find-IslScriptSize {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $Context.Ast.Extent
-            Message  = ("The file is $sizeKB KB; the service refused a $measured of $([int]($refused / 1KB)) " +
+            Context = $Context
+            Extent = $Context.Ast.Extent
+            Message = ("The file is $sizeKB KB; the service refused a $measured of $([int]($refused / 1KB)) " +
                 'KB, ' +
                 'so this one cannot be uploaded. Split it or move the bulk into content the script downloads')
             Evidence = $evidence
         }
-    }
-    else {
+    } else {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Warning'
-            Context  = $Context
-            Extent   = $Context.Ast.Extent
-            Message  = ("The file is $sizeKB KB, over the documented 200 KB limit. The API took a $measured of " +
+            Context = $Context
+            Extent = $Context.Ast.Extent
+            Message = ("The file is $sizeKB KB, over the documented 200 KB limit. The API took a $measured of " +
                 "up to $([int]($accepted / 1KB)) KB and the device ran one this size, but the portal and " +
                 'other tooling may hold to 200 KB')
             Evidence = $evidence

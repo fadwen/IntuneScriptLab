@@ -70,7 +70,7 @@ BeforeAll {
             Policy = @{ id = 'p1'; displayName = $PolicyName }; Role = $Role; Root = $script:Root
             LocalFile = @(Get-ChildItem -LiteralPath $script:Root -Recurse -File -Filter '*.ps1')
             LocalFolder = @(Get-Item -LiteralPath $script:Root) +
-                @(Get-ChildItem -LiteralPath $script:Root -Recurse -Directory)
+            @(Get-ChildItem -LiteralPath $script:Root -Recurse -Directory)
             Map = $Map; Matched = @{}
         }
         if ($Pattern) { $parameters['Pattern'] = $Pattern }

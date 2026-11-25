@@ -58,9 +58,9 @@ function Get-IslSuppression {
         foreach ($rule in $rules) {
             [pscustomobject]@{
                 PSTypeName = 'IntuneScriptLab.Suppression'
-                Rule       = $rule
-                Line       = $scope
-                Source     = $line
+                Rule = $rule
+                Line = $scope
+                Source = $line
             }
         }
     }

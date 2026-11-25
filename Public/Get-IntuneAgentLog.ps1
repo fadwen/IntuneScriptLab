@@ -48,8 +48,8 @@ function Get-IntuneAgentLog {
         foreach ($definition in $script:IslAgentLogEvents) {
             [pscustomobject]@{
                 PSTypeName = 'IntuneScriptLab.AgentLogEventDefinition'
-                Event      = $definition.Event
-                Pattern    = $definition.Regex.ToString()
+                Event = $definition.Event
+                Pattern = $definition.Regex.ToString()
             }
         }
         return
@@ -74,11 +74,11 @@ function Get-IntuneAgentLog {
         $logPaths = @(Join-Path -Path $programData -ChildPath 'Microsoft\IntuneManagementExtension\Logs')
     }
     $filters = @{
-        Agent         = 'IntuneManagementExtension*.log'
-        AppWorkload   = 'AppWorkload*.log'
+        Agent = 'IntuneManagementExtension*.log'
+        AppWorkload = 'AppWorkload*.log'
         HealthScripts = 'HealthScripts*.log'
         AgentExecutor = 'AgentExecutor*.log'
-        All           = '*.log'
+        All = '*.log'
     }
     # Each path is one item of the input. One that cannot be resolved is reported, and the others
     # are still read. A path that is not there is tested first and reported once: an error that
@@ -109,8 +109,7 @@ function Get-IntuneAgentLog {
                 Get-ChildItem -LiteralPath $resolved -Filter $filters[$name] -File |
                     ForEach-Object { $_.FullName }
             }
-        }
-        else { $resolved }
+        } else { $resolved }
     }
     $files = @($files | Sort-Object -Unique)
     if (-not $files) {

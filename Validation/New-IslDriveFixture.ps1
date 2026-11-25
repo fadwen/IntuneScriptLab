@@ -175,8 +175,7 @@ if ($Remove) {
         Remove-Item -LiteralPath $shareFolder -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $report -ErrorAction SilentlyContinue
     }
-}
-elseif ($PSCmdlet.ShouldProcess($env:COMPUTERNAME, "Create D: and map X: for $UserName")) {
+} elseif ($PSCmdlet.ShouldProcess($env:COMPUTERNAME, "Create D: and map X: for $UserName")) {
     $null = New-Item -ItemType Directory -Path $shareFolder -Force
     if (-not (Test-Path -LiteralPath 'D:\')) {
         if (Test-Path -LiteralPath $disk) { Invoke-DiskPart -Command "select vdisk file=$disk", 'attach vdisk' }

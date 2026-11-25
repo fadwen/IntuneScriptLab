@@ -40,7 +40,6 @@ function Find-IslInteractiveCall {
         'in 12 ms under the agent, without a prompt (REM-CRED-BUILT)')
     $ast = $Context.Ast
 
-
     $alwaysPrompt = 'Read-Host', 'Pause', 'Out-GridView', 'Show-Command', 'Get-Credential'
     foreach ($command in (Find-IslCommand -Ast $ast -Name $alwaysPrompt)) {
         $name = $command.GetCommandName()
@@ -51,20 +50,19 @@ function Find-IslInteractiveCall {
         $literalTypes = 'StringConstantExpressionAst', 'ExpandableStringExpressionAst'
         $source = if ($handed -and $handed.GetType().Name -eq 'VariableExpressionAst') {
             Get-IslVariableCredentialSource -Variable $handed -Ast $ast
-        }
-        elseif ($handed) { Get-IslCredentialSource -Expression $handed }
+        } elseif ($handed) { Get-IslCredentialSource -Expression $handed }
         if ($source) {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ("Get-Credential -Credential returns $($handed.Extent.Text) as it is: it comes from " +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ("Get-Credential -Credential returns $($handed.Extent.Text) as it is: it comes from " +
                     "$source, so it is a credential that is already built and nothing prompts; the call " +
                     'can go')
                 Evidence = $builtEvidence
                 # The call returns what it was handed, so the argument stands in for it
-                Fix      = @{ Replacement = $handed.Extent.Text }
+                Fix = @{ Replacement = $handed.Extent.Text }
             }
             New-IslFinding @findingSplat
             continue
@@ -73,9 +71,9 @@ function Find-IslInteractiveCall {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $command.Extent
-                Message  = ('Get-Credential -Credential returns a credential that is already built and ' +
+                Context = $Context
+                Extent = $command.Extent
+                Message = ('Get-Credential -Credential returns a credential that is already built and ' +
                     "prompts for the password of a user name: if $($handed.Extent.Text) can ever be a " +
                     "name, the script hangs until the $timeout timeout")
                 Evidence = $builtEvidence
@@ -86,9 +84,9 @@ function Find-IslInteractiveCall {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $command.Extent
-            Message  = "$name waits for input that never comes; the script hangs until the $timeout timeout"
+            Context = $Context
+            Extent = $command.Extent
+            Message = "$name waits for input that never comes; the script hangs until the $timeout timeout"
             Evidence = $evidence
         }
         New-IslFinding @findingSplat
@@ -107,9 +105,9 @@ function Find-IslInteractiveCall {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Error'
-            Context  = $Context
-            Extent   = $node.Extent
-            Message  = ("$($node.Expression.Extent.Text).$($node.Member.Value)() waits for input; the script " +
+            Context = $Context
+            Extent = $node.Extent
+            Message = ("$($node.Expression.Extent.Text).$($node.Member.Value)() waits for input; the script " +
                 "hangs until the $timeout timeout")
             Evidence = $evidence
         }
@@ -118,26 +116,26 @@ function Find-IslInteractiveCall {
 
     # Cmdlets that confirm unless told not to
     $confirming = @{
-        'Set-ExecutionPolicy'     = 'Force'
-        'Install-Module'          = 'Force'
+        'Set-ExecutionPolicy' = 'Force'
+        'Install-Module' = 'Force'
         'Install-PackageProvider' = 'Force'
-        'Install-Package'         = 'Force'
-        'Update-Module'           = 'Force'
-        'Uninstall-Module'        = 'Force'
-        'Register-PSRepository'   = ''
+        'Install-Package' = 'Force'
+        'Update-Module' = 'Force'
+        'Uninstall-Module' = 'Force'
+        'Register-PSRepository' = ''
     }
     foreach ($commandName in $confirming.Keys) {
         foreach ($command in (Find-IslCommand -Ast $ast -Name $commandName)) {
             $forced = $confirming[$commandName] -and
-                (Test-IslCommandParameter -Command $command -ParameterName $confirming[$commandName])
+            (Test-IslCommandParameter -Command $command -ParameterName $confirming[$commandName])
             $silenced = $forced -or ($command.Extent.Text -match '(?i)-Confirm:\s*\$false')
             if (-not $silenced) {
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = 'Warning'
-                    Context  = $Context
-                    Extent   = $command.Extent
-                    Message  = ("$commandName can prompt for confirmation (or to trust a repository); add " +
+                    Context = $Context
+                    Extent = $command.Extent
+                    Message = ("$commandName can prompt for confirmation (or to trust a repository); add " +
                         "-Force / -Confirm:`$false or it hangs until the $timeout timeout")
                     Evidence = $evidence
                 }

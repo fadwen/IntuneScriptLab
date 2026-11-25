@@ -85,8 +85,7 @@ function Get-IntuneScriptHealth {
             foreach ($row in @(Get-IslExportReport -ReportName 'AppInstallStatusAggregate')) {
                 $appInstall["$(Get-IslPropertyValue -InputObject $row -Name 'ApplicationId')"] = $row
             }
-        }
-        catch {
+        } catch {
             Write-Warning ("The app install export could not be read ($($_.Exception.Message)); the apps' " +
                 'device columns stay empty. Creating an export job needs a ReadWrite scope: ' +
                 'DeviceManagementApps.ReadWrite.All, DeviceManagementConfiguration.ReadWrite.All or ' +

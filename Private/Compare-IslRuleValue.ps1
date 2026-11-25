@@ -55,10 +55,10 @@ function Compare-IslRuleValue {
 
     $result = [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.RuleComparison'
-        Met        = $false
-        Actual     = "$Actual"
-        Expected   = $Expected
-        Reason     = ''
+        Met = $false
+        Actual = "$Actual"
+        Expected = $Expected
+        Reason = ''
     }
     $culture = [System.Globalization.CultureInfo]::InvariantCulture
     $left = $null
@@ -74,8 +74,7 @@ function Compare-IslRuleValue {
             $number = 0L
             if ($Actual -is [int] -or $Actual -is [long] -or $Actual -is [uint32] -or $Actual -is [int16]) {
                 $left = [long]$Actual
-            }
-            elseif ([long]::TryParse("$Actual".Trim(), [ref]$number)) { $left = $number }
+            } elseif ([long]::TryParse("$Actual".Trim(), [ref]$number)) { $left = $number }
             else {
                 $result.Reason = "Value '$Actual' is not an integer, so the rule is not met"
                 return $result
@@ -100,7 +99,7 @@ function Compare-IslRuleValue {
         'DateTime' {
             $stamp = [datetime]::MinValue
             $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor
-                [System.Globalization.DateTimeStyles]::AdjustToUniversal
+            [System.Globalization.DateTimeStyles]::AdjustToUniversal
             if ($Actual -is [datetime]) { $left = $Actual.ToUniversalTime() }
             elseif ([datetime]::TryParse("$Actual".Trim(), $culture, $styles, [ref]$stamp)) { $left = $stamp }
             else {
@@ -117,8 +116,7 @@ function Compare-IslRuleValue {
 
     $comparison = if ($comparedAs -eq 'String') {
         [string]::Compare($left, $right, [System.StringComparison]::InvariantCultureIgnoreCase)
-    }
-    else { $left.CompareTo($right) }
+    } else { $left.CompareTo($right) }
 
     $result.Met = switch ($Operator) {
         'Equal' { $comparison -eq 0 }

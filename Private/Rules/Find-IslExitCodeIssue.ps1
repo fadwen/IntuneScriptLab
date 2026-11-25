@@ -53,9 +53,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $ast.Extent
-                Message  = ('No exit statement: the script always ends with exit 0 ("without issues") and the ' +
+                Context = $Context
+                Extent = $ast.Extent
+                Message = ('No exit statement: the script always ends with exit 0 ("without issues") and the ' +
                     'remediation never runs')
                 Evidence = ('A detection with no exit reported FirstDetectExitCode=0, status "without issues" ' +
                     '(REM-EXIT-NONE)')
@@ -67,9 +67,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = $severity
-                Context  = $Context
-                Extent   = $return.Extent
-                Message  = ('return at script scope ends the script with exit 0; any exit 1 after it never ' +
+                Context = $Context
+                Extent = $return.Extent
+                Message = ('return at script scope ends the script with exit 0; any exit 1 after it never ' +
                     'runs, so the remediation never triggers. Use exit 1 directly')
                 Evidence = ('"return 1; exit 1" ran with exit code 0 and the remediation was skipped; ' +
                     'Microsoft''s sample detection scripts use this pattern (REM-RETURN-EXIT)')
@@ -88,26 +88,25 @@ function Find-IslExitCodeIssue {
                     $findingSplat = @{
                         RuleName = $rule
                         Severity = 'Warning'
-                        Context  = $Context
-                        Extent   = $exit.Extent
-                        Message  = ("exit ${constant}: Intune treats every non-zero exit as 'issue found' and " +
+                        Context = $Context
+                        Extent = $exit.Extent
+                        Message = ("exit ${constant}: Intune treats every non-zero exit as 'issue found' and " +
                             'runs the remediation, then reports Recurred when the post-detection returns it ' +
                             "again. Use exit 1 for 'issue found'")
                         Evidence = ('exit 2 and exit -1 both triggered the remediation and ended as Recurred ' +
                             '(REM-EXIT-2, REM-EXIT-NEG1); docs say only exit 1 does')
                         # Intune reads every non-zero exit as 1 already; writing it makes the report match
-                        Fix      = @{ Replacement = 'exit 1' }
+                        Fix = @{ Replacement = 'exit 1' }
                     }
                     New-IslFinding @findingSplat
                 }
-            }
-            else {
+            } else {
                 $findingSplat = @{
                     RuleName = $rule
                     Severity = 'Information'
-                    Context  = $Context
-                    Extent   = $exit.Extent
-                    Message  = "exit with a computed value ($constant): make sure it is only ever 0 or 1"
+                    Context = $Context
+                    Extent = $exit.Extent
+                    Message = "exit with a computed value ($constant): make sure it is only ever 0 or 1"
                     Evidence = 'Any non-zero exit runs the remediation (REM-EXIT-2, REM-EXIT-NEG1)'
                 }
                 New-IslFinding @findingSplat
@@ -117,9 +116,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $throw.Extent
-                Message  = ('Unhandled throw exits 1, so the remediation runs; the post-detection then throws ' +
+                Context = $Context
+                Extent = $throw.Extent
+                Message = ('Unhandled throw exits 1, so the remediation runs; the post-detection then throws ' +
                     'again and the status becomes Recurred. Catch it and decide on exit 0 or 1 explicitly')
                 Evidence = ('A detection that threw exited 1, ran the remediation and reported Recurred ' +
                     '(REM-EXIT-THROW)')
@@ -133,9 +132,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $throw.Extent
-                Message  = ('Unhandled throw makes the remediation exit 1: Intune reports it as failed and ' +
+                Context = $Context
+                Extent = $throw.Extent
+                Message = ('Unhandled throw makes the remediation exit 1: Intune reports it as failed and ' +
                     'skips the post-detection')
                 Evidence = ('A remediation exiting non-zero reported RemediationStatus=3 (failed) with no ' +
                     'post-detection run (REM-REMFAIL)')
@@ -146,9 +145,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $return.Extent
-                Message  = ('return at script scope ends the remediation with exit 0 (success) regardless of ' +
+                Context = $Context
+                Extent = $return.Extent
+                Message = ('return at script scope ends the remediation with exit 0 (success) regardless of ' +
                     'what was actually done')
                 Evidence = 'Script-scope return produced exit code 0 (REM-RETURN-EXIT)'
             }
@@ -164,9 +163,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $throw.Extent
-                Message  = 'Unhandled throw exits 1 and writes to stderr: the app is reported as not detected'
+                Context = $Context
+                Extent = $throw.Extent
+                Message = 'Unhandled throw exits 1 and writes to stderr: the app is reported as not detected'
                 Evidence = 'Detection script that threw: exit 1, applicationDetected: False (W32-DET-THROW)'
             }
             New-IslFinding @findingSplat
@@ -175,9 +174,9 @@ function Find-IslExitCodeIssue {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Information'
-                Context  = $Context
-                Extent   = $ast.Extent
-                Message  = ('No exit statement: the script ends with exit 0, so detection depends entirely on ' +
+                Context = $Context
+                Extent = $ast.Extent
+                Message = ('No exit statement: the script ends with exit 0, so detection depends entirely on ' +
                     'whether anything was written to stdout')
                 Evidence = 'Exit 0 without stdout is "not detected" (W32-DET-NOOUT)'
             }

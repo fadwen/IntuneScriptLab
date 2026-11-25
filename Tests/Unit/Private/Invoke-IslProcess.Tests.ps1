@@ -71,8 +71,8 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
         It 'says which executable could not be started' {
             $missing = Join-Path $TestDrive 'no-such-host.exe'
             $failure = { Invoke-Process @{
-                FilePath = $missing; WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
-            } } | Should-Throw
+                    FilePath = $missing; WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
+                } } | Should-Throw
             $failure.Exception.Message | Should-BeLikeString "Could not start '$missing': *"
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'ProcessStartFailed,*'
         }
@@ -87,10 +87,10 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             }
             try {
                 $failure = { Invoke-Process @{
-                    FilePath = $script:Cmd; Arguments = '/D /C ping.exe -n 30 127.0.0.1 > nul'
-                    WorkingDirectory = [System.Environment]::SystemDirectory; WorkFolder = $TestDrive
-                    TimeoutSeconds = 1
-                } } | Should-Throw
+                        FilePath = $script:Cmd; Arguments = '/D /C ping.exe -n 30 127.0.0.1 > nul'
+                        WorkingDirectory = [System.Environment]::SystemDirectory; WorkFolder = $TestDrive
+                        TimeoutSeconds = 1
+                    } } | Should-Throw
                 $failure.Exception.Message | Should-BeLikeString '*taskkill.exe could not be started*'
                 $script:LeftRunning | Should-NotBeNull
             } finally {
@@ -118,8 +118,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
                     FilePath = $script:Cmd; Arguments = '/C "install.cmd"'
                     WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
                 }
-            }
-            finally {
+            } finally {
                 $env:NoDefaultCurrentDirectoryInExePath = $saved
             }
             $result.ExitCode | Should-Be 0
@@ -145,14 +144,12 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
                     FilePath = $script:Cmd; Arguments = '/C echo %PSModulePath%'
                     WorkingDirectory = $TestDrive; WorkFolder = $TestDrive
                 }
-            }
-            finally { $env:PSModulePath = $saved }
+            } finally { $env:PSModulePath = $saved }
             $entries = @($result.StdOut.Trim() -split ';')
             @($entries | Where-Object { $_ -eq $added }).Count | Should-Be 1
             if ($PSVersionTable.PSEdition -eq 'Core') {
                 @($entries | Where-Object { $_ -eq (Join-Path $PSHOME 'Modules') }).Count | Should-Be 0
-            }
-            else { $result.StdOut.Trim() | Should-Be "$saved;$added" }
+            } else { $result.StdOut.Trim() | Should-Be "$saved;$added" }
         }
 
         It 'kills the process tree at the timeout and reports no exit code' {
@@ -242,8 +239,9 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
         It 'turns a refused registration into an elevation message' {
             Mock Register-ScheduledTask -ModuleName IntuneScriptLab { throw 'Access is denied.' }
             $failure = { Invoke-Process @{
-                FilePath = 'x.exe'; WorkingDirectory = 'C:\'; WorkFolder = $script:WorkFolder; Context = 'System'
-            } } | Should-Throw
+                    FilePath = 'x.exe'; WorkingDirectory = 'C:\'
+                    WorkFolder = $script:WorkFolder; Context = 'System'
+                } } | Should-Throw
             $failure.Exception.Message | Should-BeLikeString '*run elevated*Access is denied*'
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'ScheduledTaskNotRegistered,*'
         }
@@ -346,7 +344,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
                 [pscustomobject]@{
                     Name = 'AzureAD\IslVerylongdisplayna'
-                    Sid  = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
+                    Sid = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
                 }
             }
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab {
@@ -376,7 +374,7 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Mock Resolve-IslAccount -ModuleName IntuneScriptLab {
                 [pscustomobject]@{
                     Name = 'AzureAD\IslVerylongdisplayna'
-                    Sid  = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
+                    Sid = 'S-1-12-1-1497552185-1263987200-3276725654-805488699'
                 }
             }
             Mock Get-IslLogonSession -ModuleName IntuneScriptLab { @() }

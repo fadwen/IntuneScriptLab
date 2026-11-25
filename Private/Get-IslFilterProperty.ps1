@@ -59,13 +59,17 @@ function Get-IslFilterProperty {
         @{ Name = 'operatingSystemSKU'; Kind = 'String'; Operators = $stringOperators; Values = $skuNames }
         @{ Name = 'operatingSystemVersion'; Kind = 'Version'; Operators = @('eq', 'ne', 'gt', 'ge', 'lt', 'le') }
         @{ Name = 'cpuArchitecture'; Kind = 'Enum'; Operators = $enumOperators
-            Values = @('amd64', 'x86', 'arm64', 'unknown') }
+            Values = @('amd64', 'x86', 'arm64', 'unknown')
+        }
         @{ Name = 'deviceTrustType'; Kind = 'Enum'; Operators = $enumOperators
-            Values = @('Azure AD joined', 'Azure AD registered', 'Hybrid Azure AD joined', 'Unknown') }
+            Values = @('Azure AD joined', 'Azure AD registered', 'Hybrid Azure AD joined', 'Unknown')
+        }
         @{ Name = 'deviceOwnership'; Kind = 'Enum'; Operators = @('eq', 'ne')
-            Values = @('Personal', 'Corporate', 'Unknown') }
+            Values = @('Personal', 'Corporate', 'Unknown')
+        }
         @{ Name = 'isTpmAttested'; Kind = 'Enum'; Operators = @('eq', 'ne'); Values = @('True', 'False')
-            Documented = $false }
+            Documented = $false
+        }
     )
     $table = @{}
     foreach ($entry in $entries) {

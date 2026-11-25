@@ -67,17 +67,22 @@ Describe 'Find-IslInteractiveCall' -Tag 'Unit', 'Private', 'Rule' {
         @{ Script = "`$c = Import-Clixml C:\x.xml`nGet-Credential -Credential `$c"; Source = 'Import-Clixml' }
         @{ Script = "`$c = [pscredential]::new('a', `$s)`nGet-Credential `$c"; Source = '[pscredential]::new()' }
         @{ Script = "`$c = New-Object System.Management.Automation.PSCredential 'a', `$s`nGet-Credential `$c"
-            Source = 'New-Object PSCredential' }
+            Source = 'New-Object PSCredential'
+        }
         @{ Script = "`$c = New-Object -TypeName PSCredential -ArgumentList 'a', `$s`nGet-Credential -Cred:`$c"
-            Source = 'New-Object PSCredential' }
+            Source = 'New-Object PSCredential'
+        }
         @{ Script = "[pscredential]`$c = Get-Thing`nGet-Credential `$c"; Source = 'a [pscredential] variable' }
         @{ Script = "param([pscredential]`$Credential)`nGet-Credential `$Credential"
-            Source = 'a [pscredential] parameter' }
+            Source = 'a [pscredential] parameter'
+        }
         @{ Script = "param([System.Management.Automation.PSCredential]`$Credential)`nGet-Credential `$Credential"
-            Source = 'a [pscredential] parameter' }
+            Source = 'a [pscredential] parameter'
+        }
         @{ Script = "`$script:c = (Import-Clixml x)`nGet-Credential `$c"; Source = 'Import-Clixml' }
         @{ Script = "`$c = Import-Clixml x`n`$c = [pscredential]::new('a', `$s)`nGet-Credential `$c"
-            Source = 'Import-Clixml, [pscredential]::new()' }
+            Source = 'Import-Clixml, [pscredential]::new()'
+        }
         @{ Script = 'Get-Credential (Import-Clixml C:\x.xml)'; Source = 'Import-Clixml' }
         @{ Script = "Get-Credential ([pscredential]::new('a', `$s))"; Source = '[pscredential]::new()' }
         @{ Script = 'Get-Credential ([pscredential]$x)'; Source = 'a [pscredential] cast' }

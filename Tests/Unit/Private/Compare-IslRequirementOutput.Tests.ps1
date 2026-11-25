@@ -157,17 +157,24 @@ Describe 'Compare-IslRequirementOutput' -Tag 'Unit', 'Private' {
 
     Context 'Typed rules' {
         It 'compares <Type>: <Output> <Operator> <Value> is <Expected>' -ForEach @(
-            @{ Type='Integer'; Output='5'; Operator='GreaterThan'; Value='3'; Expected=$true }
-            @{ Type='Integer'; Output='five'; Operator='GreaterThan'; Value='3'; Expected=$false }
-            @{ Type='Integer'; Output='10'; Operator='LessThan'; Value='9'; Expected=$false }
-            @{ Type='Float'; Output='1.5'; Operator='GreaterThan'; Value='1.25'; Expected=$true }
-            @{ Type='Version'; Output='2.10.0'; Operator='GreaterThanOrEqual'; Value='2.9.0'; Expected=$true }
-            @{ Type='Version'; Output='2.10.0'; Operator='LessThanOrEqual'; Value='2.9.0'; Expected=$false }
-            @{ Type='Boolean'; Output='True'; Operator='Equal'; Value='true'; Expected=$true }
-            @{ Type='Boolean'; Output='yes'; Operator='Equal'; Value='true'; Expected=$false }
-            @{ Type='DateTime'; Output='2026-01-15'; Operator='GreaterThan'; Value='2026-01-01T00:00:00Z'
-                Expected=$true }
-            @{ Type='DateTime'; Output='soon'; Operator='GreaterThan'; Value='2026-01-01'; Expected=$false }
+            @{ Type = 'Integer'; Output = '5'; Operator = 'GreaterThan'; Value = '3'; Expected = $true }
+            @{ Type = 'Integer'; Output = 'five'; Operator = 'GreaterThan'; Value = '3'; Expected = $false }
+            @{ Type = 'Integer'; Output = '10'; Operator = 'LessThan'; Value = '9'; Expected = $false }
+            @{ Type = 'Float'; Output = '1.5'; Operator = 'GreaterThan'; Value = '1.25'; Expected = $true }
+            @{ Type = 'Version'; Output = '2.10.0'; Operator = 'GreaterThanOrEqual'; Value = '2.9.0'
+                Expected = $true
+            }
+            @{ Type = 'Version'; Output = '2.10.0'; Operator = 'LessThanOrEqual'; Value = '2.9.0'
+                Expected = $false
+            }
+            @{ Type = 'Boolean'; Output = 'True'; Operator = 'Equal'; Value = 'true'; Expected = $true }
+            @{ Type = 'Boolean'; Output = 'yes'; Operator = 'Equal'; Value = 'true'; Expected = $false }
+            @{ Type = 'DateTime'; Output = '2026-01-15'; Operator = 'GreaterThan'; Value = '2026-01-01T00:00:00Z'
+                Expected = $true
+            }
+            @{ Type = 'DateTime'; Output = 'soon'; Operator = 'GreaterThan'; Value = '2026-01-01'
+                Expected = $false
+            }
         ) {
             $rule = @{ StdOut = "$Output`r`n"; OutputType = $Type; Operator = $Operator; Value = $Value }
             (Compare-Output $rule).Met | Should-Be $Expected

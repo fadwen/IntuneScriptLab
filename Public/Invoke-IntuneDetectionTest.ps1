@@ -81,10 +81,10 @@ function Invoke-IntuneDetectionTest {
 
                 if ($reasons.Count -eq 0) {
                     $scriptRunSplat = @{
-                        Path           = $scriptItem
-                        Architecture   = $runArchitecture
-                        Context        = $Context
-                        Phase          = 'detect'
+                        Path = $scriptItem
+                        Architecture = $runArchitecture
+                        Context = $Context
+                        Phase = 'detect'
                         TimeoutSeconds = $TimeoutSeconds
                     }
                     if ($Credential) { $scriptRunSplat.Credential = $Credential }
@@ -105,8 +105,7 @@ function Invoke-IntuneDetectionTest {
                 if ($run.TimedOut) {
                     $reasons.Add("Timed out after $TimeoutSeconds s; Intune kills the script at its " +
                         '60-minute timeout and reports not detected')
-                }
-                elseif ($run.ExitCode -ne 0) {
+                } elseif ($run.ExitCode -ne 0) {
                     $reasons.Add("Exit code $($run.ExitCode): only exit 0 can mean installed")
                 }
                 if (-not $hasStdOut) { $reasons.Add('Nothing on stdout: exit 0 alone is "not detected"') }
@@ -117,21 +116,23 @@ function Invoke-IntuneDetectionTest {
             }
 
             [pscustomobject]@{
-                PSTypeName      = 'IntuneScriptLab.DetectionResult'
-                Detected        = ($reasons.Count -eq 0)
-                Reason          = if ($reasons.Count -eq 0) { ('Exit 0 with stdout and no ' +
-                    'stderr') } else { $reasons -join '; ' }
-                ExitCode        = if ($run) { $run.ExitCode } else { 1 }
-                StdOut          = if ($run) { $run.StdOut } else { '' }
-                StdErr          = if ($run) { $run.StdErr } else { '' }
-                TimedOut        = if ($run) { $run.TimedOut } else { $false }
-                Duration        = if ($run) { $run.Duration } else { [timespan]::Zero }
+                PSTypeName = 'IntuneScriptLab.DetectionResult'
+                Detected = ($reasons.Count -eq 0)
+                Reason = if ($reasons.Count -eq 0) {
+                    ('Exit 0 with stdout and no ' +
+                    'stderr')
+                } else { $reasons -join '; ' }
+                ExitCode = if ($run) { $run.ExitCode } else { 1 }
+                StdOut = if ($run) { $run.StdOut } else { '' }
+                StdErr = if ($run) { $run.StdErr } else { '' }
+                TimedOut = if ($run) { $run.TimedOut } else { $false }
+                Duration = if ($run) { $run.Duration } else { [timespan]::Zero }
                 SignatureStatus = $signatureStatus
-                Architecture    = $runArchitecture
-                Context         = $Context
-                RunAs           = if ($run) { $run.RunAs } else { '' }
-                Host            = if ($run) { $run.Host } else { '' }
-                ScriptPath      = if ($run) { $run.ScriptPath } else { $scriptPath }
+                Architecture = $runArchitecture
+                Context = $Context
+                RunAs = if ($run) { $run.RunAs } else { '' }
+                Host = if ($run) { $run.Host } else { '' }
+                ScriptPath = if ($run) { $run.ScriptPath } else { $scriptPath }
             }
         }
     }

@@ -17,8 +17,8 @@ BeforeAll {
 Describe 'Get-IslWindowsReleaseBuild' -Tag 'Unit', 'Private' {
 
     It 'maps <Release> to build <Build>' -ForEach @(
-        @{ Release = '1607';           Build = 14393 }
-        @{ Release = '22H2';           Build = 19045 }
+        @{ Release = '1607'; Build = 14393 }
+        @{ Release = '22H2'; Build = 19045 }
         @{ Release = 'Windows11_21H2'; Build = 22000 }
         @{ Release = 'Windows11_24H2'; Build = 26100 }
     ) {

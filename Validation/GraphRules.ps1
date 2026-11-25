@@ -4,6 +4,7 @@
 # The specs are hashtables that Experiments.psd1 writes, so their keys are read with an index: a key
 # that a spec leaves out is $null that way, where member access is an error under strict mode.
 
+
 function ConvertTo-Win32AppRule {
     <#
     .SYNOPSIS

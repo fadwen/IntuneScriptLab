@@ -26,30 +26,30 @@ function Export-IntuneFindingSarif {
         # from. A rule that reports at one severity carries its level here; one that reports at
         # several (IslAssignmentIssue, IslFilterIssue) takes the most severe level in the log
         $fixedRules = @{
-            IslAssumedContext     = @{
-                Level   = 'note'
+            IslAssumedContext = @{
+                Level = 'note'
                 Summary = 'The script type, context and architecture were assumed, not declared.'
             }
             IslDetectionRuleIssue = @{
-                Level   = 'error'
+                Level = 'error'
                 Summary = 'A Win32 detection rule the agent does not evaluate.'
             }
-            IslAssignmentIssue    = @{
+            IslAssignmentIssue = @{
                 Summary = ('An assignment that reaches no device: a Win32 app with install behavior User ' +
                     'assigned to devices, a policy with no assignment or only exclusions, or a ' +
                     'user-context script assigned to devices.')
             }
-            IslFilterIssue        = @{
+            IslFilterIssue = @{
                 Summary = ('An assignment filter with a clause no Windows device matches, or one every ' +
                     'device matches, or syntax the evaluator cannot read.')
             }
-            IslScheduleIssue      = @{
-                Level   = 'note'
+            IslScheduleIssue = @{
+                Level = 'note'
                 Summary = ('A run-once schedule whose time has passed; a device that has not fetched the ' +
                     'policy yet still runs it once.')
             }
-            IslDetectOnly         = @{
-                Level   = 'note'
+            IslDetectOnly = @{
+                Level = 'note'
                 Summary = 'A remediation with no remediation script runs its detection alone.'
             }
         }
@@ -78,8 +78,7 @@ function Export-IntuneFindingSarif {
                 $summary = $fixedRule['Summary']
                 # A rule that reports at several severities has no level of its own
                 if ($fixedRule['Level']) { $level = $fixedRule['Level'] }
-            }
-            elseif (Get-Command -Name "Find-$name" -ErrorAction SilentlyContinue) {
+            } elseif (Get-Command -Name "Find-$name" -ErrorAction SilentlyContinue) {
                 $help = Get-Help -Name "Find-$name" -ErrorAction SilentlyContinue
                 $summary = "$($help.Synopsis)".Trim()
                 # Help without a .DESCRIPTION has no description member
@@ -88,8 +87,8 @@ function Export-IntuneFindingSarif {
             }
             if (-not $summary) { $summary = $name }
             $rule = [ordered]@{
-                id               = $name
-                name             = $name
+                id = $name
+                name = $name
                 shortDescription = [ordered]@{ text = $summary }
             }
             if ($description) { $rule.fullDescription = [ordered]@{ text = $description.Trim() } }
@@ -103,10 +102,10 @@ function Export-IntuneFindingSarif {
             if ($item.Column -gt 0) { $region.startColumn = [int]$item.Column }
             if ($item.Text) { $region.snippet = [ordered]@{ text = "$($item.Text)" } }
             $result = [ordered]@{
-                ruleId    = $item.RuleName
+                ruleId = $item.RuleName
                 ruleIndex = $ruleIndex[$item.RuleName]
-                level     = $levels["$($item.Severity)"]
-                message   = [ordered]@{ text = "$($item.Message)" }
+                level = $levels["$($item.Severity)"]
+                message = [ordered]@{ text = "$($item.Message)" }
             }
             # A policy check from Test-IntuneDeployedScript has no script behind it; SARIF allows a
             # result without a location, and the policy's name goes into the message instead
@@ -117,18 +116,17 @@ function Export-IntuneFindingSarif {
                     [ordered]@{
                         physicalLocation = [ordered]@{
                             artifactLocation = ConvertTo-IslSarifLocation -FilePath $scriptPath -RootPath $rootPath
-                            region           = $region
+                            region = $region
                         }
                     }
                 )
-            }
-            elseif ($policyName) {
+            } elseif ($policyName) {
                 $policyKind = Get-IslPropertyValue -InputObject $item -Name 'Kind'
                 $result.message.text = "$policyKind '$policyName': $($item.Message)"
             }
             $result.properties = [ordered]@{
                 scriptType = "$($item.ScriptType)"
-                evidence   = "$($item.Evidence)"
+                evidence = "$($item.Evidence)"
             }
             if (Get-IslPropertyValue -InputObject $item -Name 'Suppressed') {
                 $result.suppressions = @([ordered]@{ kind = 'inSource' })
@@ -138,19 +136,19 @@ function Export-IntuneFindingSarif {
 
         $rootUri = ([System.Uri]::new($rootPath + [System.IO.Path]::DirectorySeparatorChar)).AbsoluteUri
         $driver = [ordered]@{
-            name           = 'IntuneScriptLab'
-            version        = "$($module.Version)"
+            name = 'IntuneScriptLab'
+            version = "$($module.Version)"
             informationUri = "$($module.PrivateData.PSData.ProjectUri)"
-            rules          = @($rules)
+            rules = @($rules)
         }
         $log = [ordered]@{
             '$schema' = 'https://json.schemastore.org/sarif-2.1.0.json'
-            version   = '2.1.0'
-            runs      = @(
+            version = '2.1.0'
+            runs = @(
                 [ordered]@{
-                    tool               = [ordered]@{ driver = $driver }
+                    tool = [ordered]@{ driver = $driver }
                     originalUriBaseIds = [ordered]@{ '%SRCROOT%' = [ordered]@{ uri = $rootUri } }
-                    results            = @($results)
+                    results = @($results)
                 }
             )
         }

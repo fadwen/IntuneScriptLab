@@ -49,15 +49,14 @@ function Get-IslMsiProduct {
             $key = $base.OpenSubKey("$uninstall\$code")
             if ($key) {
                 return [pscustomobject]@{
-                    PSTypeName     = 'IntuneScriptLab.MsiProduct'
-                    ProductCode    = $code
-                    DisplayName    = "$($key.GetValue('DisplayName'))"
+                    PSTypeName = 'IntuneScriptLab.MsiProduct'
+                    ProductCode = $code
+                    DisplayName = "$($key.GetValue('DisplayName'))"
                     DisplayVersion = "$($key.GetValue('DisplayVersion'))"
-                    View           = $place.Label
+                    View = $place.Label
                 }
             }
-        }
-        finally {
+        } finally {
             if ($key) { $key.Dispose() }
             if ($base) { $base.Dispose() }
         }

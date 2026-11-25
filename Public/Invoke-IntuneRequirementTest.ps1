@@ -63,10 +63,10 @@ function Invoke-IntuneRequirementTest {
             # Path is bound only here when it comes from the pipeline, so each script is named here
             Write-Verbose "Testing $scriptItem"
             $scriptRunSplat = @{
-                Path           = $scriptItem
-                Architecture   = $runArchitecture
-                Context        = $Context
-                Phase          = 'requirement'
+                Path = $scriptItem
+                Architecture = $runArchitecture
+                Context = $Context
+                Phase = 'requirement'
                 TimeoutSeconds = $TimeoutSeconds
             }
             if ($Credential) { $scriptRunSplat.Credential = $Credential }
@@ -88,34 +88,34 @@ function Invoke-IntuneRequirementTest {
             }
 
             $compareSplat = @{
-                StdOut     = $run.StdOut
-                StdErr     = $run.StdErr
-                ExitCode   = $run.ExitCode
-                TimedOut   = $run.TimedOut
+                StdOut = $run.StdOut
+                StdErr = $run.StdErr
+                ExitCode = $run.ExitCode
+                TimedOut = $run.TimedOut
                 OutputType = $OutputType
-                Operator   = $Operator
-                Value      = $Value
+                Operator = $Operator
+                Value = $Value
             }
             $verdict = Compare-IslRequirementOutput @compareSplat
 
             [pscustomobject]@{
-                PSTypeName   = 'IntuneScriptLab.RequirementResult'
-                Applicable   = $verdict.Met
-                Reason       = $verdict.Reason
-                Output       = $verdict.Output
-                ExitCode     = $run.ExitCode
-                StdOut       = $run.StdOut
-                StdErr       = $run.StdErr
-                TimedOut     = $run.TimedOut
-                Duration     = $run.Duration
-                OutputType   = $OutputType
-                Operator     = $Operator
-                Value        = $Value
+                PSTypeName = 'IntuneScriptLab.RequirementResult'
+                Applicable = $verdict.Met
+                Reason = $verdict.Reason
+                Output = $verdict.Output
+                ExitCode = $run.ExitCode
+                StdOut = $run.StdOut
+                StdErr = $run.StdErr
+                TimedOut = $run.TimedOut
+                Duration = $run.Duration
+                OutputType = $OutputType
+                Operator = $Operator
+                Value = $Value
                 Architecture = $runArchitecture
-                Context      = $Context
-                RunAs        = $run.RunAs
-                Host         = $run.Host
-                ScriptPath   = $run.ScriptPath
+                Context = $Context
+                RunAs = $run.RunAs
+                Host = $run.Host
+                ScriptPath = $run.ScriptPath
             }
         }
     }

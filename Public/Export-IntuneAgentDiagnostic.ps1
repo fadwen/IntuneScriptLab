@@ -72,8 +72,7 @@ function Export-IntuneAgentDiagnostic {
             }
             $manifest.Add("Logs: $copiedCount file(s) from $agentLogPath")
             if ($notCopied.Count) { $manifest.Add("Logs not copied: $($notCopied -join ', ')") }
-        }
-        else {
+        } else {
             $manifest.Add("Logs: folder not found: $agentLogPath")
             Write-Warning "Log folder not found: $agentLogPath"
         }
@@ -101,19 +100,21 @@ function Export-IntuneAgentDiagnostic {
             $sectionSplat = @{ Root = $staging; RelativePath = 'Device\dsregcmd.txt'; Line = $joinState }
             Write-IslTextFile @sectionSplat
             $manifest.Add('Device: system.txt, dsregcmd.txt')
-        }
-        else { $manifest.Add('Device: system.txt (dsregcmd not available)') }
+        } else { $manifest.Add('Device: system.txt (dsregcmd not available)') }
 
         # Registry
         if (-not $SkipRegistry) {
             $keys = @(
                 @{ Name = 'IntuneManagementExtension'; Depth = 6
-                    Key = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension' }
+                    Key = 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension'
+                }
                 @{ Name = 'Enrollments'; Key = 'HKLM:\SOFTWARE\Microsoft\Enrollments'; Depth = 2 }
                 @{ Name = 'EnrollmentStatusTracking'; Depth = 6
-                    Key = 'HKLM:\SOFTWARE\Microsoft\Windows\Autopilot\EnrollmentStatusTracking' }
+                    Key = 'HKLM:\SOFTWARE\Microsoft\Windows\Autopilot\EnrollmentStatusTracking'
+                }
                 @{ Name = 'Autopilot'; Depth = 1
-                    Key = 'HKLM:\SOFTWARE\Microsoft\Provisioning\Diagnostics\AutoPilot' }
+                    Key = 'HKLM:\SOFTWARE\Microsoft\Provisioning\Diagnostics\AutoPilot'
+                }
             )
             foreach ($entry in $keys) {
                 $lines = @(Get-IslRegistryText -Key $entry.Key -Depth $entry.Depth)
@@ -121,8 +122,7 @@ function Export-IntuneAgentDiagnostic {
                 Write-IslTextFile @sectionSplat
             }
             $manifest.Add("Registry: $(($keys | ForEach-Object { $_.Name }) -join ', ')")
-        }
-        else { $manifest.Add('Registry: skipped') }
+        } else { $manifest.Add('Registry: skipped') }
 
         # Timeline
         if (-not $SkipTimeline -and $logFiles.Count) {
@@ -147,8 +147,7 @@ function Export-IntuneAgentDiagnostic {
             $timelinesCsv = Join-Path -Path $timelineFolder -ChildPath 'timelines.csv'
             $timelineRows | Export-Csv -LiteralPath $timelinesCsv @csvSplat @script:IslInternal
             $manifest.Add("Timeline: $($events.Count) event(s), $($timelines.Count) timeline(s)")
-        }
-        else { $manifest.Add('Timeline: skipped') }
+        } else { $manifest.Add('Timeline: skipped') }
 
         $manifest.Insert(0, "IntuneScriptLab diagnostic package, $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))")
         Write-IslTextFile -Root $staging -RelativePath 'Manifest.txt' -Line $manifest
@@ -159,23 +158,21 @@ function Export-IntuneAgentDiagnostic {
             $null = New-Item -ItemType Directory -Path $zipFolder -Force @script:IslInternal
         }
         $entryCount = Compress-IslFolder -Folder $staging -Destination $zip
-    }
-    catch {
+    } catch {
         # Whatever failed, the package is not complete: the command ends without a result
         $PSCmdlet.ThrowTerminatingError($_)
-    }
-    finally {
+    } finally {
         Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
     }
 
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name): $zip"
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.Diagnostic'
-        Path       = $zip
-        Files      = $entryCount
-        Logs       = $copiedCount
-        Registry   = -not $SkipRegistry
-        Timeline   = (-not $SkipTimeline) -and $logFiles.Count -gt 0
-        SizeBytes  = (Get-Item -LiteralPath $zip).Length
+        Path = $zip
+        Files = $entryCount
+        Logs = $copiedCount
+        Registry = -not $SkipRegistry
+        Timeline = (-not $SkipTimeline) -and $logFiles.Count -gt 0
+        SizeBytes = (Get-Item -LiteralPath $zip).Length
     }
 }

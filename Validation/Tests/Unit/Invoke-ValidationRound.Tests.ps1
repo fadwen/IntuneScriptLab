@@ -267,10 +267,10 @@ Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:(-not 
 
         It 'warns about stderr on a zero exit and leaves progress records out' {
             $progress = '#< CLIXML\r\n<Objs Version=\"1.1.0.1\" ' +
-                'xmlns=\"http://schemas.microsoft.com/powershell/2004/04\">' +
-                '<Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\">' +
-                '<T>System.Management.Automation.PSCustomObject</T>' +
-                '<T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64></MS></Obj></Objs>'
+            'xmlns=\"http://schemas.microsoft.com/powershell/2004/04\">' +
+            '<Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\">' +
+            '<T>System.Management.Automation.PSCustomObject</T>' +
+            '<T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64></MS></Obj></Objs>'
             $withProgress = '{"exitcode":0,"exited":1,"out-data":"{M}\r\nfine","err-data":"' + $progress + '"}'
             Use-HostReply -Status $withProgress
             $quiet = @()
@@ -314,7 +314,7 @@ Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:(-not 
             $writes = @($calls | Where-Object { $_ -like '*file-write*' })
             $writes.Count | Should-Be 3
             $shape = "-o BatchMode=yes pve pvesh create /nodes/`$(hostname)/qemu/125/agent/file-write " +
-                "--file 'C:\ProgramData\IntuneScriptLab\thing.bin.b64.000?' --content '*'"
+            "--file 'C:\ProgramData\IntuneScriptLab\thing.bin.b64.000?' --content '*'"
             foreach ($write in $writes) { $write | Should-BeLikeString $shape }
             $parts = $writes | ForEach-Object { [regex]::Match($_, "--content '([^']*)'").Groups[1].Value }
             @($parts | ForEach-Object Length) | Should-BeCollection @(30000, 30000, 6668)

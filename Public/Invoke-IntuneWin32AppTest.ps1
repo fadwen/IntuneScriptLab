@@ -143,9 +143,9 @@ function Invoke-IntuneWin32AppTest {
             '(Applicability 1011); assign the app to users')
     }
     $detectionSplat = @{
-        Architecture          = $runArchitecture
-        Context               = $Context
-        TimeoutSeconds        = $TimeoutSeconds
+        Architecture = $runArchitecture
+        Context = $Context
+        TimeoutSeconds = $TimeoutSeconds
         EnforceSignatureCheck = $EnforceSignatureCheck
     }
     if ($Credential) {
@@ -208,8 +208,7 @@ function Invoke-IntuneWin32AppTest {
                 elseif ($type -ne 'autoInstall') { 'Not detected (detect-only dependency)' }
                 elseif (-not $dependency['InstallCommand'] -or -not $dependency['ContentPath']) {
                     'Not detected (no InstallCommand or ContentPath)'
-                }
-                else {
+                } else {
                     $childRun = @{
                         Phase = 'install'
                         Content = $dependency['ContentPath']
@@ -262,8 +261,7 @@ function Invoke-IntuneWin32AppTest {
                 elseif ($type -ne 'replace') { 'Installed (left in place by update)' }
                 elseif (-not $old['UninstallCommand'] -or -not $old['ContentPath']) {
                     'Installed (no UninstallCommand or ContentPath)'
-                }
-                else {
+                } else {
                     $oldRun = @{
                         Phase = 'uninstall'
                         Content = $old['ContentPath']
@@ -316,8 +314,7 @@ function Invoke-IntuneWin32AppTest {
                             $warnings.Add("Post-install detection: $($post.Reason). Intune reports 0x87D1041C " +
                                 'and retries the install at the next check-in')
                         }
-                    }
-                    else {
+                    } else {
                         # Observed flow (W32-UNINSTALL): detected, uninstall command, detected again, and
                         # "Not installed" once the detection stops saying installed
                         $status = if ($post.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
@@ -335,20 +332,20 @@ function Invoke-IntuneWin32AppTest {
 
     Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
     [pscustomobject]@{
-        PSTypeName    = 'IntuneScriptLab.Win32AppResult'
-        Status        = $status
-        Intent        = $Intent
-        PreDetection  = $pre.Script
-        PreRules      = $pre.Rules
-        Dependencies  = $dependencies.ToArray()
-        Superseded    = $superseded.ToArray()
-        Install       = if ($Intent -eq 'Install') { $execution } else { $null }
-        Uninstall     = if ($Intent -eq 'Uninstall') { $execution } else { $null }
+        PSTypeName = 'IntuneScriptLab.Win32AppResult'
+        Status = $status
+        Intent = $Intent
+        PreDetection = $pre.Script
+        PreRules = $pre.Rules
+        Dependencies = $dependencies.ToArray()
+        Superseded = $superseded.ToArray()
+        Install = if ($Intent -eq 'Install') { $execution } else { $null }
+        Uninstall = if ($Intent -eq 'Uninstall') { $execution } else { $null }
         PostDetection = if ($post) { $post.Script } else { $null }
-        PostRules     = if ($post) { $post.Rules } else { @() }
-        Warnings      = $warnings.ToArray()
-        Architecture  = $runArchitecture
-        Context       = $Context
-        RunAs         = $runAs
+        PostRules = if ($post) { $post.Rules } else { @() }
+        Warnings = $warnings.ToArray()
+        Architecture = $runArchitecture
+        Context = $Context
+        RunAs = $runAs
     }
 }

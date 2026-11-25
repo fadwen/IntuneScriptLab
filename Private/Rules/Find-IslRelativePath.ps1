@@ -41,9 +41,9 @@ function Find-IslRelativePath {
             $findingSplat = @{
                 RuleName = $rule
                 Severity = 'Warning'
-                Context  = $Context
-                Extent   = $literal.Extent
-                Message  = ("Relative path '$($literal.Value)' resolves against an unpredictable working " +
+                Context = $Context
+                Extent = $literal.Extent
+                Message = ("Relative path '$($literal.Value)' resolves against an unpredictable working " +
                     "directory. Anchor it to `$PSScriptRoot or use a full path")
                 Evidence = $evidence
             }
@@ -57,9 +57,9 @@ function Find-IslRelativePath {
         $findingSplat = @{
             RuleName = $rule
             Severity = 'Information'
-            Context  = $Context
-            Extent   = $variable.Extent
-            Message  = ('$PWD is not the script folder under Intune; use $PSScriptRoot for files shipped with ' +
+            Context = $Context
+            Extent = $variable.Extent
+            Message = ('$PWD is not the script folder under Intune; use $PSScriptRoot for files shipped with ' +
                 'the script')
             Evidence = $evidence
         }

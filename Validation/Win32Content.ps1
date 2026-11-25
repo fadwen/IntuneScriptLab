@@ -166,8 +166,7 @@ function Get-IntuneWinContent {
         $inner = $zip.Entries | Where-Object { $_.FullName -eq "IntuneWinPackage/Contents/$($info.FileName)" }
         $encryptedPath = Join-Path -Path $WorkFolder -ChildPath $info.FileName
         [IO.Compression.ZipFileExtensions]::ExtractToFile($inner, $encryptedPath, $true)
-    }
-    finally { $zip.Dispose() }
+    } finally { $zip.Dispose() }
 
     $e = $info.EncryptionInfo
     # An MSI setup file carries its product metadata in the same XML; Graph wants it as msiInformation.
@@ -187,8 +186,7 @@ function Get-IntuneWinContent {
             productName = "$(Get-IntuneWinXmlValue -Element $msiInfo -Name 'MsiProductName')"
             publisher = "$(Get-IntuneWinXmlValue -Element $msiInfo -Name 'MsiPublisher')"
         }
-    }
-    else { $null }
+    } else { $null }
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.Validation.IntuneWinContent'
         FileName = $info.FileName
@@ -345,7 +343,7 @@ function Publish-Win32AppContent {
             $id
         }
         $blockList = '<?xml version="1.0" encoding="utf-8"?><BlockList>' +
-            (($blockIds | ForEach-Object { "<Latest>$_</Latest>" }) -join '') + '</BlockList>'
+        (($blockIds | ForEach-Object { "<Latest>$_</Latest>" }) -join '') + '</BlockList>'
         # The address is a signed blob address; the request carries no credential header
         $listSplat = @{
             Method = 'PUT'; Uri = "$($file.azureStorageUri)&comp=blocklist"; Body = $blockList

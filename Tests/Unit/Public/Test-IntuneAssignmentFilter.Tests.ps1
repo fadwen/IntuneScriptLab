@@ -17,18 +17,18 @@ BeforeAll {
     }
     # The joined lab device as the filter evaluator returned it (FLT-E01)
     $script:Joined = @{
-        deviceName             = 'KRBETYP-AIEPVQ5'
-        manufacturer           = 'QEMU'
-        model                  = 'Standard PC (Q35 + ICH9, 2009)'
-        osVersion              = '10.0.26100.9457'
+        deviceName = 'KRBETYP-AIEPVQ5'
+        manufacturer = 'QEMU'
+        model = 'Standard PC (Q35 + ICH9, 2009)'
+        osVersion = '10.0.26100.9457'
         operatingSystemVersion = '10.0.26100.9457'
-        operatingSystemSKU     = 'EnterpriseSEval'
-        cpuArchitecture        = 'amd64'
-        deviceTrustType        = 'Azure AD joined'
-        deviceOwnership        = 'Corporate'
-        enrollmentProfileName  = $null
-        deviceCategory         = $null
-        isTpmAttested          = 'False'
+        operatingSystemSKU = 'EnterpriseSEval'
+        cpuArchitecture = 'amd64'
+        deviceTrustType = 'Azure AD joined'
+        deviceOwnership = 'Corporate'
+        enrollmentProfileName = $null
+        deviceCategory = $null
+        isTpmAttested = 'False'
     }
     $script:Me = '(device.deviceName -eq "KRBETYP-AIEPVQ5")'
     $script:Nobody = '(device.deviceName -eq "nope")'
@@ -67,7 +67,8 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             @{ Rule = '(device.deviceTrustType -eq "AzureADJoined")'; Expected = $false }
             @{ Rule = '(device.deviceTrustType -eq "Microsoft Entra joined")'; Expected = $false }
             @{ Rule = '(device.deviceTrustType -in ["Hybrid Azure AD joined","Azure AD joined"])'
-                Expected = $true }
+                Expected = $true
+            }
             @{ Rule = '(device.operatingSystemVersion -gt 10.0.22000.1000)'; Expected = $true }
             @{ Rule = '(device.operatingSystemVersion -eq 10.0.26100.9457)'; Expected = $true }
             @{ Rule = '(device.operatingSystemVersion -eq "10.0.26100.9457")'; Expected = $true }
@@ -79,7 +80,8 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             @{ Rule = '(device.operatingSystemVersion -lt 10.0.26100.9457)'; Expected = $false }
             @{ Rule = '(device.operatingSystemVersion -ne 10.0.26100.9457)'; Expected = $false }
             @{ Rule = '(device.operatingSystemVersion -gt 10.0.26100.9457) or ' +
-                '(device.operatingSystemVersion -lt 10.0.26100.9457)'; Expected = $false }
+                '(device.operatingSystemVersion -lt 10.0.26100.9457)'; Expected = $false
+            }
             @{ Rule = '(device.operatingSystemVersion -le 10.0.26100.9457)'; Expected = $true }
             @{ Rule = '(device.osVersion -startsWith "10.0.26100")'; Expected = $true }
             @{ Rule = '(device.osVersion -eq "10.0.26100.9457")'; Expected = $true }
@@ -234,10 +236,12 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
         It 'says what a clause that <Effect> means for an exclude filter' -ForEach @(
             @{ Rule = '(device.cpuArchitecture -eq "x64")'; Effect = 'never matches'
                 Note = ('*never matches; as an exclude filter it excludes nobody, so the assignment reaches ' +
-                    'every device in the group') }
+                    'every device in the group')
+            }
             @{ Rule = '(device.deviceTrustType -ne "Hybrid Entra joined")'; Effect = 'matches every device'
                 Note = ('*matches every device; as an exclude filter it excludes every device, so the ' +
-                    'assignment reaches nobody') }
+                    'assignment reaches nobody')
+            }
         ) {
             $warnings = @()
             $excludeSplat = @{ Rule = $Rule; Device = $script:Joined; Mode = 'Exclude' }

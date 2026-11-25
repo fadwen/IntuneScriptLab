@@ -77,7 +77,7 @@ BeforeAll {
                 }).Count -gt 0
             $pipeline = $call.Parent
             $isPiped = $pipeline -is [System.Management.Automation.Language.PipelineAst] -and
-                $pipeline.PipelineElements.Count -gt 1 -and $pipeline.PipelineElements[0] -ne $call
+            $pipeline.PipelineElements.Count -gt 1 -and $pipeline.PipelineElements[0] -ne $call
             if ($hasSplat -or $isPiped) {
                 continue
             }

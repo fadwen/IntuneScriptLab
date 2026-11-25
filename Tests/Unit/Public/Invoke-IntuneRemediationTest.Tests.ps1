@@ -30,8 +30,7 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
         Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'detect' } {
             if (Test-Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker')) {
                 ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'present'; StdErr = '' }
-            }
-            else {
+            } else {
                 ConvertTo-FakeRunResult @{ ExitCode = 1; TimedOut = $false; StdOut = 'missing'; StdErr = '' }
             }
         }
@@ -113,7 +112,8 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab -ParameterFilter { $Phase -eq 'remediate' } {
                 $null = New-Item -ItemType File -Path (Join-Path (Split-Path $Path -Parent) 'fixed.marker') -Force
                 ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'turned off'
-                    StdErr = "Set-ItemProperty : Cannot find path 'HKCU:\x' because it does not exist." }
+                    StdErr = "Set-ItemProperty : Cannot find path 'HKCU:\x' because it does not exist."
+                }
             }
             $result = Invoke-IntuneRemediationTest -DetectionPath $script:Detect -RemediationPath $script:Remediate
             $result.Status | Should-Be 'Failed'
