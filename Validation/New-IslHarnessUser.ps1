@@ -3,7 +3,7 @@
 
 <#
     .SYNOPSIS
-        Creates the standard local account the user-context harness runs scripts as, on a lab device.
+        Creates the local account the user-context harness runs scripts as on a lab device.
 
     .DESCRIPTION
         Run on the device itself (through the guest agent as SYSTEM, or in an elevated session). The
@@ -57,19 +57,21 @@
 param(
     [string]$UserName = 'isl-user',
 
-    [string]$OutputPath = "C:\ProgramData\IntuneScriptLab\$UserName.cred.xml",
+    [string]$OutputPath = (Join-Path -Path 'C:\ProgramData\IntuneScriptLab' -ChildPath "$UserName.cred.xml"),
 
     [switch]$AutoLogon
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# Split-Path has no -LiteralPath form that takes -Parent; it does not resolve the path here
 $folder = Split-Path -Path $OutputPath -Parent
 New-Item -ItemType Directory -Path $folder -Force | Out-Null
 
-$bytes = New-Object byte[] 24
+$bytes = [byte[]]::new(24)
 [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
 $plain = ([Convert]::ToBase64String($bytes) -replace '[+/=]', 'x') + 'Aa1!'
-$secure = New-Object System.Security.SecureString
+$secure = [System.Security.SecureString]::new()
 foreach ($char in $plain.ToCharArray()) { $secure.AppendChar($char) }
 $secure.MakeReadOnly()
 
@@ -91,7 +93,11 @@ else {
     Add-LocalGroupMember -Group 'Users' -Member $UserName
     Write-Information -InformationAction Continue -MessageData "$UserName created as a standard user"
 }
-[pscredential]::new("$env:COMPUTERNAME\$UserName", $secure) | Export-Clixml -Path $OutputPath
+# Each host's default: UTF-16 on Windows PowerShell 5.1, which the guest agent runs, and UTF-8
+# without a byte order mark on PowerShell 7
+$clixmlEncoding = if ($PSVersionTable.PSVersion -lt [version]'6.0') { 'Unicode' } else { 'utf8NoBOM' }
+$credential = [pscredential]::new("$env:COMPUTERNAME\$UserName", $secure)
+$credential | Export-Clixml -LiteralPath $OutputPath -Encoding $clixmlEncoding
 Write-Information -InformationAction Continue -MessageData "Credential stored at $OutputPath"
 
 if (-not $AutoLogon) { return }
@@ -135,15 +141,17 @@ public class IslLsa {
     }
 }
 '@
+# Neither .NET nor a PowerShell command stores an LSA private-data secret, so the type compiled here
+# calls LsaOpenPolicy and LsaStorePrivateData in advapi32.dll. The source is the literal above.
 if (-not ('IslLsa' -as [type])) { Add-Type -TypeDefinition $lsaSource }
 [IslLsa]::SetSecret('DefaultPassword', $plain)
 
 $winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
-if ((Get-Item -Path $winlogon).GetValueNames() -contains 'DefaultPassword') {
-    Rename-ItemProperty -Path $winlogon -Name 'DefaultPassword' -NewName 'DefaultPassword.isl-parked'
+if ((Get-Item -LiteralPath $winlogon).GetValueNames() -contains 'DefaultPassword') {
+    Rename-ItemProperty -LiteralPath $winlogon -Name 'DefaultPassword' -NewName 'DefaultPassword.isl-parked'
     Write-Information -InformationAction Continue -MessageData 'Registry DefaultPassword parked (unread)'
 }
-Set-ItemProperty -Path $winlogon -Name 'DefaultUserName' -Value $UserName
-Set-ItemProperty -Path $winlogon -Name 'DefaultDomainName' -Value $env:COMPUTERNAME
-Set-ItemProperty -Path $winlogon -Name 'AutoAdminLogon' -Value '1'
+Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultUserName' -Value $UserName
+Set-ItemProperty -LiteralPath $winlogon -Name 'DefaultDomainName' -Value $env:COMPUTERNAME
+Set-ItemProperty -LiteralPath $winlogon -Name 'AutoAdminLogon' -Value '1'
 Write-Information -InformationAction Continue -MessageData "Autologon set for $UserName; reboot to sign it in"

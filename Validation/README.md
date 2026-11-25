@@ -7,6 +7,14 @@ with the documented behaviour next to the observed one.
 
 ## Files
 
+Three of these files are instruments, not tools: `Probe.ps1` and `Win32Install.ps1` run on the
+devices inside every experiment, and `Fixtures.ps1` sets up the state that the rule experiments
+measure. They are left out of the repository's script conventions (strict mode and a stop
+preference, a required-version line, comment-based help, advanced functions, joined paths):
+each change would change what an experiment ran or measured, and the bytes of the first two are
+what Intune receives, so not even a comment is added to them. `Fixtures.ps1` records the same in
+its own header.
+
 | File | Purpose |
 |---|---|
 | `Probe.ps1` | Header prepended to every experiment. Records user, bitness, PowerShell version, command line, encoding and paths to `C:\ProgramData\IntuneScriptLab\<experiment>.jsonl` on the device. Windows PowerShell 5.1 only. |

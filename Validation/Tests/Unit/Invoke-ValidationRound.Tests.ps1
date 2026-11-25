@@ -91,7 +91,7 @@ Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:(-not 
         }
 
         It 'adds the UTF-8 BOM when asked' {
-            $bytes = [Convert]::FromBase64String((ConvertTo-ScriptContent -Body 'exit 0' -Bom $true).Base64)
+            $bytes = [Convert]::FromBase64String((ConvertTo-ScriptContent -Body 'exit 0' -Bom).Base64)
             [Convert]::ToHexString($bytes[0..2]) | Should-Be 'EFBBBF'
         }
 

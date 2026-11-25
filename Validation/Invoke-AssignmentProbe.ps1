@@ -66,24 +66,96 @@ param(
     [string]$SecondDeviceGroupName = 'ISL-ESP-Devices'
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $beta = 'https://graph.microsoft.com/beta'
-$probe = Get-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath 'Probe.ps1') -Raw
+$probe = Get-Content -LiteralPath (Join-Path -Path $PSScriptRoot -ChildPath 'Probe.ps1') -Raw
+
 
 function ConvertTo-Content {
-    param([string]$Body)
+    <#
+    .SYNOPSIS
+        Builds the base64 content of a probe script that ends with the given statements.
+
+    .DESCRIPTION
+        Appends the statements to the text of Probe.ps1, which defines Write-ProbeRecord, with CRLF
+        line endings, encodes the result as UTF-8 with a byte order mark, and returns it as base64,
+        the form deviceHealthScripts takes for detectionScriptContent and remediationScriptContent.
+
+    .PARAMETER Body
+        The statements that follow the probe functions, such as
+        'Write-ProbeRecord ASSIGN-NONE detection; exit 1'.
+
+    .EXAMPLE
+        ConvertTo-Content -Body 'Write-ProbeRecord ASSIGN-NONE detection; exit 1'
+
+        The base64 content of a detection script that writes a probe record and exits 1.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The script as base64.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [string]$Body
+    )
+
     $text = $probe.TrimEnd() + "`r`n" + $Body + "`r`n"
     $bytes = [Text.UTF8Encoding]::new($true).GetPreamble() + [Text.Encoding]::UTF8.GetBytes($text)
     [Convert]::ToBase64String($bytes)
 }
 
+
 function Get-GroupId {
-    param([string]$Name)
+    <#
+    .SYNOPSIS
+        Gets the object id of the Microsoft Entra group with the given display name.
+
+    .DESCRIPTION
+        Asks Graph for the groups whose display name equals the name and returns the id of the
+        first. A name that no group has ends the function with a terminating error.
+
+    .PARAMETER Name
+        The display name of the group, such as 'ISL-Validation-Devices'.
+
+    .EXAMPLE
+        Get-GroupId -Name 'ISL-Validation-Devices'
+
+        The id of the kit's default device group.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The group's id.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [string]$Name
+    )
+
     $uri = "$beta/groups?`$filter=displayName eq '$Name'&`$select=id"
-    $group = (Invoke-MgGraphRequest -Method GET -Uri $uri).value
-    if (-not $group) { throw "Group not found: $Name" }
+    try {
+        $group = (Invoke-MgGraphRequest -Method GET -Uri $uri -ErrorAction Stop).value
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
+
+    if (-not $group) {
+        $exception = [System.Management.Automation.ItemNotFoundException]::new("Group not found: $Name")
+        $category = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+        $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+            $exception, 'GroupNotFound', $category, $Name)
+        $PSCmdlet.ThrowTerminatingError($errorRecord)
+    }
+
     $group[0].id
 }
+
 
 $devices = Get-GroupId -Name $DeviceGroupName
 $users = Get-GroupId -Name $UserGroupName
