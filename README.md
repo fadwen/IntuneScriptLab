@@ -251,7 +251,8 @@ The others follow the finding's own advice:
 - `IslExecutionPolicyCall`: a `Set-ExecutionPolicy` line removed.
 - `IslPowerShell7Syntax`: a `#Requires -Version 7` line removed.
 
-`Tests/Unit/Readme.Tests.ps1` fails when a rule that offers an edit is missing from this list.
+`Tests/Unit/Readme.Tests.ps1` fails when a rule that offers an edit, or the literal text an edit
+writes, is missing from this list.
 `Repair-IntuneScript` applies them
 per script, reports what it changed and how many findings remain, previews with `-WhatIf`, and
 takes `-ScriptType`, `-Context`, `-Architecture` and `-EnforceSignatureCheck` the way `Test-IntuneScript` does.
