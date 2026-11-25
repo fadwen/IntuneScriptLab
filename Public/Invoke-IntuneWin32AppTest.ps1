@@ -97,6 +97,31 @@ function Invoke-IntuneWin32AppTest {
             $PSCmdlet.ThrowTerminatingError($record)
         }
     }
+    # A null rule entry is a rule that is missing, not one to leave out. It is found here, before
+    # -WhatIf is answered and any detection runs; each detection pass checks it again
+    $ruleSets = @(
+        @{ Rule = $DetectionRule; Label = '' }
+        foreach ($related in @($DependsOn)) {
+            if ($related) {
+                @{ Rule = $related['DetectionRule']; Label = " for dependency $($related['Name'])" }
+            }
+        }
+        foreach ($related in @($Supersedes)) {
+            if ($related) {
+                @{ Rule = $related['DetectionRule']; Label = " for superseded app $($related['Name'])" }
+            }
+        }
+    )
+    foreach ($ruleSet in $ruleSets) {
+        $entries = @(if ($null -ne $ruleSet['Rule']) { $ruleSet['Rule'] })
+        for ($index = 0; $index -lt $entries.Count; $index++) {
+            if ($null -eq $entries[$index]) {
+                $message = "Detection rule $($index + 1)$($ruleSet['Label']) is empty"
+                $record = New-IslErrorRecord -Message $message -ErrorId 'DetectionRuleEmpty' @argumentError
+                $PSCmdlet.ThrowTerminatingError($record)
+            }
+        }
+    }
     # A content folder that is not there is found before anything runs
     try {
         $null = Resolve-Path -LiteralPath $ContentPath -ErrorAction Stop
@@ -143,138 +168,14 @@ function Invoke-IntuneWin32AppTest {
     elseif ($env:USERDOMAIN) { "$env:USERDOMAIN\$env:USERNAME" }
     else { [Environment]::UserName }
 
-    # One detection pass for this app or a related one: the script (if any) and every rule; all of
-    # them must say installed (W32-MULTI-ONEFALSE, W32-MULTI-BOTHTRUE). A script that cannot be run
-    # or a rule that cannot be read ends the flow, through the try around every call of this
-    # function. The detection reports such a script without ending, so it is called with
-    # -ErrorAction Stop: with nothing returned, the app would read as detected below
-    function Invoke-DetectionPass {
-        param([string]$Phase, [string]$Path, [hashtable[]]$Rule, [string]$Label)
-        $script = $null
-        if ($Path) {
-            $detectionRun = @{ Path = $Path; ErrorAction = 'Stop' }
-            $script = Invoke-IntuneDetectionTest @detectionRun @detectionSplat @script:IslInternal
-        }
-        $rules = @(foreach ($entry in $Rule) {
-                Test-IntuneWin32Rule -Rule $entry -RuleType Detection -ErrorAction Stop
-            })
-        $unmet = @($rules | Where-Object { -not $_.Met })
-        $detected = ($null -eq $script -or $script.Detected) -and $unmet.Count -eq 0
-        $timedOut = $null -ne $script -and $script.TimedOut
-        foreach ($miss in $unmet) {
-            $warnings.Add("$Phase detection rule not met$Label ($($miss.Kind) $($miss.Operation)): " +
-                $miss.Reason)
-        }
-        [pscustomobject]@{
-            Detected = $detected
-            TimedOut = $timedOut
-            Script   = $script
-            Rules    = $rules
-            Reason   = if ($script -and -not $script.Detected) { $script.Reason }
-            elseif ($unmet.Count) { ($unmet | ForEach-Object { $_.Reason }) -join '; ' }
-            else { 'Script and rules all report installed' }
-        }
-    }
+    # What every detection pass and every install or uninstall of the flow share
+    $passSplat = @{ Detection = $detectionSplat; Warning = $warnings }
+    $contentSplat = @{ Context = $Context; TimeoutSeconds = $InstallTimeoutSeconds; Warning = $warnings }
+    if ($Credential) { $contentSplat.Credential = $Credential }
 
-    # Runs an install or uninstall command line from a copy of a content folder through the 32-bit
-    # cmd.exe, as the agent's own 32-bit process does. A copy or a launch that fails ends the flow,
-    # through the try around every call of this function
-    function Invoke-ContentCommand {
-        param([string]$Phase, [string]$Content, [string]$CommandLine)
-        $source = (Resolve-Path -LiteralPath $Content -ErrorAction Stop).ProviderPath
-        $hostPattern = '(?i)(^|[\s"])powershell(\.exe)?([\s"]|$)'
-        if ($CommandLine -match $hostPattern) {
-            $warnings.Add("powershell.exe in the $Phase command runs the 32-bit host (the agent is a 32-bit " +
-                'process); HKLM:\SOFTWARE and Program Files are redirected there')
-        }
-        else {
-            # The same host hides inside a batch file the command line names: install.cmd calling
-            # powershell.exe runs it 32-bit too, from the agent's 32-bit cmd.exe, without the
-            # command line showing it
-            $first = if ($CommandLine -match '^\s*"([^"]+)"') { $Matches[1] }
-            else { ($CommandLine.Trim() -split '\s+', 2)[0] }
-            $batch = if ($first -match '(?i)\.(cmd|bat)$') { Join-Path -Path $source -ChildPath $first }
-            else { $null }
-            if ($batch -and (Test-Path -LiteralPath $batch -PathType Leaf)) {
-                $hit = Select-String -LiteralPath $batch -Pattern $hostPattern | Select-Object -First 1
-                if ($hit) {
-                    $warnings.Add("powershell.exe in $first (line $($hit.LineNumber)), which the $Phase " +
-                        'command runs through the 32-bit cmd.exe, is the 32-bit host (the agent is a 32-bit ' +
-                        'process); HKLM:\SOFTWARE and Program Files are redirected there')
-                }
-            }
-        }
-        $runId = [guid]::NewGuid().ToString('N')
-        # Another account cannot reach the caller's temp folder; its copy lives under ProgramData
-        $cache = if ($Credential) {
-            Join-Path -Path $env:ProgramData -ChildPath "IntuneScriptLab\Runs\$runId"
-        }
-        else {
-            Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "IntuneScriptLab\$runId"
-        }
-        $copy = Join-Path -Path $cache -ChildPath 'content'
-        try {
-            $null = New-Item -ItemType Directory -Path $copy -Force -ErrorAction Stop @script:IslInternal
-            $contentItems = Join-Path -Path $source -ChildPath '*'
-            $copySplat = @{ Path = $contentItems; Destination = $copy; Recurse = $true; Force = $true }
-            Copy-Item @copySplat -ErrorAction Stop @script:IslInternal
-            if ($Credential) { Grant-IslFolderAccess -Path $cache -Account $Credential.UserName }
-            $cmdFolder = if ([Environment]::Is64BitOperatingSystem) { 'SysWOW64' } else { 'System32' }
-            $cmd = Join-Path -Path (Join-Path -Path $env:WINDIR -ChildPath $cmdFolder) -ChildPath 'cmd.exe'
-            $processSplat = @{
-                FilePath         = $cmd
-                Arguments        = "/C `"$CommandLine`""
-                WorkingDirectory = $copy
-                WorkFolder       = $cache
-                Context          = $Context
-                TimeoutSeconds   = $InstallTimeoutSeconds
-                LauncherBitness  = 'x86'
-            }
-            if ($Credential) { $processSplat.Credential = $Credential }
-            $run = Invoke-IslProcess @processSplat
-        }
-        finally {
-            Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue @script:IslInternal
-        }
-        [pscustomobject]@{
-            PSTypeName = 'IntuneScriptLab.RunResult'
-            Phase      = $Phase
-            Command    = $CommandLine
-            Context    = $Context
-            ExitCode   = $run.ExitCode
-            TimedOut   = $run.TimedOut
-            StdOut     = $run.StdOut
-            StdErr     = $run.StdErr
-            Duration   = $run.Duration
-        }
-    }
-
-    function Get-Outcome {
-        param($Run)
-        if ($Run.TimedOut) { return 'timedOut' }
-        if ($ReturnCodes.ContainsKey($Run.ExitCode)) { $ReturnCodes[$Run.ExitCode] } else { 'failed' }
-    }
-
-    function ConvertTo-RelatedResult {
-        param([string]$Name, [string]$Relationship, [string]$Status, $Pre, $Install, $Uninstall, $Post)
-        [pscustomobject]@{
-            PSTypeName    = 'IntuneScriptLab.Win32RelatedResult'
-            Name          = $Name
-            Relationship  = $Relationship
-            Status        = $Status
-            PreDetection  = $Pre.Script
-            PreRules      = $Pre.Rules
-            Install       = $Install
-            Uninstall     = $Uninstall
-            PostDetection = if ($Post) { $Post.Script } else { $null }
-            PostRules     = if ($Post) { $Post.Rules } else { @() }
-        }
-    }
-
-    # The whole flow is one transaction. A step that could not be run ends it with that step's
-    # error; the two nested functions above have no catch of their own and depend on this one
+    # The whole flow is one transaction. A step that could not be run ends it with that step's error
     try {
-        $pre = Invoke-DetectionPass -Phase 'Pre' -Path $DetectionPath -Rule $DetectionRule -Label ''
+        $pre = Invoke-IslWin32DetectionPass -Phase 'Pre' -Path $DetectionPath -Rule $DetectionRule @passSplat
         $execution = $null
         $post = $null
         $dependencies = [System.Collections.Generic.List[object]]::new()
@@ -298,7 +199,7 @@ function Invoke-IntuneWin32AppTest {
                     Rule = $dependency['DetectionRule']
                     Label = " for dependency $name"
                 }
-                $childPre = Invoke-DetectionPass -Phase 'Pre' @detect
+                $childPre = Invoke-IslWin32DetectionPass -Phase 'Pre' @detect @passSplat
                 $childInstall = $null
                 $childPost = $null
                 $childStatus = if ($childPre.TimedOut) { 'TimedOut' }
@@ -313,13 +214,13 @@ function Invoke-IntuneWin32AppTest {
                         Content = $dependency['ContentPath']
                         CommandLine = $dependency['InstallCommand']
                     }
-                    $childInstall = Invoke-ContentCommand @childRun
-                    switch (Get-Outcome -Run $childInstall) {
+                    $childInstall = Invoke-IslWin32ContentCommand @childRun @contentSplat
+                    switch (Get-IslWin32Outcome -Run $childInstall -ReturnCodes $ReturnCodes) {
                         'timedOut' { 'TimedOut' }
                         'retry' { 'Retry' }
                         'failed' { "Install failed (exit $($childInstall.ExitCode))" }
                         default {
-                            $childPost = Invoke-DetectionPass -Phase 'Post' @detect
+                            $childPost = Invoke-IslWin32DetectionPass -Phase 'Post' @detect @passSplat
                             if ($childPost.Detected) { 'Installed after install' }
                             else { 'Not detected after install' }
                         }
@@ -329,7 +230,7 @@ function Invoke-IntuneWin32AppTest {
                     Name = $name; Relationship = "dependency ($type)"; Status = $childStatus
                     Pre = $childPre; Install = $childInstall; Uninstall = $null; Post = $childPost
                 }
-                $dependencies.Add((ConvertTo-RelatedResult @relatedSplat))
+                $dependencies.Add((ConvertTo-IslWin32RelatedResult @relatedSplat))
                 if ($childStatus -notin 'Installed', 'Installed after install') {
                     $status = 'Not installed (dependency)'
                     $warnings.Add("Dependency $name ($type): $childStatus. The agent does not run this app's " +
@@ -352,7 +253,7 @@ function Invoke-IntuneWin32AppTest {
                     Rule = $old['DetectionRule']
                     Label = " for superseded app $name"
                 }
-                $oldPre = Invoke-DetectionPass -Phase 'Pre' @detect
+                $oldPre = Invoke-IslWin32DetectionPass -Phase 'Pre' @detect @passSplat
                 $oldUninstall = $null
                 $oldPost = $null
                 $oldStatus = if ($oldPre.TimedOut) { 'TimedOut' }
@@ -367,13 +268,13 @@ function Invoke-IntuneWin32AppTest {
                         Content = $old['ContentPath']
                         CommandLine = $old['UninstallCommand']
                     }
-                    $oldUninstall = Invoke-ContentCommand @oldRun
-                    switch (Get-Outcome -Run $oldUninstall) {
+                    $oldUninstall = Invoke-IslWin32ContentCommand @oldRun @contentSplat
+                    switch (Get-IslWin32Outcome -Run $oldUninstall -ReturnCodes $ReturnCodes) {
                         'timedOut' { 'TimedOut' }
                         'retry' { 'Retry' }
                         'failed' { "Uninstall failed (exit $($oldUninstall.ExitCode))" }
                         default {
-                            $oldPost = Invoke-DetectionPass -Phase 'Post' @detect
+                            $oldPost = Invoke-IslWin32DetectionPass -Phase 'Post' @detect @passSplat
                             if ($oldPost.Detected) { 'Still detected after uninstall' } else { 'Uninstalled' }
                         }
                     }
@@ -382,7 +283,7 @@ function Invoke-IntuneWin32AppTest {
                     Name = $name; Relationship = "supersedence ($type)"; Status = $oldStatus
                     Pre = $oldPre; Install = $null; Uninstall = $oldUninstall; Post = $oldPost
                 }
-                $superseded.Add((ConvertTo-RelatedResult @relatedSplat))
+                $superseded.Add((ConvertTo-IslWin32RelatedResult @relatedSplat))
                 if ($type -eq 'replace' -and $oldStatus -notin 'Uninstalled', 'Not installed') {
                     $warnings.Add("Superseded app $name (replace): $oldStatus. The agent removes a replace " +
                         'target before it installs the new app (W32-SUP-OLD-B), so the old app would still ' +
@@ -392,8 +293,9 @@ function Invoke-IntuneWin32AppTest {
         }
 
         if (-not $status) {
-            $execution = Invoke-ContentCommand -Phase $Intent.ToLower() -Content $ContentPath -CommandLine $command
-            $outcome = Get-Outcome -Run $execution
+            $appRun = @{ Phase = $Intent.ToLower(); Content = $ContentPath; CommandLine = $command }
+            $execution = Invoke-IslWin32ContentCommand @appRun @contentSplat
+            $outcome = Get-IslWin32Outcome -Run $execution -ReturnCodes $ReturnCodes
             switch ($outcome) {
                 'timedOut' { $status = 'TimedOut' }
                 'retry' { $status = 'Retry' }
@@ -403,7 +305,8 @@ function Invoke-IntuneWin32AppTest {
                         $warnings.Add("$Intent returned $($execution.ExitCode): Intune records a $outcome " +
                             'as pending')
                     }
-                    $post = Invoke-DetectionPass -Phase 'Post' -Path $DetectionPath -Rule $DetectionRule -Label ''
+                    $appDetection = @{ Path = $DetectionPath; Rule = $DetectionRule }
+                    $post = Invoke-IslWin32DetectionPass -Phase 'Post' @appDetection @passSplat
                     if ($post.TimedOut) { $status = 'TimedOut' }
                     elseif ($Intent -eq 'Install') {
                         $status = if ($post.Detected) { 'Installed after install' }

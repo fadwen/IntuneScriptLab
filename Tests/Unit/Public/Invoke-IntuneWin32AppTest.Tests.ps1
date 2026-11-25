@@ -583,6 +583,26 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
             { Invoke-IntuneWin32AppTest @script:ParentSplat -Supersedes $noDetection } |
                 Should-Throw -FullyQualifiedErrorId 'RelatedAppDetectionMissing,*'
         }
+
+        It 'installs neither the dependency nor the parent when the dependency''s rules are all empty' {
+            $empty = @{
+                Name = 'Runtime'; DetectionRule = @($null, $null); ContentPath = $script:Child.Content
+                InstallCommand = 'setup.exe /mark child /exit 0'
+            }
+
+            $failure = { Invoke-IntuneWin32AppTest @script:ParentSplat -DependsOn $empty } |
+                Should-Throw -FullyQualifiedErrorId 'DetectionRuleEmpty,*'
+            $failure.Exception.Message | Should-BeLikeString '*for dependency Runtime*'
+            Should-Invoke Invoke-IslProcess -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
+
+        It 'reports an empty rule of a superseded app under -WhatIf, among the argument checks' {
+            $empty = @{ Name = 'Old'; DetectionRule = @($null, $null) }
+
+            { Invoke-IntuneWin32AppTest @script:ParentSplat -Supersedes $empty -WhatIf } |
+                Should-Throw -FullyQualifiedErrorId 'DetectionRuleEmpty,*' -ExceptionMessage (
+                    'Detection rule 1 for superseded app Old is empty')
+        }
     }
 
     Context 'Error Handling' {
