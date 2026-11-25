@@ -41,6 +41,9 @@ BeforeAll {
     # host without the feature. None is on a plain device, so none is in the table
     $script:FeatureModules = 'Hyper-V', 'HgsClient', 'HgsDiagnostics', 'HostComputeService',
     'HostNetworkingService'
+    # Shipped by a Windows release after the table's 24H2: Windows 11 26H2 (build 26320) has it,
+    # and 24H2 devices at build 26100.9974 with current updates do not (Validation/Findings.md)
+    $script:LaterReleaseModules = 'UOPProviders'
 
     # Discovery-time variables do not reach the run, so the lookup is repeated here
     $script:ClientHost = $false
@@ -104,9 +107,11 @@ Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {
             # System32 only: a GitHub runner has fifty installed modules under Program Files, and so
             # may any managed device. A module here that is in neither list is either new to
             # Windows, in which case the table is behind, or a feature of this host, in which case
-            # it goes in FeatureModules
+            # it goes in FeatureModules; one that a later release than the table's ships goes in
+            # LaterReleaseModules
             $unlisted = @($script:WindowsModules | Where-Object {
-                    $_ -notin $script:Table -and $_ -notin $script:FeatureModules
+                    $_ -notin $script:Table -and $_ -notin $script:FeatureModules -and
+                    $_ -notin $script:LaterReleaseModules
                 })
             $unlisted | Should-BeCollection @()
         }
