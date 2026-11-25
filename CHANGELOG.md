@@ -44,19 +44,19 @@ entries are carried over from the manifest's release notes.
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
-  `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Get-IslSetting`,
-  `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest`, the assignment filter parser
-  `ConvertFrom-IslFilterRule` and three analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`,
-  `IslModuleDependency`) are private functions of their own, each an advanced function with help
-  and tests (#65). `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript` and
-  `Get-IntuneScriptHealth` select the tenant's policies through one function where each had its
-  own copy. A settings value
-  that is not allowed still ends `Test-IntuneScript` with `SettingsInvalid,Test-IntuneScript`. One
-  error changes: a detection rule entry that is `$null`, for the app or for one of its
-  `-DependsOn` or `-Supersedes` apps, ends `Invoke-IntuneWin32AppTest`
-  with `DetectionRuleEmpty` among its argument checks, before `-WhatIf` is answered and anything
-  runs, where it ended with the parameter-binding error of `Test-IntuneWin32Rule` once the flow had
-  started.
+  `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,
+  `Get-IslSetting`, `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest`, the assignment filter
+  parser `ConvertFrom-IslFilterRule` and three analyzer rules (`IslInteractiveCall`,
+  `IslExitCodeIssue`, `IslModuleDependency`) are private functions of their own, each an advanced
+  function with help and tests (#65). `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`
+  and `Get-IntuneScriptHealth` select the tenant's policies through one function where each had
+  its own copy, and `Test-IntuneDeployedScript` selects rules through the one `Test-IntuneScript`
+  uses. A settings value that is not allowed still ends `Test-IntuneScript` with
+  `SettingsInvalid,Test-IntuneScript`. One error changes: a detection rule entry that is `$null`,
+  for the app or for one of its `-DependsOn` or `-Supersedes` apps, ends
+  `Invoke-IntuneWin32AppTest` with `DetectionRuleEmpty` among its argument checks, before
+  `-WhatIf` is answered and anything runs, where it ended with the parameter-binding error of
+  `Test-IntuneWin32Rule` once the flow had started.
 - The README's section headings no longer carry the version that introduced each feature, the
   tenant pre-flight paragraph no longer says since when each check exists, and the roadmap points
   at this changelog instead of listing versions; a first-time reader wants the overview, and the
