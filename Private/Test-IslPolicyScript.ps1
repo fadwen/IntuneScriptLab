@@ -135,7 +135,8 @@ function Test-IslPolicyScript {
         # readable. The id is refused unless it holds only letters, digits, '-' and '_', as every
         # Graph id, a GUID, does. And the resolved path must stay inside the work folder, whatever
         # the name and the id were
-        if ($policyId -notmatch '^[\w-]+$') {
+        # \A and \z, not ^ and $: $ also matches before a final line feed, which would let one through
+        if ($policyId -notmatch '\A[\w-]+\z') {
             $recordSplat = @{
                 Message = "$PolicyKind '$policyName' has an id that cannot name a folder; it was not written"
                 ErrorId = 'PolicyIdInvalid'
@@ -153,7 +154,13 @@ function Test-IslPolicyScript {
         $workRoot = [System.IO.Path]::GetFullPath($WorkFolder).TrimEnd($separators) +
         [System.IO.Path]::DirectorySeparatorChar
         $fullFile = [System.IO.Path]::GetFullPath($file)
-        if (-not $fullFile.StartsWith($workRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        # Windows compares paths without regard to case; a file system with '/' does not
+        $comparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+            [System.StringComparison]::OrdinalIgnoreCase
+        } else {
+            [System.StringComparison]::Ordinal
+        }
+        if (-not $fullFile.StartsWith($workRoot, $comparison)) {
             $recordSplat = @{
                 Message = "$PolicyKind '$policyName' would be written outside the work folder; it was not written"
                 ErrorId = 'PolicyPathOutsideWorkFolder'

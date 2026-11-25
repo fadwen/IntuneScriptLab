@@ -847,7 +847,8 @@ $Error[0].FullyQualifiedErrorId
 | `SettingsInvalid` | A settings file or `-Settings` table holds a value the module does not accept | Correct the entry the message names |
 | `GraphModuleNotLoaded` | A tenant command ran without Microsoft.Graph.Authentication | `Install-PSResource Microsoft.Graph.Authentication`, then `Connect-MgGraph` with the scopes the message lists |
 | `ExportJobFailed`, `ExportJobTimedOut`, `ExportHasNoCsv` | The report export for the app install counts did not complete or held no data | Run again, or use `-SkipRunState` to leave the device counts out |
-| `PolicyIdInvalid`, `PolicyPathOutsideWorkFolder` | `Test-IntuneDeployedScript` would write a policy's script under an id that is not a Graph id, or outside its work folder | The command ends with that error, which names the policy; check what the tenant returned for it |
+| `PolicyIdInvalid`, `PolicyPathOutsideWorkFolder` | `Test-IntuneDeployedScript` would write a policy's script under an id that holds anything but letters, digits, `-` and `_`, or outside its work folder | The command ends with that error, which names the policy; check what the tenant returned for it |
+| `InputTooLong` | A `-Name`, `-Id`, `-IncludeRule` or `-ExcludeRule` value is longer than 1,000 characters | Shorten it; no name or id the module reads is that long |
 | `LocalPathNotFolder` | `Compare-IntuneDeployedScript -Path` names a file | Pass the folder that holds the local scripts |
 | `IslFilterRuleInvalid` | The service would refuse the assignment filter rule | Correct the rule as the message says; the other rules are still judged |
 | `DeviceFactsNeedWindows` | `Test-IntuneAssignmentFilter` was asked for this device's facts off Windows | Pass the facts with `-Device` |
