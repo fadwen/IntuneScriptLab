@@ -40,10 +40,11 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 ## The checks
 
 ```powershell
+./Build/Invoke-Build.ps1                                # everything below that a pull request needs, in order
 ./Tests/Invoke-Tests.ps1                                # a few minutes, shuffled; suites needing elevation,
                                                         # a lab account or PSScriptAnalyzer skip themselves
-Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
-./Build/Build-Help.ps1                                  # after editing docs/
+./Build/Invoke-Analysis.ps1                             # PSScriptAnalyzer, as CI runs it
+./Build/Build-Help.ps1 -SkipUpdate                      # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule
 ./Build/Test-MarkdownLink.ps1                           # after editing Markdown
 ./Build/Publish-Module.ps1 -WhatIf                      # the full release rehearsal
@@ -51,11 +52,11 @@ Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1
 
 `PSScriptAnalyzerSettings.psd1` holds the layout rules CI checks, the 115-character line among
 them; `Invoke-Formatter -ScriptDefinition $text -Settings ./PSScriptAnalyzerSettings.psd1` lays a
-file out that way. The recursive analysis also reports `Validation/Probe.ps1`,
-`Validation/Win32Install.ps1` and `Validation/Fixtures.ps1`: they keep the layout they ran with
-in the experiments, and CI checks them with the default rules only.
+file out that way. `Invoke-Analysis.ps1` checks `Validation/Probe.ps1`,
+`Validation/Win32Install.ps1` and `Validation/Fixtures.ps1` with the default rules only: they keep
+the layout they ran with in the experiments.
 
-Run the unit suites under Windows PowerShell 5.1 as well:
+`Invoke-Build.ps1` also runs the unit suites under Windows PowerShell 5.1. To run them by hand:
 
 ```powershell
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit

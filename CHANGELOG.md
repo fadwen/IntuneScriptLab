@@ -42,6 +42,10 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- `Build/Invoke-Build.ps1` is the one local build: it rebuilds the help and `docs/Rules.md`,
+  checks the Markdown links, runs PSScriptAnalyzer through `Build/Invoke-Analysis.ps1`, which the
+  tests job now runs too, and runs the unit suites in PowerShell 7 and Windows PowerShell 5.1
+  (#138).
 - CI checks the anchors and relative links of the README and the other Markdown with
   `Build/Test-MarkdownLink.ps1`, in the `help` job on Linux, where a link that differs from its
   file in case fails as it does on GitHub (#137).
