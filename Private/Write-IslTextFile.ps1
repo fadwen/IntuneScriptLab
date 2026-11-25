@@ -6,8 +6,9 @@ function Write-IslTextFile {
     .DESCRIPTION
     One section of the diagnostic package of Export-IntuneAgentDiagnostic, such as the device
     facts or one registry key. The folders on the way to the file are created, and a file that is
-    there is replaced. The command that calls this has asked ShouldProcess for the whole package,
-    and calls it with -WhatIf:$false and -Confirm:$false.
+    there is replaced. It does not ask ShouldProcess: the command that calls it has asked for the
+    whole package, and it writes even when -WhatIf or -Confirm reached it through the preferences.
+    A failure ends the function with its error.
 
     .PARAMETER Root
     The folder the relative path starts from.
@@ -19,7 +20,7 @@ function Write-IslTextFile {
     The lines of the file. An empty list, or none, writes an empty file.
 
     .EXAMPLE
-    Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system @script:IslInternal
+    Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system
 
     Writes the device facts into the staging folder of a package.
 
@@ -29,7 +30,7 @@ function Write-IslTextFile {
     .OUTPUTS
     None.
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding()]
     [OutputType([void])]
     param(
         [Parameter(Mandatory)]
@@ -46,13 +47,14 @@ function Write-IslTextFile {
     )
 
     $file = Join-Path -Path $Root -ChildPath $RelativePath
-    if (-not $PSCmdlet.ShouldProcess($file, 'Write the file')) {
-        return
-    }
-    $folder = Split-Path -Path $file -Parent
-    $null = New-Item -ItemType Directory -Path $folder -Force @script:IslInternal
     # Assigned, not taken from an if expression, which would unroll an empty array to nothing
     [string[]]$text = @()
     if ($null -ne $Line) { $text = $Line }
-    [System.IO.File]::WriteAllLines($file, $text, [System.Text.UTF8Encoding]::new($false))
+    try {
+        $folder = Split-Path -Path $file -Parent
+        $null = New-Item -ItemType Directory -Path $folder -Force -ErrorAction Stop @script:IslInternal
+        [System.IO.File]::WriteAllLines($file, $text, [System.Text.UTF8Encoding]::new($false))
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
 }

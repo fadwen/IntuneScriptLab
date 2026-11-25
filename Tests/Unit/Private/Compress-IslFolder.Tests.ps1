@@ -25,7 +25,7 @@ Describe 'Compress-IslFolder' -Tag 'Unit', 'Private' {
     It 'writes one entry for each file, named with forward slashes, and returns the count' {
         $zip = Join-Path $TestDrive 'package.zip'
         $count = InModuleScope IntuneScriptLab -Parameters @{ Folder = $script:Folder; Zip = $zip } {
-            Compress-IslFolder -Folder $Folder -Destination $Zip @script:IslInternal
+            Compress-IslFolder -Folder $Folder -Destination $Zip
         }
 
         $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
@@ -41,12 +41,26 @@ Describe 'Compress-IslFolder' -Tag 'Unit', 'Private' {
         $names[2] | Should-Be 'Registry/Deep/Key.txt'
     }
 
-    It 'writes no archive under -WhatIf' {
+    It 'writes the archive when -WhatIf reached it through the preference, as the command has asked' {
         $zip = Join-Path $TestDrive 'preview.zip'
-        InModuleScope IntuneScriptLab -Parameters @{ Folder = $script:Folder; Zip = $zip } {
-            Compress-IslFolder -Folder $Folder -Destination $Zip -WhatIf
+        $count = InModuleScope IntuneScriptLab -Parameters @{ Folder = $script:Folder; Zip = $zip } {
+            $WhatIfPreference = $true
+            Compress-IslFolder -Folder $Folder -Destination $Zip
         }
 
-        Test-Path -LiteralPath $zip | Should-BeFalse
+        $count | Should-Be 3
+        Test-Path -LiteralPath $zip | Should-BeTrue
+    }
+
+    It 'ends with an error when the archive is there already, and leaves it as it was' {
+        $zip = Join-Path $TestDrive 'taken.zip'
+        [System.IO.File]::WriteAllText($zip, 'not a zip')
+
+        {
+            InModuleScope IntuneScriptLab -Parameters @{ Folder = $script:Folder; Zip = $zip } {
+                Compress-IslFolder -Folder $Folder -Destination $Zip
+            }
+        } | Should-Throw -ExceptionMessage '*taken.zip*'
+        [System.IO.File]::ReadAllText($zip) | Should-Be 'not a zip'
     }
 }
