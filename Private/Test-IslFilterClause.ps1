@@ -20,7 +20,10 @@ function Test-IslFilterClause {
     The clause, an IntuneScriptLab.FilterClause with Property, Operator, Value and Kind.
 
     .PARAMETER Facts
-    The device's facts, by property name, compared without regard to letter case.
+    The device's facts, by property name. The lookup ignores letter case only when the caller
+    builds the dictionary with [System.StringComparer]::OrdinalIgnoreCase, as
+    Test-IntuneAssignmentFilter does; with the default comparer, a property written in another
+    case is not found and compares as an empty text.
 
     .EXAMPLE
     Test-IslFilterClause -Clause $parsed.Clauses[0] -Facts $facts
