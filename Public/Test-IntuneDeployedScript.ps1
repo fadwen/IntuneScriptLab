@@ -29,8 +29,9 @@ function Test-IntuneDeployedScript {
         $Settings
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
-    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
+    # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts
     $wanted = @{ Name = $Name; Id = $Id; NameGiven = $PSBoundParameters.ContainsKey('Name') }
+    # Captured here: inside the nested functions $PSBoundParameters is their own, not this command's
     $settingsGiven = $PSBoundParameters.ContainsKey('Settings')
 
     $severityRank = @{ Information = 0; Warning = 1; Error = 2 }
