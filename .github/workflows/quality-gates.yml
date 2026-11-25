@@ -71,7 +71,6 @@ on:
 permissions:
   contents: read
 
-
 jobs:
   tests:
     name: 'Tests and analysis'

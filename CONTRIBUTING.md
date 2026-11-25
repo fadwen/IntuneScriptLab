@@ -42,11 +42,17 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 ```powershell
 ./Tests/Invoke-Tests.ps1                                # a few minutes, shuffled; suites needing elevation,
                                                         # a lab account or PSScriptAnalyzer skip themselves
-Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning -ExcludeRule PSAvoidLongLines
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
 ./Build/Build-Help.ps1                                  # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule
 ./Build/Publish-Module.ps1 -WhatIf                      # the full release rehearsal
 ```
+
+`PSScriptAnalyzerSettings.psd1` holds the layout rules CI checks, the 115-character line among
+them; `Invoke-Formatter -ScriptDefinition $text -Settings ./PSScriptAnalyzerSettings.psd1` lays a
+file out that way. The recursive analysis also reports `Validation/Probe.ps1`,
+`Validation/Win32Install.ps1` and `Validation/Fixtures.ps1`: they keep the layout they ran with
+in the experiments, and CI checks them with the default rules only.
 
 Run the unit suites under Windows PowerShell 5.1 as well:
 
