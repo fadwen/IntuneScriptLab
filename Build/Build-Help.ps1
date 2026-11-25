@@ -193,29 +193,40 @@ $commandPages = @(Measure-PlatyPSMarkdown -Path $markdownPattern |
 $documentedCommands = @($commandPages |
         ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.FilePath) })
 $exportedCommands = @($module.ExportedFunctions.Keys)
+# Each problem names its own remedy: the build writes a page for a new command and folds a changed
+# signature into its page, but it deletes no page
 $drift = [System.Collections.Generic.List[string]]::new()
+$rebuild = 'run .\Build\Build-Help.ps1 and commit the result'
 foreach ($name in $exportedCommands | Where-Object { $_ -notin $documentedCommands } | Sort-Object) {
-    $drift.Add("$name is exported and has no help Markdown")
+    $drift.Add("$name is exported and has no help Markdown: $rebuild")
 }
 foreach ($name in $documentedCommands | Where-Object { $_ -notin $exportedCommands } | Sort-Object) {
-    $drift.Add("$name has help Markdown and is not exported")
+    $drift.Add("$name has help Markdown and is not exported: delete docs\IntuneScriptLab\$name.md")
 }
-$commonParameters = @([System.Management.Automation.PSCmdlet]::CommonParameters) +
-    @([System.Management.Automation.PSCmdlet]::OptionalCommonParameters)
+# WhatIf and Confirm are compared too: PlatyPS documents them, and whether a command declares
+# SupportsShouldProcess is part of its contract
+$commonParameters = @([System.Management.Automation.PSCmdlet]::CommonParameters)
 foreach ($page in $commandPages) {
     $name = [System.IO.Path]::GetFileNameWithoutExtension($page.FilePath)
-    if ($name -notin $exportedCommands) { continue }
+    if ($name -notin $exportedCommands) {
+        continue
+    }
+
     $help = Import-MarkdownCommandHelp -Path $page.FilePath
     $documented = @($help.Parameters | ForEach-Object { $_.Name } | Where-Object { $_ -notin $commonParameters })
     $actual = @((Get-Command -Name $name -Module IntuneScriptLab).Parameters.Keys |
             Where-Object { $_ -notin $commonParameters })
     $undocumented = @($actual | Where-Object { $_ -notin $documented } | Sort-Object)
     $stale = @($documented | Where-Object { $_ -notin $actual } | Sort-Object)
-    if ($undocumented.Count -gt 0) { $drift.Add("$name does not document -$($undocumented -join ', -')") }
-    if ($stale.Count -gt 0) { $drift.Add("$name documents -$($stale -join ', -'), which it no longer has") }
+    if ($undocumented.Count -gt 0) {
+        $drift.Add("$name does not document -$($undocumented -join ', -'): $rebuild")
+    }
+    if ($stale.Count -gt 0) {
+        $drift.Add("$name documents -$($stale -join ', -'), which it no longer has: $rebuild")
+    }
 }
 if ($drift.Count -gt 0) {
-    throw "Help Markdown is out of date. Run .\Build\Build-Help.ps1 and commit the result: $($drift -join '; ')"
+    throw "Help Markdown is out of date. $($drift -join '; ')."
 }
 
 $markdownCount = @(Get-ChildItem -LiteralPath $docs -Filter '*.md').Count
@@ -262,7 +273,12 @@ try {
         }
     }
     $shippedStream.Write($builtBytes, $copyFrom, $builtBytes.Length - $copyFrom)
-    [System.IO.File]::WriteAllBytes($shipped, $shippedStream.ToArray())
+    # Export-MamlCommandHelp 1.0.3 writes a paragraph that holds only U+0080 after the code of
+    # every example, fenced or not, and Get-Help prints that character. The paragraph is dropped.
+    # A UTF-8 decode and encode gives back the same bytes, the byte order mark included.
+    $shippedText = [System.Text.Encoding]::UTF8.GetString($shippedStream.ToArray())
+    $shippedText = [regex]::Replace($shippedText, '\n[ \t]*<maml:para>&#x80;</maml:para>(?=\n)', '')
+    [System.IO.File]::WriteAllBytes($shipped, [System.Text.Encoding]::UTF8.GetBytes($shippedText))
 } finally {
     $shippedStream.Dispose()
 }

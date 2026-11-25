@@ -158,9 +158,9 @@ function Measure-IslPowerShell7Syntax {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslPowerShell7Syntax. Its rule,
-        Find-IslPowerShell7Syntax: flags syntax, cmdlets, parameters and values that only PowerShell 7
-        has. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslPowerShell7Syntax, flags syntax, cmdlets, parameters and values that only PowerShell
+        7 has. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of
+        this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -194,9 +194,9 @@ function Measure-IslEncodingIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslEncodingIssue. Its rule,
-        Find-IslEncodingIssue: flags files Windows PowerShell 5.1 decodes as something other than UTF-8.
-        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
-        records; only the root script block gives records.
+        Find-IslEncodingIssue, flags files Windows PowerShell 5.1 decodes as something other than
+        UTF-8. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of
+        this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -230,9 +230,9 @@ function Measure-IslInteractiveCall {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslInteractiveCall. Its rule,
-        Find-IslInteractiveCall: flags anything that waits for a person. Get-IslRuleRecord analyzes each
-        file once and turns its findings of this rule into diagnostic records; only the root script
-        block gives records.
+        Find-IslInteractiveCall, flags anything that waits for a person. Get-IslAnalysis analyzes
+        each file once, and Get-IslRuleRecord turns its findings of this rule into diagnostic
+        records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -266,9 +266,9 @@ function Measure-IslExitCodeIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslExitCodeIssue. Its rule,
-        Find-IslExitCodeIssue: flags exit-code mistakes in detection and remediation scripts.
-        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
-        records; only the root script block gives records.
+        Find-IslExitCodeIssue, flags exit-code mistakes in detection and remediation scripts.
+        Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of this
+        rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -302,9 +302,9 @@ function Measure-IslOutputIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslOutputIssue. Its rule,
-        Find-IslOutputIssue: flags output that Intune will drop, truncate or misread. Get-IslRuleRecord
-        analyzes each file once and turns its findings of this rule into diagnostic records; only the
-        root script block gives records.
+        Find-IslOutputIssue, flags output that Intune will drop, truncate or misread.
+        Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of this
+        rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -338,9 +338,9 @@ function Measure-IslContextIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslContextIssue. Its rule,
-        Find-IslContextIssue: flags per-user places in SYSTEM scripts and privileged writes in user
-        scripts. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslContextIssue, flags per-user places in SYSTEM scripts and privileged writes in user
+        scripts. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings
+        of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -374,9 +374,9 @@ function Measure-IslArchitectureIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslArchitectureIssue. Its rule,
-        Find-IslArchitectureIssue: flags paths that WOW64 redirects when the script runs in the 32-bit
-        host. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslArchitectureIssue, flags paths that WOW64 redirects when the script runs in the
+        32-bit host. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its
+        findings of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -410,9 +410,9 @@ function Measure-IslArm64Assumption {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslArm64Assumption. Its rule,
-        Find-IslArm64Assumption: flags code that equates "64-bit" with x64, which breaks on Windows on
-        ARM. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslArm64Assumption, flags code that equates "64-bit" with x64, which breaks on Windows
+        on ARM. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of
+        this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -446,9 +446,9 @@ function Measure-IslRebootCommand {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslRebootCommand. Its rule,
-        Find-IslRebootCommand: flags restarts and shutdowns issued from inside a script.
-        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
-        records; only the root script block gives records.
+        Find-IslRebootCommand, flags restarts and shutdowns issued from inside a script.
+        Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of this
+        rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -482,9 +482,9 @@ function Measure-IslRelativePath {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslRelativePath. Its rule,
-        Find-IslRelativePath: flags paths that depend on the working directory. Get-IslRuleRecord
-        analyzes each file once and turns its findings of this rule into diagnostic records; only the
-        root script block gives records.
+        Find-IslRelativePath, flags paths that depend on the working directory. Get-IslAnalysis
+        analyzes each file once, and Get-IslRuleRecord turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -517,10 +517,10 @@ function Measure-IslLongSleep {
         Reports the IslLongSleep findings as PSScriptAnalyzer records.
 
     .DESCRIPTION
-        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslLongSleep. Its rule, Find-IslLongSleep:
-        flags waits that hit the agent's timeout or hold up other remediations. Get-IslRuleRecord
-        analyzes each file once and turns its findings of this rule into diagnostic records; only the
-        root script block gives records.
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslLongSleep. Its rule,
+        Find-IslLongSleep, flags waits that hit the agent's timeout or hold up other remediations.
+        Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings of this
+        rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -554,9 +554,9 @@ function Measure-IslSignatureIssue {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslSignatureIssue. Its rule,
-        Find-IslSignatureIssue: flags a Win32 detection script the agent refuses to run under a
-        signature check. Get-IslRuleRecord analyzes each file once and turns its findings of this rule
-        into diagnostic records; only the root script block gives records.
+        Find-IslSignatureIssue, flags a Win32 detection script the agent refuses to run under a
+        signature check. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its
+        findings of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -591,8 +591,8 @@ function Measure-IslAssumedContext {
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslAssumedContext. The rule is the note
         Test-IntuneScript adds when it inferred the script type, context or architecture instead of
-        being told them. Get-IslRuleRecord analyzes each file once and turns its findings of this rule
-        into diagnostic records; only the root script block gives records.
+        being told them. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its
+        findings of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -618,6 +618,7 @@ function Measure-IslAssumedContext {
     )
     Get-IslRuleRecord -Rule 'IslAssumedContext' -ScriptBlockAst $ScriptBlockAst
 }
+
 function Measure-IslExecutionPolicyCall {
     <#
     .SYNOPSIS
@@ -625,9 +626,9 @@ function Measure-IslExecutionPolicyCall {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslExecutionPolicyCall. Its rule,
-        Find-IslExecutionPolicyCall: flags Set-ExecutionPolicy, which the agent's launch makes redundant
-        or harmful. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslExecutionPolicyCall, flags Set-ExecutionPolicy, which the agent's launch makes
+        redundant or harmful. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns
+        its findings of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -661,9 +662,9 @@ function Measure-IslModuleDependency {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslModuleDependency. Its rule,
-        Find-IslModuleDependency: flags modules a script needs that the agent's SYSTEM session will not
-        have. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslModuleDependency, flags modules a script needs that the agent's SYSTEM session will
+        not have. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings
+        of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.
@@ -697,9 +698,9 @@ function Measure-IslScriptSize {
 
     .DESCRIPTION
         A PSScriptAnalyzer custom rule for IntuneScriptLab's IslScriptSize. Its rule,
-        Find-IslScriptSize: flags scripts over the documented 200 KB and over the size the service
-        refuses. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
-        diagnostic records; only the root script block gives records.
+        Find-IslScriptSize, flags scripts over the documented 200 KB and over the size the service
+        refuses. Get-IslAnalysis analyzes each file once, and Get-IslRuleRecord turns its findings
+        of this rule into diagnostic records; only the root script block gives records.
 
     .PARAMETER ScriptBlockAst
         The script block PSScriptAnalyzer passes, once for each block of a file.

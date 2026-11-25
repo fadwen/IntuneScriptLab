@@ -5,9 +5,8 @@ function Get-IslStringLiteral {
 
     .DESCRIPTION
         For the analyzer's rules that read what a script writes in its strings, such as paths,
-        registry keys and text outside ASCII. Each
-        literal is a StringConstantExpressionAst or an ExpandableStringExpressionAst, with its
-        extent, in document order.
+        registry keys and text outside ASCII. Each literal is a StringConstantExpressionAst or
+        an ExpandableStringExpressionAst, with its extent, in document order.
 
     .PARAMETER Ast
         The syntax tree, or the part of it, to search.

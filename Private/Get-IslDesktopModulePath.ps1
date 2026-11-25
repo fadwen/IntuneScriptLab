@@ -1,7 +1,7 @@
 function Get-IslDesktopModulePath {
     <#
     .SYNOPSIS
-        Gets the PSModulePath a child process gets: this one's, without PowerShell 7's.
+        Gets the PSModulePath for a 5.1 child: this session's, minus PowerShell 7's.
 
     .DESCRIPTION
         A process started from PowerShell 7 inherits its PSModulePath, which lists PowerShell 7's
