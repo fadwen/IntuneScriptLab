@@ -19,7 +19,34 @@ BeforeAll {
     $script:Cmd = Join-Path $env:WINDIR 'System32\cmd.exe'
 
     function Invoke-Process {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs a process with the module's private Invoke-IslProcess.
+
+        .DESCRIPTION
+            Calls Invoke-IslProcess inside the module, where the private function is visible,
+            with the given parameters splatted onto it.
+
+        .PARAMETER Parameters
+            The parameters of Invoke-IslProcess, such as FilePath, Arguments and Context.
+
+        .EXAMPLE
+            Invoke-Process $script:LaunchSplat
+
+            Starts the process that the splat describes and returns its result.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.ProcessResult. The result of the process.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.ProcessResult')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters } { Invoke-IslProcess @Parameters }
     }
 }

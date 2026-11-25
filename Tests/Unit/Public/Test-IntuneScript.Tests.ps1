@@ -311,7 +311,34 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
             )
 
             function script:Invoke-GateExample {
-                param([string]$Folder)
+                <#
+                .SYNOPSIS
+                    Runs the gate example of the help as a script in a new process from a folder.
+
+                .DESCRIPTION
+                    Puts a Set-Location to the folder before the statements in $script:GateExample
+                    and runs them with Invoke-CallerScript, as a script without a try runs them.
+
+                .PARAMETER Folder
+                    The folder the script runs in, which holds the Remediations folder.
+
+                .EXAMPLE
+                    Invoke-GateExample -Folder $folder
+
+                    Runs the example against the scripts below $folder and returns what the script did.
+
+                .INPUTS
+                    None.
+
+                .OUTPUTS
+                    IntuneScriptLab.Test.CallerScriptResult. Output, ErrorId, ReachedEnd and ExitCode.
+                #>
+                [CmdletBinding()]
+                [OutputType('IntuneScriptLab.Test.CallerScriptResult')]
+                param(
+                    [string]$Folder
+                )
+
                 Invoke-CallerScript -Statement (@("Set-Location -LiteralPath '$Folder'") + $script:GateExample)
             }
         }

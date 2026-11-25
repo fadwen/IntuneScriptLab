@@ -18,18 +18,128 @@ BeforeAll {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
     function script:New-CmTraceLine {
-        param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
-            [string]$Component = 'HealthScripts', [int]$Thread = 4)
+        <#
+        .SYNOPSIS
+            Creates one line of a log in the CMTrace format that the agent writes.
+
+        .DESCRIPTION
+            Gives the line as text, so that a test can write a fake agent log with the entries it
+            needs. Values that are left out are those of a type 1 HealthScripts entry.
+
+        .PARAMETER Message
+            The message of the entry.
+
+        .PARAMETER Time
+            The time of the entry, such as '08:45:14.0000000'.
+
+        .PARAMETER Date
+            The date of the entry, month first.
+
+        .PARAMETER Type
+            The type of the entry, as the number that the line carries.
+
+        .PARAMETER Component
+            The component that wrote the entry.
+
+        .PARAMETER Thread
+            The thread that wrote the entry.
+
+        .EXAMPLE
+            New-CmTraceLine -Time '08:45:27.0000000' -Message 'noise'
+
+            Creates a HealthScripts line of type 1 with the message noise.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The line, without a line ending.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Message,
+
+            [string]$Time,
+
+            [string]$Date = '9-25-2026',
+
+            [int]$Type = 1,
+
+            [string]$Component = 'HealthScripts',
+
+            [int]$Thread = 4
+        )
+
         "<![LOG[$Message]LOG]!><time=`"$Time`" date=`"$Date`" component=`"$Component`" context=`"`" " +
         "type=`"$Type`" thread=`"$Thread`" file=`"`">"
     }
     function script:Get-ZipEntry {
-        param([string]$Zip)
+        <#
+        .SYNOPSIS
+            Gets the full name of every entry in a zip file.
+
+        .DESCRIPTION
+            Opens the zip for reading and closes it again before returning, so that the package
+            the command wrote can be checked and then removed or overwritten.
+
+        .PARAMETER Zip
+            The path of the zip file.
+
+        .EXAMPLE
+            Get-ZipEntry -Zip $script:Result.Path
+
+            Returns the names of the entries, such as Logs/HealthScripts.log.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full name of each entry.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Zip
+        )
+
         $archive = [System.IO.Compression.ZipFile]::OpenRead($Zip)
         try { @($archive.Entries | ForEach-Object { $_.FullName }) } finally { $archive.Dispose() }
     }
     function script:Read-ZipEntry {
-        param([string]$Zip, [string]$Name)
+        <#
+        .SYNOPSIS
+            Reads the text of one entry of a zip file.
+
+        .DESCRIPTION
+            Opens the zip for reading, reads the whole entry of that name as text, and closes both
+            the entry and the zip before returning.
+
+        .PARAMETER Zip
+            The path of the zip file.
+
+        .PARAMETER Name
+            The full name of the entry, with forward slashes, such as 'Manifest.txt'.
+
+        .EXAMPLE
+            Read-ZipEntry -Zip $script:Result.Path -Name 'Manifest.txt'
+
+            Returns the text of the manifest of the package.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The text of the entry.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Zip,
+
+            [string]$Name
+        )
+
         $archive = [System.IO.Compression.ZipFile]::OpenRead($Zip)
         try {
             $entry = $archive.Entries | Where-Object FullName -eq $Name

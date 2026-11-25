@@ -14,7 +14,34 @@ BeforeAll {
     }
 
     function script:ConvertTo-Related {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs ConvertTo-IslWin32RelatedResult with the given parameters.
+
+        .DESCRIPTION
+            Calls the private function inside the module, where a test cannot call it directly, and
+            returns the result it builds.
+
+        .PARAMETER Parameters
+            The parameters of ConvertTo-IslWin32RelatedResult, by name.
+
+        .EXAMPLE
+            ConvertTo-Related @{ Name = 'Old'; Relationship = 'supersedence (update)'; Status = 'x'; Pre = $pre }
+
+            Builds the result of a superseded app from its detection before the install.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Win32RelatedResult. What ConvertTo-IslWin32RelatedResult returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Win32RelatedResult')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters } {
             ConvertTo-IslWin32RelatedResult @Parameters
         }

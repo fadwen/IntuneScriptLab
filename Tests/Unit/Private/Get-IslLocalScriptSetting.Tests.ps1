@@ -15,7 +15,39 @@ BeforeAll {
     }
 
     function script:Write-Script {
-        param([string]$Folder, [string]$Text)
+        <#
+        .SYNOPSIS
+            Writes detect.ps1 into a folder and returns its path.
+
+        .DESCRIPTION
+            Creates the folder if it is not there and writes the text to detect.ps1 in it, as UTF-8
+            without a byte order mark, so that a case can give the file the directive it tests.
+
+        .PARAMETER Folder
+            The folder of the script.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            Write-Script -Folder (Join-Path $TestDrive 'none') -Text 'exit 0'
+
+            Writes a script without a directive and returns its path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The path of detect.ps1.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Folder,
+
+            [string]$Text
+        )
+
         $null = New-Item -ItemType Directory -Path $Folder -Force
         $file = Join-Path $Folder 'detect.ps1'
         [System.IO.File]::WriteAllText($file, $Text)
@@ -23,7 +55,40 @@ BeforeAll {
     }
 
     function script:Get-Setting {
-        param([string]$File, [hashtable]$Extra = @{})
+        <#
+        .SYNOPSIS
+            Gets the run settings of a script from Get-IslLocalScriptSetting.
+
+        .DESCRIPTION
+            Runs the module's private Get-IslLocalScriptSetting inside the module on the file, with
+            an empty cache and the parameters the case adds.
+
+        .PARAMETER File
+            The path of the script.
+
+        .PARAMETER Extra
+            Parameters of Get-IslLocalScriptSetting that the case adds, such as
+            @{ Settings = @{ Context = 'System' } }.
+
+        .EXAMPLE
+            Get-Setting -File $file
+
+            Returns the settings that the script's directive states.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The settings by name.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string]$File,
+
+            [hashtable]$Extra = @{}
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ File = $File; Extra = $Extra } {
             Get-IslLocalScriptSetting -File $File -Cache @{} @Extra
         }

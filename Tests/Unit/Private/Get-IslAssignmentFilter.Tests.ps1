@@ -14,7 +14,39 @@ BeforeAll {
     }
 
     function script:Get-Filter {
-        param([string]$FilterId, [hashtable]$State)
+        <#
+        .SYNOPSIS
+            Gets an assignment filter with the module's private Get-IslAssignmentFilter.
+
+        .DESCRIPTION
+            Runs Get-IslAssignmentFilter inside the module, where the private function is visible,
+            and returns what it gave as an array. Its warnings reach the caller's warning stream.
+
+        .PARAMETER FilterId
+            The id of the filter to read.
+
+        .PARAMETER State
+            The state of the run, with the Cache of filters read and Blocked, shared across calls.
+
+        .EXAMPLE
+            Get-Filter -FilterId 'f1' -State @{ Cache = @{}; Blocked = $false }
+
+            Returns the filter f1 as the mocked Graph seam gives it.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The filter as Graph returned it, or nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [string]$FilterId,
+
+            [hashtable]$State
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ FilterId = $FilterId; State = $State } {
             @(Get-IslAssignmentFilter -FilterId $FilterId -State $State)
         }

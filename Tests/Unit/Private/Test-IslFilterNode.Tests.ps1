@@ -13,9 +13,36 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
 
-    # The verdict of a whole rule, and the Matched value of each of its clauses
     function script:Test-Tree {
-        param([string]$Rule)
+        <#
+        .SYNOPSIS
+            Tests a filter rule against fixed device facts and returns each clause's result.
+
+        .DESCRIPTION
+            Parses the rule inside the module and runs Test-IslFilterNode on its tree against a
+            device named LAB-PC-01 from Microsoft Corporation. Returns the verdict of the whole
+            rule and the Matched value that each clause recorded, in the order of the clauses.
+
+        .PARAMETER Rule
+            The text of the filter rule.
+
+        .EXAMPLE
+            Test-Tree -Rule '(device.deviceName -eq "LAB-PC-01")'
+
+            Returns a verdict of True with one clause that matched.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.FilterTreeResult. Matched and Clauses.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.FilterTreeResult')]
+        param(
+            [string]$Rule
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule } {
             $facts = [System.Collections.Generic.Dictionary[string, object]]::new(
                 [System.StringComparer]::OrdinalIgnoreCase)
@@ -23,7 +50,11 @@ BeforeAll {
             $facts['manufacturer'] = 'Microsoft Corporation'
             $parsed = ConvertFrom-IslFilterRule -Rule $Rule
             $matched = Test-IslFilterNode -Node $parsed.Tree -Facts $facts
-            [pscustomobject]@{ Matched = $matched; Clauses = @($parsed.Clauses | ForEach-Object { $_.Matched }) }
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.FilterTreeResult'
+                Matched = $matched
+                Clauses = @($parsed.Clauses | ForEach-Object { $_.Matched })
+            }
         }
     }
 }

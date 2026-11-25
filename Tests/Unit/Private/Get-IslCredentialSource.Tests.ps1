@@ -15,12 +15,66 @@ BeforeAll {
 
     # The syntax tree of a script given as text
     function script:ConvertTo-Ast {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts script text to its syntax tree.
+
+        .DESCRIPTION
+            Parses the text with the PowerShell parser and returns the tree. Parse errors are not
+            reported, because the cases only need the nodes the text holds.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            ConvertTo-Ast '$x = 1'
+
+            Returns the syntax tree of the assignment.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.ScriptBlockAst. The tree of the whole text.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.ScriptBlockAst])]
+        param(
+            [string]$Text
+        )
+
         [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
     }
 
     function script:Get-Source {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Gets how an expression builds a credential, from Get-IslCredentialSource.
+
+        .DESCRIPTION
+            Parses the expression as the right side of an assignment and runs the module's private
+            Get-IslCredentialSource on that side, inside the module, returning its result as an array.
+
+        .PARAMETER Text
+            The expression, such as '[pscredential]::new($user, $secure)'.
+
+        .EXAMPLE
+            Get-Source -Text 'New-Object PSCredential $user, $secure'
+
+            Returns 'New-Object PSCredential'.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. How the expression builds the credential, or nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text
+        )
+
         $assignment = (ConvertTo-Ast "`$x = $Text").Find({
                 param($node) $node -is [System.Management.Automation.Language.AssignmentStatementAst]
             }, $true)

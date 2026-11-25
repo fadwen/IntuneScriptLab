@@ -17,6 +17,7 @@ BeforeDiscovery {
     $isAdmin = ([Security.Principal.WindowsPrincipal]$identity).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     $script:Enabled = $isAdmin -and $env:ISL_TEST_CREDENTIAL -and (Test-Path -LiteralPath $env:ISL_TEST_CREDENTIAL)
+    $script:UserContextTags = 'Integration', 'Runtime', 'Elevated', 'UserContext'
 }
 
 BeforeAll {
@@ -34,8 +35,7 @@ BeforeAll {
     }
 }
 
-Describe 'User context as another account' -Tag 'Integration', 'Runtime', 'Elevated', 'UserContext' `
-    -Skip:(-not $script:Enabled) {
+Describe 'User context as another account' -Tag $script:UserContextTags -Skip:(-not $script:Enabled) {
 
     It 'runs the script as the account from system32, in its session when it has one' {
         $path = New-TestScript 'who.ps1' ('"$([Security.Principal.WindowsIdentity]::GetCurrent().Name)|' +

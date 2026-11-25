@@ -16,14 +16,51 @@ BeforeAll {
 
     # The first clause of a rule, its verdict, and the clause afterwards
     function script:Test-Rule {
-        param([string]$Rule, [hashtable]$Device)
+        <#
+        .SYNOPSIS
+            Tests the first clause of a filter rule against a device.
+
+        .DESCRIPTION
+            Inside the module, copies the device facts into a dictionary whose keys ignore letter
+            case, parses the rule with ConvertFrom-IslFilterRule and runs the private
+            Test-IslFilterClause on its first clause. Returns the verdict and the clause, so that a
+            test can see what the evaluation recorded on it.
+
+        .PARAMETER Rule
+            The text of the assignment filter rule.
+
+        .PARAMETER Device
+            The facts of the device, by property name.
+
+        .EXAMPLE
+            Test-Rule -Rule '(device.deviceName -eq "LAB-PC-01")' -Device @{ deviceName = 'LAB-PC-01' }
+
+            Returns the verdict True and the clause that was tested.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.FilterClauseMatch. Matched and Clause.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.FilterClauseMatch')]
+        param(
+            [string]$Rule,
+
+            [hashtable]$Device
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule; Device = $Device } {
             $facts = [System.Collections.Generic.Dictionary[string, object]]::new(
                 [System.StringComparer]::OrdinalIgnoreCase)
             foreach ($key in $Device.Keys) { $facts[$key] = $Device[$key] }
             $clause = @((ConvertFrom-IslFilterRule -Rule $Rule).Clauses)[0]
             $matched = Test-IslFilterClause -Clause $clause -Facts $facts
-            [pscustomobject]@{ Matched = $matched; Clause = $clause }
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.FilterClauseMatch'
+                Matched = $matched; Clause = $clause
+            }
         }
     }
 

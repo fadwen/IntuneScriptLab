@@ -28,7 +28,34 @@ BeforeAll {
     $script:Findings = @(Test-IntuneScript -Path $script:Detect -IncludeSuppressed)
 
     function script:Read-Sarif {
-        param([string]$Path)
+        <#
+        .SYNOPSIS
+            Reads a SARIF log back as objects.
+
+        .DESCRIPTION
+            Reads the whole file and converts it from JSON, so that a test can check the log the
+            export wrote by its members.
+
+        .PARAMETER Path
+            The path of the SARIF file.
+
+        .EXAMPLE
+            Read-Sarif (Join-Path $TestDrive 'out\results.sarif')
+
+            Returns the log with its version, schema and runs.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The log as ConvertFrom-Json returns it.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [string]$Path
+        )
+
         Get-Content $Path -Raw | ConvertFrom-Json
     }
 }

@@ -16,13 +16,102 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
-        param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
-            [string]$Component = 'IntuneManagementExtension', [int]$Thread = 4)
+        <#
+        .SYNOPSIS
+            Builds the text of one log entry in the CMTrace format.
+
+        .DESCRIPTION
+            Returns one line with the message, time, date, component, type and thread in the places
+            the log readers find them, so that the suite writes log files without spelling out the
+            format each time. The defaults are those of an IntuneManagementExtension entry.
+
+        .PARAMETER Message
+            The text of the entry.
+
+        .PARAMETER Time
+            The time field, as the log writes it.
+
+        .PARAMETER Date
+            The date field, month-day-year.
+
+        .PARAMETER Type
+            The type field of the entry, 1 by default.
+
+        .PARAMETER Component
+            The component that wrote the entry, IntuneManagementExtension by default.
+
+        .PARAMETER Thread
+            The thread field of the entry, 4 by default.
+
+        .EXAMPLE
+            New-CmTraceLine -Message 'Sensor heartbeat' -Time '08:00:00.0000000' -Component 'Sensor' -Type 3
+
+            Returns a Sensor entry of type 3 dated 9-25-2026.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The line, without a line ending.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Message,
+
+            [string]$Time,
+
+            [string]$Date = '9-25-2026',
+
+            [int]$Type = 1,
+
+            [string]$Component = 'IntuneManagementExtension',
+
+            [int]$Thread = 4
+        )
+
         "<![LOG[$Message]LOG]!><time=`"$Time`" date=`"$Date`" component=`"$Component`" context=`"`" " +
         "type=`"$Type`" thread=`"$Thread`" file=`"`">"
     }
     function script:Write-TestLog {
-        param([string]$Folder, [string]$Name, [string[]]$Lines)
+        <#
+        .SYNOPSIS
+            Writes the lines of a log file into a folder and returns the file's path.
+
+        .DESCRIPTION
+            Creates the folder when it is missing, ends every line with CRLF, and writes the file as
+            UTF-8 without a byte order mark.
+
+        .PARAMETER Folder
+            The folder that holds the log file.
+
+        .PARAMETER Name
+            The file name of the log.
+
+        .PARAMETER Lines
+            The lines of the log, as New-CmTraceLine returns them.
+
+        .EXAMPLE
+            Write-TestLog $script:Logs 'Sensor.log' @(New-CmTraceLine -Message 'x' -Time '08:00:00.0000000')
+
+            Writes Sensor.log with one entry and returns its path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full path of the log file.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Folder,
+
+            [string]$Name,
+
+            [string[]]$Lines
+        )
+
         $null = New-Item -ItemType Directory -Path $Folder -Force
         $path = Join-Path $Folder $Name
         $content = ($Lines -join "`r`n") + "`r`n"

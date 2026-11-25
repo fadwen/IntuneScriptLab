@@ -14,7 +14,39 @@ BeforeAll {
     }
 
     function script:Get-Entry {
-        param([hashtable]$Map, [hashtable]$Matched)
+        <#
+        .SYNOPSIS
+            Gets the -Map entry for the policy Detect-Printer with id p1.
+
+        .DESCRIPTION
+            Calls the private Get-IslMapEntry inside the module for one fixed policy, so that the
+            tests vary only the map and read back the keys it recorded as matched.
+
+        .PARAMETER Map
+            The -Map of Compare-IntuneDeployedScript, or $null for none.
+
+        .PARAMETER Matched
+            The collection of matched keys that Get-IslMapEntry adds to.
+
+        .EXAMPLE
+            Get-Entry -Map @{ 'Detect-Printer' = 'printer.ps1' } -Matched $matched
+
+            Returns 'printer.ps1' and records the key Detect-Printer in $matched.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The entry, a path or a hashtable of paths by role, or nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [hashtable]$Map,
+
+            [hashtable]$Matched
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Map = $Map; Matched = $Matched } {
             Get-IslMapEntry -Policy @{ id = 'p1'; displayName = 'Detect-Printer' } -Map $Map -Matched $Matched
         }

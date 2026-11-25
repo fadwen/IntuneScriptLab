@@ -77,8 +77,24 @@ Describe 'New-IslErrorRecord' -Tag 'Unit', 'Private' {
                     <#
                     .SYNOPSIS
                         Ends with a record from New-IslErrorRecord, as a module function does.
+
+                    .DESCRIPTION
+                        A failure the module detects itself is raised this way, so the test reads the ID and
+                        the category that a caller sees.
+
+                    .EXAMPLE
+                        Get-ProbeFailure
+
+                        Ends with the ProbeFailed error.
+
+                    .INPUTS
+                        None.
+
+                    .OUTPUTS
+                        None.
                     #>
                     [CmdletBinding()]
+                    [OutputType([void])]
                     param()
                     $recordSplat = @{ Message = 'probe'; ErrorId = 'ProbeFailed'; Category = 'InvalidOperation' }
                     $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))

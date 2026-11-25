@@ -52,6 +52,7 @@ BeforeAll {
         None.
         #>
         [CmdletBinding()]
+        [OutputType([void])]
         param()
     }
 
@@ -88,6 +89,7 @@ BeforeAll {
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
             'PSReviewUnusedParameter', '', Justification = 'A stand-in that is mocked; it has no body.')]
         [CmdletBinding()]
+        [OutputType([void])]
         param(
             [Parameter()]
             [string]$Name,

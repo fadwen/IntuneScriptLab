@@ -15,7 +15,34 @@ BeforeAll {
 
     # Whether the first two tokens of the text are the escaped quote
     function script:Test-Pair {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Tests whether the first two tokens of a filter rule escape a quote.
+
+        .DESCRIPTION
+            Tokenizes the text with the private New-IslFilterParser inside the module and passes
+            its first and second token to Test-IslFilterEscapedQuote.
+
+        .PARAMETER Text
+            The text to tokenize. Its first two tokens are tested.
+
+        .EXAMPLE
+            Test-Pair -Text '"say ""hi"""'
+
+            Returns $true: the doubled quotes split the value into strings glued together.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. The answer of Test-IslFilterEscapedQuote.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } {
             $tokens = (New-IslFilterParser -Rule $Text).Tokens
             Test-IslFilterEscapedQuote -Previous $tokens[0] -Next $tokens[1]

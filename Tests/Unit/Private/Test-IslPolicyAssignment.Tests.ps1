@@ -15,14 +15,85 @@ BeforeAll {
     }
 
     function script:New-Target {
-        param([string]$Type, [string]$GroupId)
+        <#
+        .SYNOPSIS
+            Builds the target of an assignment as a Graph reply holds it.
+
+        .DESCRIPTION
+            Returns a hashtable with the OData type of the target and, when a group id is given,
+            the group it names.
+
+        .PARAMETER Type
+            The type of the target without its #microsoft.graph. prefix, such as
+            groupAssignmentTarget.
+
+        .PARAMETER GroupId
+            The id of the group the target names. Left out, the target has no groupId.
+
+        .EXAMPLE
+            New-Target -Type 'groupAssignmentTarget' -GroupId 'g-devices'
+
+            Returns the target of an assignment to the group g-devices.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. The target.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string]$Type,
+
+            [string]$GroupId
+        )
+
         $target = @{ '@odata.type' = "#microsoft.graph.$Type" }
         if ($GroupId) { $target['groupId'] = $GroupId }
         $target
     }
 
     function script:Get-AssignmentFinding {
-        param([object[]]$Assignments, [string]$RunAsAccount = 'system', [hashtable]$Extra = @{})
+        <#
+        .SYNOPSIS
+            Gets the findings of Test-IslPolicyAssignment for a remediation's assignments.
+
+        .DESCRIPTION
+            Builds a remediation with the given assignments and an empty group cache, and calls the
+            private function inside the module. Extra replaces or adds parameters, so that each
+            test names only what it is about.
+
+        .PARAMETER Assignments
+            The assignments of the policy, each a hashtable with a target.
+
+        .PARAMETER RunAsAccount
+            The account the remediation runs as, system by default.
+
+        .PARAMETER Extra
+            Parameters of Test-IslPolicyAssignment that replace or add to the defaults.
+
+        .EXAMPLE
+            Get-AssignmentFinding -Assignments @(@{ target = $target }) -RunAsAccount 'user'
+
+            Returns the findings for a remediation that runs as the user and has one assignment.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DeploymentFinding. What Test-IslPolicyAssignment returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DeploymentFinding')]
+        param(
+            [object[]]$Assignments,
+
+            [string]$RunAsAccount = 'system',
+
+            [hashtable]$Extra = @{}
+        )
+
         $parameters = @{
             PolicyKind = 'Remediation'
             Policy = @{ id = 'p1'; displayName = 'Detect'; assignments = $Assignments }

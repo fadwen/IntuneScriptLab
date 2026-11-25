@@ -14,7 +14,41 @@ BeforeAll {
     }
 
     function script:Compare-Directive {
-        param([string]$Directive, [hashtable]$Policy)
+        <#
+        .SYNOPSIS
+            Writes a script with a directive and compares it with a policy's settings.
+
+        .DESCRIPTION
+            Writes detect.ps1 into a new folder under TestDrive with the directive in its first line,
+            then runs the module's private Compare-IslScriptSetting on it with the policy's settings
+            and an empty cache, and returns the notes as an array.
+
+        .PARAMETER Directive
+            The text after 'IntuneScriptLab:' in the directive, such as 'Context=User'.
+
+        .PARAMETER Policy
+            The settings of the tenant policy, splatted onto Compare-IslScriptSetting, such as
+            @{ RunAsAccount = 'system' }.
+
+        .EXAMPLE
+            Compare-Directive -Directive 'Context=User' -Policy @{ RunAsAccount = 'system' }
+
+            Returns the note that the script runs as User locally and as System under the policy.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. One note for each setting that differs.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Directive,
+
+            [hashtable]$Policy
+        )
+
         $folder = Join-Path $TestDrive "s-$([guid]::NewGuid().ToString('N'))"
         $null = New-Item -ItemType Directory -Path $folder
         $file = Join-Path $folder 'detect.ps1'

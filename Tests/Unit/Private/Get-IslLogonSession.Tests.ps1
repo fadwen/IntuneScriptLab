@@ -27,11 +27,81 @@ BeforeAll {
         300 = $null   # an owner this session may not read
     }
     function script:New-Shell {
-        param([string]$Name, [int]$SessionId, [int]$ProcessId)
-        [pscustomobject]@{ Name = $Name; SessionId = $SessionId; ProcessId = $ProcessId }
+        <#
+        .SYNOPSIS
+            Builds a fake shell process with a name, a session id and a process id.
+
+        .DESCRIPTION
+            Returns an object with the three members Get-IslLogonSession reads from a process, for
+            the mock of Get-CimInstance to return in place of the machine's processes.
+
+        .PARAMETER Name
+            The name of the process, such as explorer.exe.
+
+        .PARAMETER SessionId
+            The session the process runs in.
+
+        .PARAMETER ProcessId
+            The id of the process, which picks its owner in $script:Owners.
+
+        .EXAMPLE
+            New-Shell 'explorer.exe' 1 100
+
+            Returns an explorer.exe in session 1 with the process id 100.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.ShellProcess. Name, SessionId and ProcessId.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.ShellProcess')]
+        param(
+            [string]$Name,
+
+            [int]$SessionId,
+
+            [int]$ProcessId
+        )
+
+        [pscustomobject]@{
+            PSTypeName = 'IntuneScriptLab.Test.ShellProcess'
+            Name = $Name
+            SessionId = $SessionId
+            ProcessId = $ProcessId
+        }
     }
     function script:Get-Session {
-        param([object[]]$Shells)
+        <#
+        .SYNOPSIS
+            Gets the logon sessions Get-IslLogonSession finds among fake shell processes.
+
+        .DESCRIPTION
+            Mocks Get-CimInstance to return the shells, and Invoke-CimMethod to answer GetOwner and
+            GetOwnerSid from $script:Owners by process id, then lists the sessions inside the module.
+            A process whose owner is not in $script:Owners gets no answer.
+
+        .PARAMETER Shells
+            The shell processes of the fake machine, as New-Shell returns them.
+
+        .EXAMPLE
+            Get-Session @((New-Shell 'sihost.exe' 2 200))
+
+            Returns the session of the account that owns process 200.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.LogonSession. What Get-IslLogonSession returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.LogonSession')]
+        param(
+            [object[]]$Shells
+        )
+
         $script:Shells = $Shells
         Mock Get-CimInstance -ModuleName IntuneScriptLab { $script:Shells }
         # The fake shells are plain objects, not CimInstances, so the parameter's type is lifted

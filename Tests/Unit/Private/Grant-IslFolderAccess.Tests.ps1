@@ -17,7 +17,45 @@ BeforeAll {
     $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 
     function Grant-Access {
-        param([string]$Path, [string]$Account, [string]$Preference = 'Continue')
+        <#
+        .SYNOPSIS
+            Grants an account access to a folder with the module's private function.
+
+        .DESCRIPTION
+            Calls Grant-IslFolderAccess inside the module with the error preference set first, so
+            that a test can show what the function does under the preference a caller's
+            -ErrorAction leaves in force.
+
+        .PARAMETER Path
+            The folder to grant access to.
+
+        .PARAMETER Account
+            The name of the account that is given access.
+
+        .PARAMETER Preference
+            The error action preference in force inside the module, Continue by default.
+
+        .EXAMPLE
+            Grant-Access $script:Folder $script:Me.Name
+
+            Grants the current user access to the test folder.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Void. The function writes nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [string]$Path,
+
+            [string]$Account,
+
+            [string]$Preference = 'Continue'
+        )
+
         $parameters = @{ Path = $Path; Account = $Account; Preference = $Preference }
         InModuleScope IntuneScriptLab -Parameters $parameters {
             # What a caller's -ErrorAction leaves in force inside the module

@@ -70,7 +70,40 @@ BeforeAll {
     $command = "& { $($probe.ToString()) } '$($json.Replace("'", "''"))'"
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
     function script:Get-HostAnswer {
-        param([string]$Exe, [string]$Command)
+        <#
+        .SYNOPSIS
+            Runs an encoded command in a new host and returns the JSON it wrote last.
+
+        .DESCRIPTION
+            Starts the host with -EncodedCommand and converts the last line of its output that
+            starts with a brace from JSON, so that what the probe reports about that host can be
+            compared with the module's table. Other lines, such as errors, are ignored.
+
+        .PARAMETER Exe
+            The host to start, powershell.exe or pwsh.exe.
+
+        .PARAMETER Command
+            The command to run, Base64 encoded from UTF-16 LE text as -EncodedCommand expects.
+
+        .EXAMPLE
+            Get-HostAnswer 'pwsh.exe' $encoded
+
+            Runs the probe in PowerShell 7 and returns its answer.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The object converted from the JSON line.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [string]$Exe,
+
+            [string]$Command
+        )
+
         $raw = & $Exe -NoProfile -NonInteractive -EncodedCommand $Command 2>&1
         ($raw | Where-Object { "$_".StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
     }

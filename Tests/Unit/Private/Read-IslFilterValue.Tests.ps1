@@ -16,7 +16,46 @@ BeforeAll {
 
     # The value read, the failure, the warnings and where the cursor ended up
     function script:Read-Value {
-        param([string]$Text, [string]$Property, [string]$Operator)
+        <#
+        .SYNOPSIS
+            Reads the value after an operator with the module's private Read-IslFilterValue.
+
+        .DESCRIPTION
+            Builds a parser whose rule is only the value, inside the module, and runs
+            Read-IslFilterValue on it for the property and operator. Returns the value with the
+            state the parser was left in. For an empty text the parser's refusal is cleared first,
+            so that the case reads the end of the tokens.
+
+        .PARAMETER Text
+            The value as it is written in the rule, such as '"LAB-PC-01"'.
+
+        .PARAMETER Property
+            The property the value is compared with, by its lower-case name, such as 'devicename'.
+
+        .PARAMETER Operator
+            The operator before the value, without its dash, such as 'eq'.
+
+        .EXAMPLE
+            Read-Value -Text '"X"' -Property 'devicename' -Operator 'eq'
+
+            Reads the value X and returns it with the parser's error, warnings and cursor.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.FilterValueRead. Value, Error, Warnings and Pos.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.FilterValueRead')]
+        param(
+            [string]$Text,
+
+            [string]$Property,
+
+            [string]$Operator
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text; Property = $Property; Operator = $Operator } {
             $parser = New-IslFilterParser -Rule $Text
             # An empty rule is refused before anything is read; the case is the end of the tokens
@@ -24,6 +63,7 @@ BeforeAll {
             $valueSplat = @{ Parser = $parser; Property = $parser.Properties[$Property]; Operator = $Operator }
             $value = @(Read-IslFilterValue @valueSplat)
             [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.FilterValueRead'
                 Value = $value; Error = $parser.Error; Warnings = $parser.Warnings.ToArray(); Pos = $parser.Pos
             }
         }

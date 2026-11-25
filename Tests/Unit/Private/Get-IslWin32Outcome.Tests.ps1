@@ -15,7 +15,34 @@ BeforeAll {
     $script:Codes = @{ 0 = 'success'; 1707 = 'success'; 3010 = 'softReboot'; 1641 = 'hardReboot'; 1618 = 'retry' }
 
     function script:Get-Outcome {
-        param($Run)
+        <#
+        .SYNOPSIS
+            Gets the outcome Get-IslWin32Outcome gives a run, with the suite's return codes.
+
+        .DESCRIPTION
+            Calls the private function inside the module with the run and the return codes in
+            $script:Codes.
+
+        .PARAMETER Run
+            An object with the TimedOut and ExitCode of an install or uninstall run.
+
+        .EXAMPLE
+            Get-Outcome -Run ([pscustomobject]@{ TimedOut = $false; ExitCode = 3010 })
+
+            Returns softReboot.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. What Get-IslWin32Outcome returns.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [object]$Run
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Run = $Run; Codes = $script:Codes } {
             Get-IslWin32Outcome -Run $Run -ReturnCodes $Codes
         }

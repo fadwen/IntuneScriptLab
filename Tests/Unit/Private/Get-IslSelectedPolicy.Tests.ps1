@@ -15,7 +15,36 @@ BeforeAll {
     }
 
     function script:Get-Selected {
-        param([hashtable]$Selection)
+        <#
+        .SYNOPSIS
+            Gets the platform scripts that a selection picks, from Get-IslSelectedPolicy.
+
+        .DESCRIPTION
+            Runs the module's private Get-IslSelectedPolicy inside the module on the list of
+            platform scripts, with the selection splatted onto it, and returns the policies as an
+            array.
+
+        .PARAMETER Selection
+            The parameters that select the policies, such as @{ Name = 'Detect-*'; NameGiven = $true }
+            or @{ Id = 'c' }. An empty table selects every policy.
+
+        .EXAMPLE
+            Get-Selected -Selection @{ Id = 'c' }
+
+            Returns the policy whose id is c.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. Each selected policy as Graph returned it.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [hashtable]$Selection
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Selection = $Selection } {
             @(Get-IslSelectedPolicy -Uri '/beta/deviceManagement/deviceManagementScripts' @Selection)
         }

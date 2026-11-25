@@ -15,13 +15,76 @@ BeforeAll {
     }
 
     function script:ConvertTo-TestByte {
-        param([string]$Text, [switch]$Bom)
+        <#
+        .SYNOPSIS
+            Converts text to its UTF-8 bytes, with a byte order mark when asked.
+
+        .DESCRIPTION
+            Gives the bytes of a script as the local file or the tenant would hold them, so that
+            each test states the encoding of both sides.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .PARAMETER Bom
+            Puts the UTF-8 byte order mark before the text.
+
+        .EXAMPLE
+            ConvertTo-TestByte "exit 0`r`n" -Bom
+
+            Returns the byte order mark followed by the bytes of the text.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Byte. The bytes, one at a time; the caller collects them into an array.
+        #>
+        [CmdletBinding()]
+        [OutputType([byte])]
+        param(
+            [string]$Text,
+
+            [switch]$Bom
+        )
+
         $preamble = [System.Text.UTF8Encoding]::new([bool]$Bom).GetPreamble()
         [byte[]]($preamble + [System.Text.Encoding]::UTF8.GetBytes($Text))
     }
 
     function script:Get-Difference {
-        param([byte[]]$Local, [byte[]]$Tenant)
+        <#
+        .SYNOPSIS
+            Gets how two scripts differ with Get-IslScriptDifference inside the module.
+
+        .DESCRIPTION
+            Get-IslScriptDifference is private, so the test reaches it through InModuleScope.
+
+        .PARAMETER Local
+            The bytes of the local file.
+
+        .PARAMETER Tenant
+            The bytes of the script in the tenant.
+
+        .EXAMPLE
+            Get-Difference -Local (ConvertTo-TestByte 'exit 0' -Bom) -Tenant (ConvertTo-TestByte 'exit 0')
+
+            Returns a difference that names the byte order mark.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.ScriptDifference. What differs between the two scripts.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.ScriptDifference')]
+        param(
+            [byte[]]$Local,
+
+            [byte[]]$Tenant
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Local = $Local; Tenant = $Tenant } {
             Get-IslScriptDifference -Local $Local -Tenant $Tenant
         }

@@ -36,7 +36,45 @@ BeforeAll {
     }
 
     function script:Get-Setting {
-        param([string]$Relative, $Settings, [hashtable]$Cache = @{})
+        <#
+        .SYNOPSIS
+            Gets the settings Get-IslSetting finds for a script of the test tree.
+
+        .DESCRIPTION
+            Calls the private function inside the module for the script at the given path below
+            $script:Tree, passing Settings on only when the test gives them, so that the other tests
+            exercise the search for the settings file.
+
+        .PARAMETER Relative
+            The path of the script relative to the test tree.
+
+        .PARAMETER Settings
+            The settings given directly. Left out, the settings file is searched for from the script.
+
+        .PARAMETER Cache
+            The cache of settings by folder. Tests that pass the same hashtable share it.
+
+        .EXAMPLE
+            Get-Setting 'Other\Run.ps1' -Settings @{ MinimumSeverity = 'Fatal' }
+
+            Validates settings given as a hashtable for a script outside the Intune folders.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Settings. What Get-IslSetting returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Settings')]
+        param(
+            [string]$Relative,
+
+            [object]$Settings,
+
+            [hashtable]$Cache = @{}
+        )
+
         # Settings is always passed, as $null when the test gives none: the block below runs under
         # the module's strict mode, where a variable that was never set cannot be read
         $parameters = @{ Path = (Join-Path $script:Tree $Relative); Cache = $Cache; Settings = $Settings }

@@ -16,7 +16,39 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-SizedScript {
-        param([string]$Name, [int]$KB)
+        <#
+        .SYNOPSIS
+            Writes a script of at least the given size under TestDrive and returns its path.
+
+        .DESCRIPTION
+            Repeats a comment line of 102 characters until the text reaches the size, then ends
+            the script with exit 0, and writes it with New-TestScript.
+
+        .PARAMETER Name
+            The file name of the script, which also decides the script type the rule infers.
+
+        .PARAMETER KB
+            The size of the padding in kilobytes.
+
+        .EXAMPLE
+            New-SizedScript 'Detect-Mid.ps1' 250
+
+            Writes a detection script of just over 250 KB and returns its path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full path of the script.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Name,
+
+            [int]$KB
+        )
+
         $line = '# ' + ('pad' * 33) + "`n"
         New-TestScript $Name (($line * [int][Math]::Ceiling($KB * 1024 / $line.Length)) + 'exit 0')
     }

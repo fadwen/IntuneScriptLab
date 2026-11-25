@@ -17,13 +17,102 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function script:New-CmTraceLine {
-        param([string]$Message, [string]$Time, [string]$Date = '9-25-2026', [int]$Type = 1,
-            [string]$Component = 'IntuneManagementExtension', [int]$Thread = 4)
+        <#
+        .SYNOPSIS
+            Creates one line of an agent log in the CMTrace format.
+
+        .DESCRIPTION
+            Builds the line the Intune Management Extension writes: the message between the LOG
+            markers, followed by time, date, component, context, type, thread and file
+            attributes. The defaults are those of an informational line of the main log.
+
+        .PARAMETER Message
+            The text of the entry.
+
+        .PARAMETER Time
+            The time attribute, such as '08:40:13.0000000'.
+
+        .PARAMETER Date
+            The date attribute, month-day-year. 9-25-2026 by default.
+
+        .PARAMETER Type
+            The type attribute. 1 by default.
+
+        .PARAMETER Component
+            The component attribute. IntuneManagementExtension by default.
+
+        .PARAMETER Thread
+            The thread attribute. 4 by default.
+
+        .EXAMPLE
+            New-CmTraceLine -Time '08:40:10.0000000' -Message '[PowerShell] Processing policy'
+
+            Returns the log line for that message at that time.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The log line, without a line break.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Message,
+
+            [string]$Time,
+
+            [string]$Date = '9-25-2026',
+
+            [int]$Type = 1,
+
+            [string]$Component = 'IntuneManagementExtension',
+
+            [int]$Thread = 4
+        )
+
         "<![LOG[$Message]LOG]!><time=`"$Time`" date=`"$Date`" component=`"$Component`" context=`"`" " +
         "type=`"$Type`" thread=`"$Thread`" file=`"`">"
     }
     function script:Write-TestLog {
-        param([string]$Folder, [string]$Name, [string[]]$Lines)
+        <#
+        .SYNOPSIS
+            Writes an agent log file from its lines and returns its path.
+
+        .DESCRIPTION
+            Creates the folder and writes the lines as UTF-8 without a byte order mark, each
+            ending with CRLF, so that the timeline reads a file shaped like the agent's own logs.
+
+        .PARAMETER Folder
+            The folder of the log, created when it is missing.
+
+        .PARAMETER Name
+            The file name of the log, such as 'HealthScripts.log'.
+
+        .PARAMETER Lines
+            The lines of the log, such as those New-CmTraceLine creates.
+
+        .EXAMPLE
+            Write-TestLog $logs 'AppWorkload.log' @(New-CmTraceLine -Time '09:00:00.0000000' -Message 'x')
+
+            Writes a log of one line and returns its full path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full path of the log.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Folder,
+
+            [string]$Name,
+
+            [string[]]$Lines
+        )
+
         $null = New-Item -ItemType Directory -Path $Folder -Force
         $path = Join-Path $Folder $Name
         $content = ($Lines -join "`r`n") + "`r`n"

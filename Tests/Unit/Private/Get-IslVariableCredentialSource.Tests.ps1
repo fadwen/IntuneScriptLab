@@ -13,15 +13,67 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
 
-    # The syntax tree of a script given as text
     function script:ConvertTo-Ast {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts the text of a script to its syntax tree.
+
+        .DESCRIPTION
+            Parses the text with the PowerShell parser and ignores its tokens and errors, so that a
+            test can hand the tree and a node of it to the function under test.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            ConvertTo-Ast 'Get-Credential -Credential $cred'
+
+            Returns the syntax tree of the one-line script.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.ScriptBlockAst. The syntax tree of the script.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.ScriptBlockAst])]
+        param(
+            [string]$Text
+        )
+
         [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$null, [ref]$null)
     }
 
-    # The source of the variable that Get-Credential is handed in the script
     function script:Get-Source {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Gets the source of the variable that Get-Credential is handed in a script.
+
+        .DESCRIPTION
+            Finds the first Get-Credential call in the script, takes its last element as the
+            variable and runs Get-IslVariableCredentialSource inside the module on it.
+
+        .PARAMETER Text
+            The text of a script that calls Get-Credential with a variable as its last argument.
+
+        .EXAMPLE
+            Get-Source -Text "`$cred = Import-Clixml .\c.xml`nGet-Credential -Credential `$cred"
+
+            Returns Import-Clixml.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The description of how the script builds the credential.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text
+        )
+
         $ast = ConvertTo-Ast $Text
         $call = $ast.Find({
                 param($node)

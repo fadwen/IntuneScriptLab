@@ -14,11 +14,44 @@ BeforeAll {
     }
 
     function script:Read-Conjunction {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Reads the and-joined clauses of a filter rule, with the parser's state.
+
+        .DESCRIPTION
+            Builds a parser for the rule, calls Read-IslFilterConjunction on it inside the module,
+            and returns the node it read with the parser's Error and Pos, so that a test can tell
+            where reading stopped and why.
+
+        .PARAMETER Text
+            The text of the assignment filter rule.
+
+        .EXAMPLE
+            Read-Conjunction -Text 'device.deviceName -eq "A" or device.model -eq "B"'
+
+            Returns the node of the clause before the or, with the state of the parser.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.ConjunctionRead. Node, Error and Pos.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.ConjunctionRead')]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } {
             $parser = New-IslFilterParser -Rule $Text
             $node = Read-IslFilterConjunction -Parser $parser
-            [pscustomobject]@{ Node = $node; Error = $parser.Error; Pos = $parser.Pos }
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.ConjunctionRead'
+                Node = $node
+                Error = $parser.Error
+                Pos = $parser.Pos
+            }
         }
     }
 }

@@ -15,7 +15,34 @@ BeforeAll {
     }
 
     function script:Test-Policy {
-        param([hashtable]$Selection)
+        <#
+        .SYNOPSIS
+            Tests whether a fixed policy is selected by the given -Name and -Id values.
+
+        .DESCRIPTION
+            Runs Test-IslPolicySelected inside the module on the policy Detect-Printer, whose id is
+            policy-1, given as a dictionary the way Invoke-MgGraphRequest returns it.
+
+        .PARAMETER Selection
+            The selection parameters of Test-IslPolicySelected by name: Name, NameGiven and Id.
+
+        .EXAMPLE
+            Test-Policy -Selection @{ Name = 'Detect-*'; NameGiven = $true }
+
+            Returns True, as the name matches the policy.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. Whether the policy is selected.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [hashtable]$Selection
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Selection = $Selection } {
             # One policy as Invoke-MgGraphRequest returns it, a dictionary
             $policy = @{ id = 'policy-1'; displayName = 'Detect-Printer' }

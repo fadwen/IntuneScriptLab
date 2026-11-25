@@ -18,7 +18,40 @@ BeforeAll {
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     function Get-ScriptContext {
-        param([string]$Path, [hashtable]$Options = @{})
+        <#
+        .SYNOPSIS
+            Gets the script context that the module's private function builds for a script.
+
+        .DESCRIPTION
+            Calls Get-IslScriptContext inside the module, where the private function is visible,
+            with the path and any options splatted onto it.
+
+        .PARAMETER Path
+            The script to read.
+
+        .PARAMETER Options
+            Further parameters of Get-IslScriptContext, such as ScriptType, Architecture or
+            EnforceSignatureCheck.
+
+        .EXAMPLE
+            Get-ScriptContext -Path $path -Options @{ ScriptType = 'Detection' }
+
+            Returns the context of the script read as a remediation detection.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.ScriptContext. The context the rules read.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.ScriptContext')]
+        param(
+            [string]$Path,
+
+            [hashtable]$Options = @{}
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Path = $Path; Options = $Options } {
             Get-IslScriptContext -Path $Path @Options
         }

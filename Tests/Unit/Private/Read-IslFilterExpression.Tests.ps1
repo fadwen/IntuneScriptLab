@@ -14,11 +14,44 @@ BeforeAll {
     }
 
     function script:Read-Expression {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Reads a filter expression and returns its tree with the parser's final state.
+
+        .DESCRIPTION
+            Creates a parser for the text inside the module and reads one expression with the
+            private Read-IslFilterExpression. The parser's error and position are returned with
+            the tree, because the tests check where reading stopped as well as what it read.
+
+        .PARAMETER Text
+            The text of the filter rule.
+
+        .EXAMPLE
+            Read-Expression -Text '(device.deviceName -eq "A") or (device.model -eq "B")'
+
+            Returns the tree of an or of two clauses, with no error.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.ParsedExpression. An object with Node, Error and Pos.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.ParsedExpression')]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } {
             $parser = New-IslFilterParser -Rule $Text
             $node = Read-IslFilterExpression -Parser $parser
-            [pscustomobject]@{ Node = $node; Error = $parser.Error; Pos = $parser.Pos }
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.ParsedExpression'
+                Node = $node
+                Error = $parser.Error
+                Pos = $parser.Pos
+            }
         }
     }
 }

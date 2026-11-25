@@ -15,7 +15,35 @@ BeforeAll {
     }
 
     function script:Invoke-Content {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs a Win32 command line with Invoke-IslWin32ContentCommand.
+
+        .DESCRIPTION
+            Runs Invoke-IslWin32ContentCommand inside the module, where the private function and the
+            mock of Invoke-IslProcess apply, with the parameters splatted onto it.
+
+        .PARAMETER Parameters
+            The parameters of Invoke-IslWin32ContentCommand, such as Phase, Content, CommandLine,
+            Context, TimeoutSeconds and Warning.
+
+        .EXAMPLE
+            Invoke-Content ($run + $script:Base)
+
+            Runs the command line of $run with the context, timeout and warning list of the file.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RunResult. The result of the run.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RunResult')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters } {
             Invoke-IslWin32ContentCommand @Parameters
         }

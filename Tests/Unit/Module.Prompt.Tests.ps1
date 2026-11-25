@@ -21,7 +21,7 @@ BeforeAll {
     function Find-PromptingCall {
         <#
         .SYNOPSIS
-            Lists the calls in a syntax tree that leave out a mandatory parameter of a known command.
+            Lists the calls in a syntax tree that leave out a mandatory parameter.
 
         .DESCRIPTION
             A call is reported when no parameter set of the command has all of its mandatory

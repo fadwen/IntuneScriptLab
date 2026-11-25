@@ -15,7 +15,34 @@ BeforeAll {
     }
 
     function ConvertTo-Named {
-        param([string]$Pattern)
+        <#
+        .SYNOPSIS
+            Runs ConvertTo-IslNamedGroupPattern on a pattern with the prefix e3g.
+
+        .DESCRIPTION
+            Calls the private function inside the module, with the same prefix for every test, and
+            returns what it returns.
+
+        .PARAMETER Pattern
+            The regular expression whose groups are renamed.
+
+        .EXAMPLE
+            ConvertTo-Named -Pattern '(?<code>\d+)'
+
+            Returns the renamed pattern and the number of its groups.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Collections.Hashtable. Pattern and Count, as ConvertTo-IslNamedGroupPattern returns them.
+        #>
+        [CmdletBinding()]
+        [OutputType([hashtable])]
+        param(
+            [string]$Pattern
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Pattern = $Pattern } {
             ConvertTo-IslNamedGroupPattern -Pattern $Pattern -Prefix 'e3g'
         }

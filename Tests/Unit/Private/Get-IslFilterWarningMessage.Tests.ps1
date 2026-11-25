@@ -16,7 +16,39 @@ BeforeAll {
     }
 
     function script:Get-Message {
-        param([string]$Kind, [string]$Mode)
+        <#
+        .SYNOPSIS
+            Gets the message of a filter warning of a given kind for a given mode.
+
+        .DESCRIPTION
+            Builds a parser warning of the kind, with a fixed message about the clause at character
+            29, and calls Get-IslFilterWarningMessage inside the module with it.
+
+        .PARAMETER Kind
+            The kind of the warning.
+
+        .PARAMETER Mode
+            The mode the filter is used in, such as Exclude.
+
+        .EXAMPLE
+            Get-Message -Kind $Kind -Mode Exclude
+
+            Returns the text of the warning for a filter used to exclude devices.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The text of the warning.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Kind,
+
+            [string]$Mode
+        )
+
         $warning = [pscustomobject]@{ Kind = $Kind; Message = 'the clause at character 29 never matches' }
         InModuleScope IntuneScriptLab -Parameters @{ Warning = $warning; Mode = $Mode } {
             Get-IslFilterWarningMessage -Warning $Warning -Mode $Mode

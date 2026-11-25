@@ -14,13 +14,47 @@ BeforeAll {
     }
 
     function script:Read-Primary {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Reads one primary of a filter rule and returns the node with the parser's state.
+
+        .DESCRIPTION
+            Creates a parser for the rule inside the module, runs Read-IslFilterPrimary on it once,
+            and returns the node it read together with the error and the position the parser was
+            left with. For an empty rule the parser's own error is cleared first, so that the read
+            meets the end of the tokens.
+
+        .PARAMETER Text
+            The text of the rule.
+
+        .EXAMPLE
+            Read-Primary -Text 'device.deviceName -eq "X"'
+
+            Reads the clause and returns it with no error.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.FilterPrimaryRead. Node, Error and Pos.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.FilterPrimaryRead')]
+        param(
+            [string]$Text
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Text = $Text } {
             $parser = New-IslFilterParser -Rule $Text
             # An empty rule is refused before anything is read; the case is the end of the tokens
             if (-not $Text) { $parser.Error = $null }
             $node = Read-IslFilterPrimary -Parser $parser
-            [pscustomobject]@{ Node = $node; Error = $parser.Error; Pos = $parser.Pos }
+            [pscustomobject]@{
+                PSTypeName = 'IntuneScriptLab.Test.FilterPrimaryRead'
+                Node = $node
+                Error = $parser.Error
+                Pos = $parser.Pos
+            }
         }
     }
 }

@@ -14,7 +14,40 @@ BeforeAll {
     }
 
     function script:Get-Token {
-        param([string]$Rule, [int]$Position)
+        <#
+        .SYNOPSIS
+            Gets the filter token at a cursor position, and the position after the call.
+
+        .DESCRIPTION
+            Builds a parser for the rule inside the module, puts its cursor on the position and runs
+            the private Get-IslFilterToken. The position of the cursor after the call comes last, so
+            that a test can check that reading the token did not move it.
+
+        .PARAMETER Rule
+            The text of the assignment filter rule.
+
+        .PARAMETER Position
+            The index of the token the cursor is put on.
+
+        .EXAMPLE
+            Get-Token -Rule '(device.deviceName -eq "X")' -Position 2
+
+            Returns the token '-eq' and then 2.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Object. The IntuneScriptLab.FilterToken, if there is one, then the cursor as an integer.
+        #>
+        [CmdletBinding()]
+        [OutputType([object])]
+        param(
+            [string]$Rule,
+
+            [int]$Position
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule; Position = $Position } {
             $parser = New-IslFilterParser -Rule $Rule
             $parser.Pos = $Position

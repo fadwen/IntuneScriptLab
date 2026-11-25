@@ -17,7 +17,34 @@ BeforeAll {
     }
 
     function script:ConvertFrom-Rule {
-        param([string]$Rule)
+        <#
+        .SYNOPSIS
+            Converts an assignment filter rule with the module's private parser.
+
+        .DESCRIPTION
+            Calls ConvertFrom-IslFilterRule inside the module, where the private function is
+            visible, and returns what it parsed.
+
+        .PARAMETER Rule
+            The text of the filter rule.
+
+        .EXAMPLE
+            ConvertFrom-Rule -Rule '(device.deviceName -eq "X")'
+
+            Returns the parsed rule with one clause.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.FilterRule. The parsed rule with its clauses and warnings.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.FilterRule')]
+        param(
+            [string]$Rule
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Rule = $Rule } { ConvertFrom-IslFilterRule -Rule $Rule }
     }
 }

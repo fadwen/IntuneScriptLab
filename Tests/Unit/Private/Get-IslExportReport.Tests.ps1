@@ -17,7 +17,39 @@ BeforeAll {
 
     # Writes a zip holding one CSV to the path Invoke-WebRequest was told to save to
     function script:Write-FakeExport {
-        param([string]$OutFile, [string]$Csv)
+        <#
+        .SYNOPSIS
+            Writes a zip archive that holds one CSV file, as an export job downloads it.
+
+        .DESCRIPTION
+            Creates the archive with one entry, AppInstallStatusAggregate.csv, and writes the CSV
+            text into it, so that a test can stand in for the download of a finished export.
+
+        .PARAMETER OutFile
+            The path of the archive to create.
+
+        .PARAMETER Csv
+            The text of the CSV entry.
+
+        .EXAMPLE
+            Write-FakeExport -OutFile $OutFile -Csv $script:Csv
+
+            Writes the archive with the CSV text at the path the download was given.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Void. The function writes nothing.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [string]$OutFile,
+
+            [string]$Csv
+        )
+
         $archive = [System.IO.Compression.ZipFile]::Open($OutFile, 'Create')
         try {
             $entry = $archive.CreateEntry('AppInstallStatusAggregate.csv')
@@ -68,8 +100,12 @@ Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {
             @{ id = 'job-2'; status = 'completed'; url = 'https://download.example/job-2.zip' }
         }
         $null = InModuleScope IntuneScriptLab {
-            Get-IslExportReport -ReportName 'DeviceInstallStatusByApp' -Filter "(ApplicationId eq 'app-a')" `
-                -Select 'DeviceName', 'InstallState'
+            $reportSplat = @{
+                ReportName = 'DeviceInstallStatusByApp'
+                Filter = "(ApplicationId eq 'app-a')"
+                Select = 'DeviceName', 'InstallState'
+            }
+            Get-IslExportReport @reportSplat
         }
         Should-Invoke Invoke-IslGraphRequest -ModuleName IntuneScriptLab -ParameterFilter {
             $Method -eq 'POST' -and $Body.filter -eq "(ApplicationId eq 'app-a')" -and

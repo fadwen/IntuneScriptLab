@@ -14,7 +14,34 @@ BeforeAll {
     }
 
     function Invoke-NewCheck {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs New-IslRequirementCheck inside the module with the given parameters.
+
+        .DESCRIPTION
+            New-IslRequirementCheck is private, so the test reaches it through InModuleScope and
+            splats the hashtable onto it there.
+
+        .PARAMETER Parameters
+            The parameters of New-IslRequirementCheck by name, such as Requirement and Met.
+
+        .EXAMPLE
+            Invoke-NewCheck @{ Requirement = 'Architecture'; Met = $true; Actual = 'x64'; Expected = 'x64' }
+
+            Returns the check of an architecture requirement that is met.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RequirementCheck. The result of the requirement.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RequirementCheck')]
+        param(
+            [hashtable]$Parameters
+        )
+
         $scope = @{ Parameters = $Parameters }
         InModuleScope IntuneScriptLab -Parameters $scope { New-IslRequirementCheck @Parameters }
     }

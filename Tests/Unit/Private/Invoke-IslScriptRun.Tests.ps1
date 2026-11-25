@@ -18,7 +18,34 @@ BeforeAll {
     $script:Script = New-TestScript 'Detect-Thing.ps1' 'exit 0' -Bom
 
     function Invoke-ScriptRun {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Runs Invoke-IslScriptRun inside the module with the given parameters.
+
+        .DESCRIPTION
+            Invoke-IslScriptRun is private, so the test reaches it through InModuleScope and splats
+            the hashtable onto it there. The process it starts is mocked by the tests.
+
+        .PARAMETER Parameters
+            The parameters of Invoke-IslScriptRun by name, such as Path and Architecture.
+
+        .EXAMPLE
+            Invoke-ScriptRun @{ Path = $script:Script; Architecture = 'x86' }
+
+            Runs the script under the 32-bit host and returns the run result.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.RunResult. The result of the run.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.RunResult')]
+        param(
+            [hashtable]$Parameters
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Parameters = $Parameters } { Invoke-IslScriptRun @Parameters }
     }
 }

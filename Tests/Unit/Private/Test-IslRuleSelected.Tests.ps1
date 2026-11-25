@@ -15,7 +15,35 @@ BeforeAll {
     }
 
     function Test-Selected {
-        param([hashtable]$Parameters)
+        <#
+        .SYNOPSIS
+            Tests whether a rule is selected, with Test-IslRuleSelected.
+
+        .DESCRIPTION
+            Runs Test-IslRuleSelected inside the module, where the private function is visible, with
+            the parameters splatted onto it.
+
+        .PARAMETER Parameters
+            The parameters of Test-IslRuleSelected: RuleName, and Include and Exclude when the case
+            gives them.
+
+        .EXAMPLE
+            Test-Selected @{ RuleName = 'IslLongSleep'; Exclude = 'IslLong*' }
+
+            Returns False, because the exclusion matches the rule.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. Whether the rule runs.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [hashtable]$Parameters
+        )
+
         $scope = @{ Parameters = $Parameters }
         InModuleScope IntuneScriptLab -Parameters $scope { Test-IslRuleSelected @Parameters }
     }

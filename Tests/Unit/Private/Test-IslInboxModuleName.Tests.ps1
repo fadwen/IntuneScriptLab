@@ -14,7 +14,35 @@ BeforeAll {
     }
 
     function script:Test-Name {
-        param([string]$Name)
+        <#
+        .SYNOPSIS
+            Tests a module name with the module's private Test-IslInboxModuleName.
+
+        .DESCRIPTION
+            Runs Test-IslInboxModuleName inside the module against a fixed in-box list of
+            Microsoft.PowerShell.Utility and Storage, so that the cases do not depend on the modules
+            this computer has.
+
+        .PARAMETER Name
+            The module name as the script uses it.
+
+        .EXAMPLE
+            Test-Name -Name 'storage'
+
+            Returns True, because the name is in the list in another letter case.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Boolean. Whether the name counts as in-box.
+        #>
+        [CmdletBinding()]
+        [OutputType([bool])]
+        param(
+            [string]$Name
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Name = $Name } {
             Test-IslInboxModuleName -Name $Name -InboxModule 'Microsoft.PowerShell.Utility', 'Storage'
         }

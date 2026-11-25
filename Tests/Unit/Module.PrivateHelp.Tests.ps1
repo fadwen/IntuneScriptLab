@@ -27,9 +27,37 @@ BeforeDiscovery {
 }
 
 BeforeAll {
-    # The type an [OutputType()] argument names, as .OUTPUTS writes it
     function script:Get-TypeName {
-        param([string]$Argument)
+        <#
+        .SYNOPSIS
+            Converts an [OutputType()] argument to the type name that .OUTPUTS writes.
+
+        .DESCRIPTION
+            Gives the text of a quoted type name without its quotes, None for [void], System.Object
+            for [object], and the full name of any other type that resolves. A type that does not
+            resolve comes back as the text between its brackets.
+
+        .PARAMETER Argument
+            The text of one argument of an [OutputType()] attribute, such as '[string]' or
+            "'IntuneScriptLab.Finding'".
+
+        .EXAMPLE
+            Get-TypeName '[string]'
+
+            Returns System.String.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The type name as .OUTPUTS writes it.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Argument
+        )
+
         $text = $Argument.Trim()
         if ($text -match "^'(.+)'$") { return $Matches[1] }
         # Only the outer brackets go: [string[]] names System.String[], not System.String
@@ -44,7 +72,39 @@ BeforeAll {
     }
 
     function script:Get-Function {
-        param([string]$File, [string]$Name)
+        <#
+        .SYNOPSIS
+            Gets the definition of one named function from the syntax tree of a file.
+
+        .DESCRIPTION
+            Parses the file and returns the first function definition of that name, so that a test
+            can read its help and its param block without loading the file.
+
+        .PARAMETER File
+            The full path of the file to parse.
+
+        .PARAMETER Name
+            The name of the function.
+
+        .EXAMPLE
+            Get-Function -File $File -Name 'Get-IslPropertyValue'
+
+            Returns the definition of Get-IslPropertyValue from the file.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Management.Automation.Language.FunctionDefinitionAst. The definition of the function.
+        #>
+        [CmdletBinding()]
+        [OutputType([System.Management.Automation.Language.FunctionDefinitionAst])]
+        param(
+            [string]$File,
+
+            [string]$Name
+        )
+
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($File, [ref]$null, [ref]$null)
         $definition = [System.Management.Automation.Language.FunctionDefinitionAst]
         $functions = $ast.FindAll({ param($node) $node -is $definition }, $false)

@@ -20,6 +20,22 @@ BeforeAll {
         <#
         .SYNOPSIS
             Starts cmd.exe running ping.exe for two minutes and returns the ids of both.
+
+        .DESCRIPTION
+            A real tree of two processes, the parent and the child it started, for the tests that
+            end a tree. Ends with ChildProcessNotStarted when ping.exe has not appeared within 15
+            seconds.
+
+        .EXAMPLE
+            $parentId, $childId = Start-TestProcessTree
+
+            Starts the tree and keeps the id of each process.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Int32[]. The id of cmd.exe, then the id of ping.exe.
         #>
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
             Justification = 'Starts two short-lived processes that the test ends itself.')]
@@ -54,7 +70,26 @@ BeforeAll {
     function Wait-ProcessGone {
         <#
         .SYNOPSIS
-            Waits up to ten seconds for the processes to end and returns the ids still running.
+            Waits up to ten seconds for processes to end and returns the ids still running.
+
+        .DESCRIPTION
+            A process that was ended can take a moment to leave the process list, so the test
+            waits for that instead of reading the list once.
+
+        .PARAMETER Id
+            The ids of the processes to wait for.
+
+        .EXAMPLE
+            Wait-ProcessGone -Id $parentId, $childId
+
+            Returns nothing once both processes have ended, or the ids still running after ten
+            seconds.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Int32[]. The ids of the processes that are still running.
         #>
         [CmdletBinding()]
         [OutputType([int[]])]

@@ -24,12 +24,30 @@ BeforeAll {
     function New-MarkerScript {
         <#
         .SYNOPSIS
-            Writes a script that leaves a marker file, writes a line and exits 0. Returns both paths.
+            Writes a script that leaves a marker file when it runs, and returns both paths.
+
+        .DESCRIPTION
+            The script writes 'ran' to the marker file, writes one line and exits 0, so that a test
+            can tell on the disk whether a command started it, without a mock.
+
+        .PARAMETER Name
+            The folder under TestDrive for the script, and the base name of its marker file.
+
+        .EXAMPLE
+            New-MarkerScript -Name 'Detection'
+
+            Writes Detection\Detect.ps1 under TestDrive and returns its path and that of its marker.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.MarkerScript. Script and Marker.
         #>
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
             Justification = 'Writes one script under TestDrive.')]
         [CmdletBinding()]
-        [OutputType([System.Management.Automation.PSCustomObject])]
+        [OutputType('IntuneScriptLab.Test.MarkerScript')]
         param(
             [Parameter(Mandatory)]
             [string]$Name
@@ -38,6 +56,7 @@ BeforeAll {
         $marker = Join-Path $TestDrive "$Name.marker"
         $body = "Set-Content -LiteralPath '$marker' -Value 'ran'`r`nWrite-Output 'present'`r`nexit 0"
         [pscustomobject]@{
+            PSTypeName = 'IntuneScriptLab.Test.MarkerScript'
             Script = New-TestScript "$Name\Detect.ps1" $body -Bom
             Marker = $marker
         }

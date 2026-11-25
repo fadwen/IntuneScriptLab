@@ -22,7 +22,33 @@ BeforeAll {
     Set-ItemProperty -Path $script:Key -Name DisplayVersion -Value '110.0.2'
 
     function Get-MsiProduct {
-        param([string]$ProductCode)
+        <#
+        .SYNOPSIS
+            Gets an installed product by its product code with Get-IslMsiProduct.
+
+        .DESCRIPTION
+            Get-IslMsiProduct is private, so the test reaches it through InModuleScope.
+
+        .PARAMETER ProductCode
+            The product code, with or without braces.
+
+        .EXAMPLE
+            Get-MsiProduct '{00000000-1111-2222-3333-444444444444}'
+
+            Returns nothing, as no product has that code.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.MsiProduct. The product, when one is installed.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.MsiProduct')]
+        param(
+            [string]$ProductCode
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ ProductCode = $ProductCode } {
             Get-IslMsiProduct -ProductCode $ProductCode
         }

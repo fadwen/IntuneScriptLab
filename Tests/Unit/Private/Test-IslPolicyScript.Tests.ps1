@@ -15,13 +15,69 @@ BeforeAll {
 
     # A script's text as Graph stores it, base64, with a UTF-8 byte order mark
     function script:ConvertTo-Content {
-        param([string]$Text)
+        <#
+        .SYNOPSIS
+            Converts script text to Base64 content as Graph returns a deployed script.
+
+        .DESCRIPTION
+            Encodes the text as UTF-8 with a byte order mark and returns the bytes as Base64, the
+            form of the script content in a Graph reply.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            ConvertTo-Content -Text 'exit 0'
+
+            Returns the Base64 content of a script that ends with exit code 0.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The Base64 text.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text
+        )
+
         $preamble = [System.Text.Encoding]::UTF8.GetPreamble()
         [System.Convert]::ToBase64String($preamble + [System.Text.Encoding]::UTF8.GetBytes($Text))
     }
 
     function script:Test-Script {
-        param([hashtable]$Extra = @{})
+        <#
+        .SYNOPSIS
+            Tests a deployed detection script with Test-IslPolicyScript.
+
+        .DESCRIPTION
+            Calls Test-IslPolicyScript inside the module for a remediation detection that runs as
+            system and calls Read-Host, with a new work folder under TestDrive. The given entries
+            replace or add to those parameters, so that each test states only what it varies.
+
+        .PARAMETER Extra
+            Parameters of Test-IslPolicyScript that replace or add to the defaults, such as
+            Content, RunAsAccount or ExcludeRule.
+
+        .EXAMPLE
+            Test-Script -Extra @{ ExcludeRule = 'IslInteractiveCall' }
+
+            Returns the findings for the default script without its interactive call finding.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DeploymentFinding. One object for each finding.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DeploymentFinding')]
+        param(
+            [hashtable]$Extra = @{}
+        )
+
         $parameters = @{
             PolicyKind = 'Remediation'; Policy = @{ id = 'p1'; displayName = 'Detect Printer' }
             Role = 'detection'; ScriptType = 'Detection'; RunAsAccount = 'system'

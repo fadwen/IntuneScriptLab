@@ -19,14 +19,85 @@ BeforeAll {
     $script:Text = "if (Test-Path C:\x) { exit 1 }`r`nexit 0"
 
     function script:Write-Local {
-        param([string]$Name, [string]$Text)
+        <#
+        .SYNOPSIS
+            Writes a local candidate script below the test root and describes it.
+
+        .DESCRIPTION
+            Writes the text as UTF-8 without a byte order mark to a file of the given name in the
+            folder $script:Root names, and returns an object with the FullName of that file, to
+            pass to Compare-Script as a candidate.
+
+        .PARAMETER Name
+            The file name of the script below the test root.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .EXAMPLE
+            Write-Local -Name 'same.ps1' -Text $script:Text
+
+            Writes same.ps1 below the test root and returns an object whose FullName is its path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Test.LocalScript. An object with the FullName of the file.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Test.LocalScript')]
+        param(
+            [string]$Name,
+
+            [string]$Text
+        )
+
         $file = Join-Path $script:Root $Name
         [System.IO.File]::WriteAllText($file, $Text, [System.Text.UTF8Encoding]::new($false))
-        [pscustomobject]@{ FullName = $file }
+        [pscustomobject]@{ PSTypeName = 'IntuneScriptLab.Test.LocalScript'; FullName = $file }
     }
 
     function script:Compare-Script {
-        param([string]$Content, [object[]]$Candidates, [hashtable]$Extra = @{})
+        <#
+        .SYNOPSIS
+            Runs Compare-IslPolicyScript for the detection script of a remediation.
+
+        .DESCRIPTION
+            Calls the private function inside the module for the detection script of a remediation
+            that runs as SYSTEM in 64-bit without a signature check, with the test root as the local
+            folder. Extra replaces or adds parameters, so that each test names only what it is about.
+
+        .PARAMETER Content
+            The content of the tenant's script, as the Base64 text the policy holds.
+
+        .PARAMETER Candidates
+            The local scripts that may be the tenant's script, as Write-Local returns them.
+
+        .PARAMETER Extra
+            Parameters of Compare-IslPolicyScript that replace or add to the defaults.
+
+        .EXAMPLE
+            Compare-Script -Content $script:Tenant -Candidates @($local)
+
+            Compares the tenant's script with one local copy and returns the drift results.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DriftResult. What Compare-IslPolicyScript returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DriftResult')]
+        param(
+            [string]$Content,
+
+            [object[]]$Candidates,
+
+            [hashtable]$Extra = @{}
+        )
+
         $parameters = @{
             PolicyKind = 'Remediation'; Policy = @{ id = 'p1'; displayName = 'Fix-Widget' }; Role = 'detection'
             Content = $Content; Candidates = $Candidates; RunAsAccount = 'system'; RunAs32Bit = $false

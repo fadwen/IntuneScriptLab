@@ -17,7 +17,34 @@ BeforeAll {
     $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 
     function Resolve-Account {
-        param([string]$Name)
+        <#
+        .SYNOPSIS
+            Resolves an account name with Resolve-IslAccount.
+
+        .DESCRIPTION
+            Calls the private function inside the module with the name and returns what it returns,
+            which is nothing for a name Windows cannot resolve.
+
+        .PARAMETER Name
+            The account name, such as SYSTEM, a DOMAIN\user name or a user principal name.
+
+        .EXAMPLE
+            Resolve-Account 'SYSTEM'
+
+            Returns the name Windows uses for the SYSTEM account and its SID.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.Account. What Resolve-IslAccount returns.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.Account')]
+        param(
+            [string]$Name
+        )
+
         InModuleScope IntuneScriptLab -Parameters @{ Name = $Name } { Resolve-IslAccount -Name $Name }
     }
 }

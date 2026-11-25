@@ -22,16 +22,118 @@ BeforeAll {
         "throw [System.InvalidOperationException]::new('Graph is down') }"
 
     function script:Get-ByteArray {
-        param([string]$Text, [switch]$Bom)
+        <#
+        .SYNOPSIS
+            Gets the UTF-8 bytes of a text, with or without a byte order mark.
+
+        .DESCRIPTION
+            Encodes the text as UTF-8 and puts the byte order mark in front when asked, so that
+            the tenant's copy and the local copy of a script can differ in that mark alone.
+
+        .PARAMETER Text
+            The text to encode.
+
+        .PARAMETER Bom
+            Puts the UTF-8 byte order mark in front of the bytes.
+
+        .EXAMPLE
+            Get-ByteArray -Text 'exit 0' -Bom
+
+            Returns the bytes of the text with the byte order mark in front.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.Byte. The bytes, one at a time; wrap the call in parentheses for an array.
+        #>
+        [CmdletBinding()]
+        [OutputType([byte])]
+        param(
+            [string]$Text,
+
+            [switch]$Bom
+        )
+
         $preamble = [System.Text.UTF8Encoding]::new([bool]$Bom).GetPreamble()
         [byte[]]($preamble + [System.Text.Encoding]::UTF8.GetBytes($Text))
     }
     function script:ConvertTo-Base64 {
-        param([string]$Text, [switch]$Bom)
+        <#
+        .SYNOPSIS
+            Converts a text to Base64 UTF-8 content as Graph returns a deployed script.
+
+        .DESCRIPTION
+            Encodes the text with Get-ByteArray and returns the bytes as Base64, the form of the
+            script content in the faked Graph replies.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .PARAMETER Bom
+            Puts the UTF-8 byte order mark in front of the bytes before they are encoded.
+
+        .EXAMPLE
+            ConvertTo-Base64 $script:Detect -Bom
+
+            Returns the Base64 content of the detection script with a byte order mark.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The Base64 text.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$Text,
+
+            [switch]$Bom
+        )
+
         [System.Convert]::ToBase64String((Get-ByteArray -Text $Text -Bom:$Bom))
     }
     function script:Write-Local {
-        param([string]$RelativePath, [string]$Text, [switch]$Bom)
+        <#
+        .SYNOPSIS
+            Writes a script into the local folder and returns its path.
+
+        .DESCRIPTION
+            Creates the folders the relative path needs below the local root and writes the text
+            as UTF-8, with or without a byte order mark, as the local copy that the tenant's
+            script is compared with.
+
+        .PARAMETER RelativePath
+            The path of the script relative to the local root, such as 'Scripts\Dup.ps1'.
+
+        .PARAMETER Text
+            The text of the script.
+
+        .PARAMETER Bom
+            Writes the UTF-8 byte order mark in front of the text.
+
+        .EXAMPLE
+            Write-Local 'Scripts\Set-Wallpaper.ps1' $script:Wallpaper -Bom
+
+            Writes the wallpaper script with a byte order mark and returns its full path.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. The full path of the script.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param(
+            [string]$RelativePath,
+
+            [string]$Text,
+
+            [switch]$Bom
+        )
+
         $full = Join-Path $script:Root $RelativePath
         $null = New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force
         [System.IO.File]::WriteAllBytes($full, (Get-ByteArray -Text $Text -Bom:$Bom))
@@ -39,7 +141,44 @@ BeforeAll {
     }
     # One result of a run, by policy name and role
     function script:Get-Result {
-        param($Results, [string]$Policy, [string]$Role)
+        <#
+        .SYNOPSIS
+            Gets the results of a run for one policy and role.
+
+        .DESCRIPTION
+            Filters the results of Compare-IntuneDeployedScript by policy name and role, so that
+            a test reads the one script it is about.
+
+        .PARAMETER Results
+            The results of a run of Compare-IntuneDeployedScript.
+
+        .PARAMETER Policy
+            The name of the policy.
+
+        .PARAMETER Role
+            The role of the script in the policy, such as detection or remediation.
+
+        .EXAMPLE
+            Get-Result -Results $script:Results -Policy 'Fix-Widget' -Role 'detection'
+
+            Returns the result for the detection script of the policy Fix-Widget.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            IntuneScriptLab.DriftResult. The results that match.
+        #>
+        [CmdletBinding()]
+        [OutputType('IntuneScriptLab.DriftResult')]
+        param(
+            [object]$Results,
+
+            [string]$Policy,
+
+            [string]$Role
+        )
+
         $Results | Where-Object { $_.PolicyName -eq $Policy -and $_.Role -eq $Role }
     }
 
