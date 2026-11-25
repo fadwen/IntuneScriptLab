@@ -8,9 +8,12 @@
 #>
 
 BeforeAll {
-    if (-not (Get-Module -Name IntuneScriptLab)) {
-        $moduleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-        Import-Module (Join-Path $moduleRoot 'IntuneScriptLab.psd1')
+    $moduleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $moduleRoot) {
+        Import-Module (Join-Path $moduleRoot 'IntuneScriptLab.psd1') -Force
     }
 
     function Start-TestProcessTree {

@@ -8,15 +8,16 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-    Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
+    }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Clean = New-TestScript 'Detect-Clean.ps1' ("if (Test-Path 'C:\x') { Write-Output 'ok'; exit 0 } " +
         "else { Write-Output 'missing'; exit 1 }")
     $script:Dirty = New-TestScript 'Detect-Bad.ps1' "Read-Host 'x'`nreturn 1`nexit 1"
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'Assert-PassIntuneAnalysis' -Tag 'Unit', 'Public' {

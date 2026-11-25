@@ -9,11 +9,9 @@
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $script:ManifestPath = Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1'
+    # The one file that imports the module anew: it asserts what a newly imported module looks
+    # like. It leaves the module loaded for the files after it, as they do
     Import-Module $script:ManifestPath -Force
-}
-
-AfterAll {
-    Remove-Module IntuneScriptLab -Force -ErrorAction SilentlyContinue
 }
 
 Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {

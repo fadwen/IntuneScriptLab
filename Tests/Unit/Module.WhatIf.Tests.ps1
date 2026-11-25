@@ -13,8 +13,11 @@
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    if (-not (Get-Module -Name IntuneScriptLab)) {
-        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1')
+    # The module this tree holds, imported once for the run: a copy installed from the Gallery
+    # would otherwise be tested in its place
+    $loaded = Get-Module -Name IntuneScriptLab
+    if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
     . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
@@ -194,6 +197,9 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
                     }
                 })
             $commandType = [System.Management.Automation.Language.CommandAst]
+            # Whether a command has -WhatIf, looked up once for each name: the trees hold thousands
+            # of calls to a few hundred commands, and Get-Command for each call took most of a minute
+            $hasWhatIf = @{}
             $calls = foreach ($tree in $trees) {
                 foreach ($command in $tree.FindAll({ param($node) $node -is $commandType }, $true)) {
                     $name = $command.GetCommandName()
@@ -203,9 +209,13 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
                     }
                     $asks = $name -in $gated
                     if (-not $asks) {
-                        $resolved = Get-Command -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1
-                        $parameters = if ($null -ne $resolved) { $resolved.Parameters } else { $null }
-                        $asks = $null -ne $parameters -and $parameters.ContainsKey('WhatIf')
+                        if (-not $hasWhatIf.ContainsKey($name)) {
+                            $resolved = Get-Command -Name $name -ErrorAction SilentlyContinue |
+                                Select-Object -First 1
+                            $parameters = if ($null -ne $resolved) { $resolved.Parameters } else { $null }
+                            $hasWhatIf[$name] = $null -ne $parameters -and $parameters.ContainsKey('WhatIf')
+                        }
+                        $asks = $hasWhatIf[$name]
                     }
                     if ($asks) {
                         $source = $command.Extent.Text
