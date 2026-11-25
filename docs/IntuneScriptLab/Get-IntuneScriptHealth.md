@@ -13,7 +13,7 @@ title: Get-IntuneScriptHealth
 
 ## SYNOPSIS
 
-One line per deployed script policy: findings, drift, assignment and what the devices report.
+Gets one line per deployed script policy: findings, drift and device status.
 
 ## SYNTAX
 

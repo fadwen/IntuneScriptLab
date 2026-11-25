@@ -2,7 +2,7 @@ function Test-IntuneDeployedScript {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Analyzes the scripts a tenant has deployed, with the settings each policy actually carries.
+        Analyzes a tenant's deployed scripts with the settings each policy carries.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.DeploymentFinding')]
@@ -26,7 +26,7 @@ function Test-IntuneDeployedScript {
 
         # A settings file path or hashtable for the analysis (the tenant's scripts have no folder
         # of their own to carry one)
-        $Settings
+        [object]$Settings
     )
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
     # Which policies of each list to read; -Id alone selects by id, so whether -Name was given counts

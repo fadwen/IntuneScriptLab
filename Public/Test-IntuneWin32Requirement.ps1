@@ -2,7 +2,7 @@ function Test-IntuneWin32Requirement {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Checks a Win32 app's base requirements against this device the way the Intune agent reports them.
+        Checks a Win32 app's base requirements against this device like the agent.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.ApplicabilityResult')]

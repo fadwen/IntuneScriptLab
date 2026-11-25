@@ -9,7 +9,7 @@ function Invoke-IntuneRequirementTest {
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias('FullName', 'PSPath')]
-        [string]$Path,
+        [string[]]$Path,
 
         [Parameter(Mandatory)]
         [ValidateSet('String', 'DateTime', 'Integer', 'Float', 'Version', 'Boolean')]
@@ -40,79 +40,87 @@ function Invoke-IntuneRequirementTest {
         [int]$TimeoutSeconds = 300
     )
 
-    process {
-        Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+    begin {
+        if ($Credential -and $Context -eq 'System') {
+            $recordSplat = @{
+                Message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
+                ErrorId = 'CredentialWithSystemContext'
+                Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
+                TargetObject = $Context
+                ExceptionType = [System.ArgumentException]
+            }
+            $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+        }
+        Write-Verbose "Starting $($MyInvocation.MyCommand.Name)"
         # The agent's default host is the device's 64-bit one: arm64 on Windows on ARM, where no x64
         # host exists, and x64 elsewhere
-        if (-not $Architecture) { $Architecture = Get-IslHostArchitecture }
+        $runArchitecture = $Architecture
+        if (-not $runArchitecture) { $runArchitecture = Get-IslHostArchitecture }
+    }
 
-        $scriptRunSplat = @{
-            Path           = $Path
-            Architecture   = $Architecture
-            Context        = $Context
-            Phase          = 'requirement'
-            TimeoutSeconds = $TimeoutSeconds
-        }
-        if ($Credential) {
-            if ($Context -eq 'System') {
-                $recordSplat = @{
-                    Message = '-Credential applies to -Context User; System runs as NT AUTHORITY\SYSTEM'
-                    ErrorId = 'CredentialWithSystemContext'
-                    Category = [System.Management.Automation.ErrorCategory]::InvalidArgument
-                    TargetObject = $Context
-                    ExceptionType = [System.ArgumentException]
-                }
-                $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
+    process {
+        foreach ($scriptItem in $Path) {
+            # Path is bound only here when it comes from the pipeline, so each script is named here
+            Write-Verbose "Testing $scriptItem"
+            $scriptRunSplat = @{
+                Path           = $scriptItem
+                Architecture   = $runArchitecture
+                Context        = $Context
+                Phase          = 'requirement'
+                TimeoutSeconds = $TimeoutSeconds
             }
-            $scriptRunSplat.Credential = $Credential
-        }
-        # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
-        $action = "Run as a Win32 requirement script ($Context context, $Architecture)"
-        if (-not $PSCmdlet.ShouldProcess($Path, $action)) {
-            return
-        }
+            if ($Credential) { $scriptRunSplat.Credential = $Credential }
+            # The script is somebody's code and is about to run: -WhatIf names it and runs nothing
+            $action = "Run as a Win32 requirement script ($Context context, $runArchitecture)"
+            if (-not $PSCmdlet.ShouldProcess($scriptItem, $action)) {
+                continue
+            }
 
-        # A script that cannot be run is reported, and the next one from the pipeline still runs
-        try {
-            $run = Invoke-IslScriptRun @scriptRunSplat
-        } catch {
-            # Once for each script, also for a failure that every script shares, such as a host
-            # this device does not have: the scripts are not known in begin, and the unit tests
-            # mock the launch with architectures the test computer may not have
-            $PSCmdlet.WriteError($_)
-            return
-        }
+            # A script that cannot be run is reported, and the next one still runs
+            try {
+                $run = Invoke-IslScriptRun @scriptRunSplat
+            } catch {
+                # Once for each script, also for a failure that every script shares, such as a host
+                # this device does not have: the unit tests mock the launch with architectures the
+                # test computer may not have
+                $PSCmdlet.WriteError($_)
+                continue
+            }
 
-        $compareSplat = @{
-            StdOut     = $run.StdOut
-            StdErr     = $run.StdErr
-            ExitCode   = $run.ExitCode
-            TimedOut   = $run.TimedOut
-            OutputType = $OutputType
-            Operator   = $Operator
-            Value      = $Value
-        }
-        $verdict = Compare-IslRequirementOutput @compareSplat
+            $compareSplat = @{
+                StdOut     = $run.StdOut
+                StdErr     = $run.StdErr
+                ExitCode   = $run.ExitCode
+                TimedOut   = $run.TimedOut
+                OutputType = $OutputType
+                Operator   = $Operator
+                Value      = $Value
+            }
+            $verdict = Compare-IslRequirementOutput @compareSplat
 
+            [pscustomobject]@{
+                PSTypeName   = 'IntuneScriptLab.RequirementResult'
+                Applicable   = $verdict.Met
+                Reason       = $verdict.Reason
+                Output       = $verdict.Output
+                ExitCode     = $run.ExitCode
+                StdOut       = $run.StdOut
+                StdErr       = $run.StdErr
+                TimedOut     = $run.TimedOut
+                Duration     = $run.Duration
+                OutputType   = $OutputType
+                Operator     = $Operator
+                Value        = $Value
+                Architecture = $runArchitecture
+                Context      = $Context
+                RunAs        = $run.RunAs
+                Host         = $run.Host
+                ScriptPath   = $run.ScriptPath
+            }
+        }
+    }
+
+    end {
         Write-Verbose "Completed $($MyInvocation.MyCommand.Name)"
-        [pscustomobject]@{
-            PSTypeName   = 'IntuneScriptLab.RequirementResult'
-            Applicable   = $verdict.Met
-            Reason       = $verdict.Reason
-            Output       = $verdict.Output
-            ExitCode     = $run.ExitCode
-            StdOut       = $run.StdOut
-            StdErr       = $run.StdErr
-            TimedOut     = $run.TimedOut
-            Duration     = $run.Duration
-            OutputType   = $OutputType
-            Operator     = $Operator
-            Value        = $Value
-            Architecture = $Architecture
-            Context      = $Context
-            RunAs        = $run.RunAs
-            Host         = $run.Host
-            ScriptPath   = $run.ScriptPath
-        }
     }
 }

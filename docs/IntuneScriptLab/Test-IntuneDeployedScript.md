@@ -13,7 +13,7 @@ title: Test-IntuneDeployedScript
 
 ## SYNOPSIS
 
-Analyzes the scripts a tenant has deployed, with the settings each policy actually carries.
+Analyzes a tenant's deployed scripts with the settings each policy carries.
 
 ## SYNTAX
 

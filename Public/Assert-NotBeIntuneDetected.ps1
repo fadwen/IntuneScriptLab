@@ -2,7 +2,7 @@ function Assert-NotBeIntuneDetected {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Asserts a Win32 detection result counts as not installed (alias Should-NotBeIntuneDetected).
+        Asserts a detection result counts as not installed (Should-NotBeIntuneDetected).
     #>
     [CmdletBinding()]
     [OutputType([void])]
@@ -11,7 +11,7 @@ function Assert-NotBeIntuneDetected {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [string]$Because
     )

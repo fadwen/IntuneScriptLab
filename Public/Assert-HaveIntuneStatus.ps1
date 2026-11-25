@@ -14,7 +14,7 @@ function Assert-HaveIntuneStatus {
         [string]$Expected,
 
         [Parameter(Position = 1, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [string]$Because
     )

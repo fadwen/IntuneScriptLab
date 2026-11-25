@@ -13,14 +13,14 @@ title: Test-IntuneAssignmentFilter
 
 ## SYNOPSIS
 
-Evaluates an assignment filter rule against a device the way the Intune service does.
+Evaluates an assignment filter rule against a device like the Intune service.
 
 ## SYNTAX
 
 ### __AllParameterSets
 
 ```
-Test-IntuneAssignmentFilter [-Rule] <string> [[-Device] <Object>] [-Mode <string>] [-SyntaxOnly]
+Test-IntuneAssignmentFilter [-Rule] <string[]> [[-Device] <Object>] [-Mode <string>] [-SyntaxOnly]
  [<CommonParameters>]
 ```
 
@@ -176,10 +176,11 @@ HelpMessage: ''
 The rule as the portal's rule syntax editor or the Graph assignmentFilter.rule holds it,
 for the Windows 10 and later platform.
 Accepts pipeline input, and binds by property name
-so assignment filters read from Graph can be piped in.
+so assignment filters read from Graph can be piped in. Several rules give one result each,
+piped or passed as an array. A rule that is empty or only whitespace is refused.
 
 ```yaml
-Type: System.String
+Type: System.String[]
 DefaultValue: ''
 SupportsWildcards: false
 Aliases: []

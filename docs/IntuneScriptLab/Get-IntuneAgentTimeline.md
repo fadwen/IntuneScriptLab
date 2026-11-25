@@ -13,7 +13,7 @@ title: Get-IntuneAgentTimeline
 
 ## SYNOPSIS
 
-One timeline per policy or app from the agent's logs: the steps it went through and how they ended.
+Gets one timeline per policy or app from the agent's logs, step by step.
 
 ## SYNTAX
 

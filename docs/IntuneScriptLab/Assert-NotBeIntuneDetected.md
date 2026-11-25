@@ -13,7 +13,7 @@ title: Assert-NotBeIntuneDetected
 
 ## SYNOPSIS
 
-Asserts a Win32 detection result counts as not installed (alias Should-NotBeIntuneDetected).
+Asserts a detection result counts as not installed (Should-NotBeIntuneDetected).
 
 ## SYNTAX
 

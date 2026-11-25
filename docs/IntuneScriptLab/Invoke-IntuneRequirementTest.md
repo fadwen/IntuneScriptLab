@@ -20,7 +20,7 @@ Runs a Win32 requirement script like Intune and applies the rule to its output.
 ### __AllParameterSets
 
 ```
-Invoke-IntuneRequirementTest [-Path] <string> -OutputType <string> -Value <string>
+Invoke-IntuneRequirementTest [-Path] <string[]> -OutputType <string> -Value <string>
  [-Operator <string>] [-Architecture <string>] [-Context <string>] [-Credential <pscredential>]
  [-TimeoutSeconds <int>] [-WhatIf] [-Confirm]
 ```
@@ -210,10 +210,10 @@ HelpMessage: ''
 
 ### -Path
 
-The requirement script.
+One or more requirement scripts, each run in turn with one result for each.
 
 ```yaml
-Type: System.String
+Type: System.String[]
 DefaultValue: ''
 SupportsWildcards: false
 Aliases:

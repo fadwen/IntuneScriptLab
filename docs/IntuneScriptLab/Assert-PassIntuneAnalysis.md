@@ -13,7 +13,7 @@ title: Assert-PassIntuneAnalysis
 
 ## SYNOPSIS
 
-Asserts Test-IntuneScript finds nothing at Warning or above (alias Should-PassIntuneAnalysis).
+Asserts no finding at Warning or above (Should-PassIntuneAnalysis).
 
 ## SYNTAX
 

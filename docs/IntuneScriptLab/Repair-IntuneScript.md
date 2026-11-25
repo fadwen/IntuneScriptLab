@@ -13,7 +13,7 @@ title: Repair-IntuneScript
 
 ## SYNOPSIS
 
-Applies the mechanical fixes for findings that have one, and reports what is left.
+Applies the mechanical fixes for findings that have one and reports the rest.
 
 ## SYNTAX
 

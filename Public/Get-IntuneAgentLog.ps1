@@ -2,7 +2,7 @@ function Get-IntuneAgentLog {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Reads the Intune Management Extension logs as objects, with the events the agent's lines record.
+        Reads the Intune Management Extension logs as objects, with their events.
     #>
     [CmdletBinding(DefaultParameterSetName = 'Read')]
     [OutputType('IntuneScriptLab.AgentLogEntry')]

@@ -13,7 +13,7 @@ title: Assert-NotBeIntuneApplicable
 
 ## SYNOPSIS
 
-Asserts a requirement result fails its rule (alias Should-NotBeIntuneApplicable).
+Asserts a requirement result fails its rule (Should-NotBeIntuneApplicable).
 
 ## SYNTAX
 

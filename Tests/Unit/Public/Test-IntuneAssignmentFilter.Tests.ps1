@@ -278,6 +278,25 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             $fromObjects = @($filters | Test-IntuneAssignmentFilter -Device $script:Joined)
             $fromObjects.Matched | Should-BeCollection @($true, $false)
         }
+
+        It 'takes several rules as an array, one result each, as from the pipeline' {
+            $rules = '(device.deviceName -eq "KRBETYP-AIEPVQ5")', '(device.deviceName -eq "other")'
+            $results = @(Test-IntuneAssignmentFilter -Rule $rules -Device $script:Joined)
+            $results.Count | Should-Be 2
+            $results[0].Rule | Should-Be $rules[0]
+            $results[0].Matched | Should-BeTrue
+            $results[1].Rule | Should-Be $rules[1]
+            $results[1].Matched | Should-BeFalse
+        }
+
+        It 'refuses a rule that is empty or only whitespace before judging anything' {
+            Mock ConvertFrom-IslFilterRule -ModuleName IntuneScriptLab { }
+            { Test-IntuneAssignmentFilter -Rule '   ' -Device $script:Joined } |
+                Should-Throw -FullyQualifiedErrorId 'ParameterArgumentValidationError,*'
+            { Test-IntuneAssignmentFilter -Rule '' -Device $script:Joined } |
+                Should-Throw -FullyQualifiedErrorId 'ParameterArgumentValidationError*'
+            Should-Invoke ConvertFrom-IslFilterRule -ModuleName IntuneScriptLab -Times 0 -Exactly
+        }
     }
 
     Context 'Error Handling' {

@@ -2,7 +2,7 @@ function Get-IntuneScriptHealth {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        One line per deployed script policy: findings, drift, assignment and what the devices report.
+        Gets one line per deployed script policy: findings, drift and device status.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.HealthReport')]
@@ -19,7 +19,7 @@ function Get-IntuneScriptHealth {
 
         [hashtable]$Map,
 
-        $Settings,
+        [object]$Settings,
 
         [switch]$SkipAnalysis,
 

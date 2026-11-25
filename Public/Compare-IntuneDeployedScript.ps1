@@ -2,7 +2,7 @@ function Compare-IntuneDeployedScript {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Reports where a tenant's deployed scripts differ from the copies in a folder or repository.
+        Reports where a tenant's deployed scripts differ from copies in a folder.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.DriftResult')]
@@ -20,7 +20,7 @@ function Compare-IntuneDeployedScript {
 
         [string[]]$Id,
 
-        $Settings
+        [object]$Settings
     )
     Write-Verbose ("Starting $($MyInvocation.MyCommand.Name) against $Path for $($Kind -join ', ') named " +
         "$($Name -join ', ')$(if ($Id) { " or with id $($Id -join ', ')" })")

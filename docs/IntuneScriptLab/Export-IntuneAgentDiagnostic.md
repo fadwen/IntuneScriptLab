@@ -13,7 +13,7 @@ title: Export-IntuneAgentDiagnostic
 
 ## SYNOPSIS
 
-Packs the agent's logs, its registry state and the parsed timelines into one zip for a ticket.
+Packs the agent's logs, registry state and timelines into one zip for a ticket.
 
 ## SYNTAX
 

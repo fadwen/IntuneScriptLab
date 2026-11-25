@@ -42,6 +42,20 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
             $results.Applicable | Should-All { $_ }
         }
 
+        It 'takes several script paths as an array, one result each, as from the pipeline' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                ConvertTo-FakeRunResult @{
+                    ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path
+                }
+            }
+            $requirementSplat = @{ Path = 'C:\lab\a.ps1', 'C:\lab\b.ps1'; OutputType = 'String'; Value = 'ok' }
+            $results = @(Invoke-IntuneRequirementTest @requirementSplat)
+            $results.Count | Should-Be 2
+            $results[0].ScriptPath | Should-Be 'C:\lab\a.ps1'
+            $results[1].ScriptPath | Should-Be 'C:\lab\b.ps1'
+            $results.Applicable | Should-All { $_ }
+        }
+
         It 'defaults to the 64-bit host this device has, as the portal does for requirement rules' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = "ok`r`n"; StdErr = '' }
