@@ -88,6 +88,12 @@ entries are carried over from the manifest's release notes.
   imports it anew. The unit suites took 243 s and take about 115 s on the same computer; the
   scan of the WhatIf test for unpinned calls looks each command up once and fell from 27 s to
   7 s. The shared test helpers are advanced functions with full help and named output types (#70).
+- The README has a table of contents, a quick start with the output of a real run, requirements
+  as a minimum and a recommended value with the modules that each layer needs, a command that
+  checks each way of installing, and a table of the error IDs the commands raise with what to do
+  about each. The three badges that showed typed-in text are gone. The workflow example and
+  `Examples/intune-script-gate.yml` set `$ErrorActionPreference = 'Stop'` before they call the
+  gate script (#72).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

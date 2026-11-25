@@ -54,6 +54,7 @@ jobs:
       - name: Analyze
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           # The gate script sits in the module's Examples folder and imports the module beside it
           $manifest = if ($env:ISL_MODULE_PATH) { (Resolve-Path $env:ISL_MODULE_PATH).Path }
           else {

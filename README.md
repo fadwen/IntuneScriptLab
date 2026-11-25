@@ -3,9 +3,6 @@
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/IntuneScriptLab?style=flat-square&label=Gallery)](https://www.powershellgallery.com/packages/IntuneScriptLab)
 [![Gallery downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ffadwen%2FIntuneScriptLab%2Fbadges%2Fdownloads.json&style=flat-square)](https://www.powershellgallery.com/packages/IntuneScriptLab)
 [![Quality Gates](https://img.shields.io/github/actions/workflow/status/fadwen/IntuneScriptLab/quality-gates.yml?branch=main&style=flat-square&label=quality%20gates)](https://github.com/fadwen/IntuneScriptLab/actions/workflows/quality-gates.yml)
-[![PowerShell 5.1](https://img.shields.io/badge/PowerShell-5.1+-blue?style=flat-square)](https://github.com/PowerShell/PowerShell)
-[![Pester](https://img.shields.io/badge/Tested_with-Pester_6-green?style=flat-square)](https://pester.dev)
-[![Intune](https://img.shields.io/badge/Intune-Management_Extension-orange?style=flat-square)](https://learn.microsoft.com/en-us/mem/intune/apps/intune-management-extension)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](./LICENSE)
 
 Test Intune PowerShell scripts before Intune does: remediation detection and remediation
@@ -29,7 +26,59 @@ Every rule and every verdict is backed by what real devices did, not only by the
 [Validation/Findings.md](https://github.com/fadwen/IntuneScriptLab/blob/main/Validation/Findings.md)). No Intune connection needed; runs on
 Windows PowerShell 5.1 and PowerShell 7; x86, x64 and ARM64 hosts.
 
+## Contents
+
+- [Quick start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Rules](#rules)
+- [Script type, context and architecture](#script-type-context-and-architecture)
+- [Suppressions and settings](#suppressions-and-settings)
+- [Fixing what can be fixed](#fixing-what-can-be-fixed)
+- [Runtime harness](#runtime-harness)
+- [In your own Pester suite](#in-your-own-pester-suite)
+- [Tests](#tests)
+- [Help](#help)
+- [Troubleshooting](#troubleshooting)
+- [Blog posts](#blog-posts)
+- [Roadmap](#roadmap)
+
+## Quick start
+
+```powershell
+Install-PSResource -Name IntuneScriptLab
+Test-IntuneScript -Path .\Detect-ContosoAgent.ps1 -ScriptType Detection
+```
+
+For a remediation detection script that reads `HKLM:\SOFTWARE\Contoso\Agent` and exits 0 when
+the key is there, the analysis reports the registry redirection that the 32-bit host, the
+portal's default for remediations, applies to it:
+
+```text
+   Script: .\Detect-ContosoAgent.ps1
+
+Severity    Rule                    Line Message
+--------    ----                    ---- -------
+Warning     IslArchitectureIssue       1 HKLM:\SOFTWARE is redirected to HKLM:\SOFTWARE\WOW6432Node
+                                         in the 32-bit host. Run the script in 64-bit or open the
+                                         key with RegistryView.Registry64
+```
+
+Next: [Rules](#rules) for what the analysis checks, [Runtime harness](#runtime-harness) to run
+the script the way the agent does, and [In your own Pester suite](#in-your-own-pester-suite).
+
 ## Prerequisites
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| PowerShell | Windows PowerShell 5.1 or PowerShell 7 | PowerShell 7.6, with Windows PowerShell 5.1 present for the runtime harness |
+| Operating system | Any that PowerShell 7 runs on, for the static analysis; Windows, for everything else | Windows 11 on x64 or ARM64, the systems CI tests on |
+
+| Module | Version | Needed for |
+|---|---|---|
+| Pester | 6.2.0 or later | The `Should-*` assertions |
+| PSScriptAnalyzer | 1.25.0, the version CI uses | The rule module that `Get-IntuneAnalyzerRulePath` returns |
+| Microsoft.Graph.Authentication | Any version with `Invoke-MgGraphRequest` | The tenant commands: `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`, `Get-IntuneScriptHealth` |
 
 | Layer | Needs |
 |---|---|
@@ -40,16 +89,29 @@ Windows PowerShell 5.1 and PowerShell 7; x86, x64 and ARM64 hosts.
 
 ## Installation
 
+From the PowerShell Gallery:
+
 ```powershell
-# From the PowerShell Gallery
 Install-PSResource -Name IntuneScriptLab
-
-# On Windows PowerShell 5.1 without PSResourceGet
-Install-Module -Name IntuneScriptLab -Scope CurrentUser
-
-# From a clone of this repository (the repository root is the module root)
-Import-Module .\IntuneScriptLab.psd1
+Get-Module -Name IntuneScriptLab -ListAvailable
 ```
+
+On Windows PowerShell 5.1 without PSResourceGet:
+
+```powershell
+Install-Module -Name IntuneScriptLab -Scope CurrentUser
+Get-Module -Name IntuneScriptLab -ListAvailable
+```
+
+From a clone of this repository, whose root is the module root:
+
+```powershell
+Import-Module .\IntuneScriptLab.psd1
+Get-Command -Module IntuneScriptLab
+```
+
+Each path ends with the command that shows the module is there: the installed version, or the
+commands of the imported copy.
 
 ```powershell
 Test-IntuneScript -Path .\Detect-LegacyTls.ps1 -ScriptType Detection
@@ -290,14 +352,14 @@ PostDetection : detected=False exit 0: Nothing on stdout: exit 0 alone is "not d
 Warnings      : {powershell.exe in the install command runs the 32-bit host ..., Post-install detection: ... Intune reports 0x87D1041C ...}
 ```
 
-Detect → install → detect, as the agent does it. The install command runs through a 32-bit
+Detect, install, then detect again, as the agent does it. The install command runs through a 32-bit
 `cmd.exe` from a copy of the content folder, so a bare `powershell.exe` resolves to the x86 host
 exactly as under the agent's own 32-bit process. Return codes follow Intune's defaults (0/1707
 success, 3010/1641 reboot, 1618 retry) and can be overridden with `-ReturnCodes`.
 
 Deviations: `User` is the default context (SYSTEM needs elevation); stdin is an empty
 stream rather than a hidden console, so a `Read-Host` returns immediately instead of hanging
-(`Test-IntuneScript` flags those); default timeouts are 5–10 minutes, not Intune's 30/60.
+(`Test-IntuneScript` flags those); default timeouts are 5 to 10 minutes, not Intune's 30/60.
 
 ### Win32 rules, uninstall and signature check
 
@@ -656,6 +718,7 @@ as a Markdown table per kind, Broken first.
 - name: Analyze
   shell: pwsh
   run: |
+    $ErrorActionPreference = 'Stop'
     $module = Get-Module -Name IntuneScriptLab -ListAvailable | Sort-Object Version -Descending |
         Select-Object -First 1
     & (Join-Path $module.ModuleBase 'Examples\Invoke-IntuneScriptGate.ps1') -Path ./Intune -FailOn Error
@@ -684,10 +747,22 @@ aliases, so `Import-Module` stays warning-free):
 ```powershell
 BeforeAll { Import-Module IntuneScriptLab }
 
-It 'passes static analysis'      { '.\Detect.ps1' | Should-PassIntuneAnalysis }
-It 'fixes the issue'             { Invoke-IntuneRemediationTest -DetectionPath .\Detect.ps1 -RemediationPath .\Remediate.ps1 | Should-HaveIntuneStatus 'Fixed' }
-It 'is not detected when absent' { Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-NotBeIntuneDetected }
-It 'runs'                        { Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 | Should-HaveIntuneRunState 'Success' }
+It 'passes static analysis' {
+    '.\Detect.ps1' | Should-PassIntuneAnalysis
+}
+
+It 'fixes the issue' {
+    $remediationSplat = @{ DetectionPath = '.\Detect.ps1'; RemediationPath = '.\Remediate.ps1' }
+    Invoke-IntuneRemediationTest @remediationSplat | Should-HaveIntuneStatus 'Fixed'
+}
+
+It 'is not detected when absent' {
+    Invoke-IntuneDetectionTest -Path .\Detect-App.ps1 | Should-NotBeIntuneDetected
+}
+
+It 'runs' {
+    Invoke-IntunePlatformScriptTest -Path .\Configure.ps1 | Should-HaveIntuneRunState 'Success'
+}
 ```
 
 A failure message carries the diagnosis: the status Intune would show with its output and
@@ -736,6 +811,14 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 
 ## Troubleshooting
 
+Run the command again with `-Verbose`, which prints each step, and read the ID of the error it
+ended with:
+
+```powershell
+Test-IntuneScript -Path .\Detect.ps1 -Verbose
+$Error[0].FullyQualifiedErrorId
+```
+
 | Symptom | Cause and fix |
 |---|---|
 | `IslAssumedContext` finding on every script | The script type was inferred from the file name. Pass `-ScriptType`, or put `# IntuneScriptLab: ScriptType=Detection` at the top of the script, and the finding goes away. |
@@ -746,6 +829,35 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 | Runtime result differs from what Intune showed | Compare what the result carries as Intune reports it: `IntuneOutput` and `IntuneError` on a remediation result, `StdOut`, `StdErr` and `ExitCode` on a detection, platform script or requirement result (OEM code page; the 2,048-character tail where the portal caps it). The `-Verbose` switch prints each step. |
 | A script goes on after a command failed | Every command of the module ends on a failure with a terminating error, as a compiled cmdlet does: the command ends, and the script decides whether it stops too. Start the script with `$ErrorActionPreference = 'Stop'`, or make the call inside `try`. The error's `FullyQualifiedErrorId` says what failed, for example `UnknownAgentLogEvent`, `DiagnosticPackageExists`, `HostArchitectureUnavailable`, `ScheduledTaskNotRegistered` or `GraphModuleNotLoaded`; a request that Graph refused ends the command with Graph's own error. One item among several is reported for that item and the others are still processed: a path that does not exist and a log that cannot be parsed (`CmTraceTimestampInvalid`) for the log commands, a script that cannot be run for `Invoke-IntuneDetectionTest`, `Invoke-IntuneRequirementTest` and `Invoke-IntunePlatformScriptTest`, a path that is not there or a script that cannot be analyzed for `Test-IntuneScript` and `Repair-IntuneScript`. `-ErrorAction Stop` ends the command there, and a script that gates a build on `Test-IntuneScript` passes it, as [Invoke-IntuneScriptGate.ps1](Examples/Invoke-IntuneScriptGate.ps1) does. |
 | Pester says `Should-HaveIntuneStatus` is not recognised | The aliases come from this module, not Pester: `Import-Module IntuneScriptLab` in `BeforeAll`, and use Pester 6.2 or later (`New-ShouldAssertion`). |
+
+<details>
+<summary>Error IDs and what to do</summary>
+
+| Error ID | What it means | What to do |
+|---|---|---|
+| `PathNotFound` | A path given to a command is not there | Check the path; the other paths of the call are still processed |
+| `CredentialWithSystemContext` | `-Credential` was passed with `-Context System` | Leave out `-Credential`, or run with `-Context User` |
+| `HostArchitectureUnavailable` | The device has no PowerShell host of that architecture, as Windows on ARM has no x64 host | Use `-Architecture arm64` or `x86` there |
+| `HostNotFound` | The `powershell.exe` of the host is not where Windows keeps it | Check that Windows PowerShell 5.1 is installed |
+| `ProcessStartFailed` | The host could not be started | Read the message, which carries the reason Windows gave |
+| `ScheduledTaskNotRegistered` | The scheduled task for `-Context System` or `-Credential` was refused | Run from an elevated session; with `-Credential`, check the password |
+| `ScheduledTaskNotStarted` | The task for another account did not start | Follow the hint in the message: grant the account "Log on as a batch job", or sign it in and run while it holds a session |
+| `FolderAccessNotGranted` | `icacls` could not give the other account access to the run folder | Read the message, which carries what `icacls` reported |
+| `SettingsInvalid` | A settings file or `-Settings` table holds a value the module does not accept | Correct the entry the message names |
+| `GraphModuleNotLoaded` | A tenant command ran without Microsoft.Graph.Authentication | `Install-PSResource Microsoft.Graph.Authentication`, then `Connect-MgGraph` with the scopes the message lists |
+| `ExportJobFailed`, `ExportJobTimedOut`, `ExportHasNoCsv` | The report export for the app install counts did not complete or held no data | Run again, or use `-SkipRunState` to leave the device counts out |
+| `LocalPathNotFolder` | `Compare-IntuneDeployedScript -Path` names a file | Pass the folder that holds the local scripts |
+| `IslFilterRuleInvalid` | The service would refuse the assignment filter rule | Correct the rule as the message says; the other rules are still judged |
+| `DeviceFactsNeedWindows` | `Test-IntuneAssignmentFilter` was asked for this device's facts off Windows | Pass the facts with `-Device` |
+| `RuleTypeUnknown`, `RuleIsScript`, `RuleValueNameMissing` | A Win32 rule passed to `Invoke-IntuneWin32AppTest` or `Test-IntuneWin32Rule` is incomplete | Give the rule a type, run a script rule with `Invoke-IntuneDetectionTest`, or pass `-ValueName` |
+| `WindowsReleaseUnknown` | `-MinimumWindowsRelease` names a release the module does not know | Use one of the values the parameter lists |
+| `UnknownAgentLogEvent` | `Get-IntuneAgentLog -EventName` names an event it does not know | `Get-IntuneAgentLog -ListEvent` lists the names |
+| `CmTraceTimestampInvalid` | A log has a time the CMTrace format does not allow | That log is reported and the other logs are still read |
+| `DiagnosticPackageExists` | The zip of `Export-IntuneAgentDiagnostic` is already there | Pass `-Force` to overwrite it, or another `-Path` |
+| `AnalyzerRulesMissing` | The installed module has no PSScriptAnalyzer rule module | Reinstall the module |
+| `PesterAssertionNotSupported` | A `Should-*` assertion ran without Pester 6.2 loaded | `Import-Module Pester -MinimumVersion 6.2.0` |
+
+</details>
 
 ## Blog posts
 
