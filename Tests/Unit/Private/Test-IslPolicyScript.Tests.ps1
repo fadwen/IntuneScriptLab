@@ -172,6 +172,15 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
             Test-Path -LiteralPath $work | Should-BeFalse
         }
 
+        It 'refuses an id that ends in a line feed' {
+            $work = Join-Path $TestDrive 'line-feed-id'
+            $policy = @{ id = "p1`n"; displayName = 'Detect Printer' }
+
+            { Test-Script -Extra @{ WorkFolder = $work; Policy = $policy } } |
+                Should-Throw -FullyQualifiedErrorId 'PolicyIdInvalid,*'
+            Test-Path -LiteralPath $work | Should-BeFalse
+        }
+
         It 'keeps a display name with path characters inside the policy''s folder' {
             $work = Join-Path $TestDrive 'dotted-name'
             $policy = @{ id = 'p1'; displayName = '..\..\Detect' }
