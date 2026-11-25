@@ -1,0 +1,35 @@
+# Decisions on the standards rules that do not fit as written
+
+The module follows [ai-powershell-standards](https://github.com/fadwen/ai-powershell-standards)
+2.0.0. A few of its rules ask for something the module does not have at all, where the answer
+is a design choice rather than a correction. This file records the decision for each of them, so
+that a reviewer does not have to rediscover it. A departure on one line of code is recorded on
+that line instead, as `# Exception to <rule>: <reason>` (DOC-22).
+
+Each decision is one of three:
+
+- **Build**: the module should have it, and it is follow-up work.
+- **Does not fit**: the rule does not apply to this module, for the reason given. The standards
+  allow this for any rule except a security rule.
+- **Upstream**: the rule as written assumes a service or an enterprise deployment. For a
+  developer tool that reads local scripts it cannot be met sensibly. It is a question for the
+  standards repository, and the finding stays reported here until the rule changes. Every
+  security rule that is not built is in this group, because a security finding cannot be
+  waived locally.
+
+| Rule | Decision | Reason |
+| --- | --- | --- |
+| SEC-16, length limit of 1,000 characters on text input | Build for names, IDs and rule text; upstream for paths | `-Name`, `-Id`, `-IncludeRule`, `-ExcludeRule` and an assignment filter rule have no reason to exceed it. A path can: Windows accepts paths of up to 32,767 characters when long paths are on, and refusing a valid path is a defect in a tool that analyzes files. |
+| SEC-11, SEC-18, SEC-19, allow-lists, injection tokens, one helper for outside data | Upstream | The module builds no PowerShell command from text: it has no `Invoke-Expression` and no `[scriptblock]::Create()` on input. It runs the script under test, and a Win32 app's install command, as a command line through `powershell.exe` or `cmd.exe`, because that is how the agent runs them. That command line is what is being tested, and it comes from the person who runs the test. A check for `;`, `&` or `$(` would refuse the command lines the harness exists to run. An assignment filter rule is parsed by the module's own parser, which refuses what the service refuses. Graph replies, settings files and agent logs are read through `Get-IslPropertyValue` and the parsers, which treat every value as data. |
+| SEC-12, SEC-17, a path from input stays in its folder; invalid file name characters | Build | `Test-IntuneDeployedScript` writes each deployed script under a name made from the policy's display name, with every character outside `[\w.-]` replaced. That cannot leave the work folder, but the rules ask for the check itself: resolve the path, compare it with the work folder, and refuse instead of replacing. |
+| SEC-20, SEC-21, data classification and STRIDE | Build | `SECURITY.md` already lists what each command reads, writes and runs, and how credentials are handled. The classification (script source and tenant metadata, Internal; a stored harness credential, Confidential) and a table of threats by STRIDE category belong there. |
+| ERR-16, custom exception classes | Does not fit | Callers tell the module's errors apart by `FullyQualifiedErrorId`: every failure the module detects is raised by `New-IslErrorRecord` with its own ID and category, and the README lists the IDs. Classes would add a `Classes` folder whose types must load before the functions, for no distinction the IDs do not already give. |
+| ERR-40, timings and memory on the verbose stream | Does not fit | What takes time is the script under test, in a child process. The harness reports that as `Duration` on every result. The memory of the PowerShell session that runs the harness says nothing about the script. |
+| ERR-41, a command that exports diagnostic data about the module's environment | Build | `Export-IntuneAgentDiagnostic` writes `Device\system.txt` with the Windows version, the PowerShell version and edition, the process architecture and the module version. The list of loaded modules is missing; it belongs there. |
+| MOD-20, static data under `Data` | Build | The rule order, the inbox module table, the Windows release builds and the map of agent log events are literals in functions and in the root module. As `.psd1` files under `Data` they can be read and reviewed as data. |
+| MOD-21, a cache with an expiry | Does not fit | Nothing the module fetches is fetched twice in a session where a cache would save a request. A tenant pre-flight has to read the tenant as it is now. The index of a parsed syntax tree is kept in a `ConditionalWeakTable` for as long as that tree exists, which is the expiry that fits it. |
+| TST-43, performance and security tests | Build | The log readers process more than 100 items, the threshold TST-43 sets, and have no performance test. The credential handling of `-Credential` (no plain text in a stream, a file or an error) has no test tagged as a security test. |
+| CIC-13, performance gate | Build, after TST-43 | It compares with baselines that the performance tests have to record first. |
+| CIC-14, documentation gate for the README | Build | The README's anchors and relative links can be checked in CI, as `docs/` is checked by `Build-Help.ps1 -ValidateOnly`. |
+| CIC-12, credential and dependency scanning | Build, as #62 | The standards installer adds a credential scan with `-IncludeCredentialScan`; the module has no dependencies to scan. |
+| PLT-12, the help build in the normal local build | Build | There is no single local build command. One script that rebuilds the help, `docs/Rules.md` and runs the checks would also replace the list of commands under "Checks" in `CLAUDE.md`. |

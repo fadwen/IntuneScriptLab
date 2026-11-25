@@ -22,6 +22,8 @@ week and opens a pull request when they change:
 standards stop producing is deleted. Changes belong upstream in the standards repository.
 
 This file is not one of them, so it is the right place for anything specific to this module.
+[docs/StandardsDecisions.md](docs/StandardsDecisions.md) records the rules that are built later,
+do not fit this module, or are a question for the standards repository, each with its reason.
 What follows is *not* general convention - it is the set of local invariants that look wrong or
 arbitrary until you know why, and that are cheap to break by accident.
 
