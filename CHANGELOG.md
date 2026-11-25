@@ -48,7 +48,9 @@ entries are carried over from the manifest's release notes.
   `Compare-IntuneDeployedScript`, `Get-IslSetting`, `Get-IslAgentLogEvent`,
   `Invoke-IslGraphRequest`, the assignment filter parser `ConvertFrom-IslFilterRule` and three
   analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`, `IslModuleDependency`) are private
-  functions of their own, each an advanced function with help and tests (#65).
+  functions of their own, each an advanced function with help and tests (#65), and the three
+  files that held several functions, `Assert-IntuneResult.ps1`, `Find-IslAstNode.ps1` and
+  `Resolve-IslAccount.ps1`, are split into one file for each function.
   `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript` and `Get-IntuneScriptHealth` select
   the tenant's policies through one function where each had its own copy, and
   `Test-IntuneDeployedScript` selects rules through the one `Test-IntuneScript` uses. A settings
