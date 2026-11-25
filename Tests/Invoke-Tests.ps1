@@ -181,6 +181,12 @@ if ($CodeCoverage) {
     }
 }
 
+# A test file keeps a copy of the module that is already loaded from this tree, so a session that
+# loaded it before an edit would test the old code, and in a shuffled order some files would test
+# the old code and some the new. One import here gives every file the code as it is on disk.
+$manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'IntuneScriptLab.psd1'
+Import-Module -Name $manifestPath -Force -Global
+
 # Pester runs the test files in scopes below this one, so they would inherit this script's strict
 # mode. The module sets its own in its root module and does not depend on this one, but the
 # suites and the validation kit are not yet written for strict mode (#70, #71), so it is off for
