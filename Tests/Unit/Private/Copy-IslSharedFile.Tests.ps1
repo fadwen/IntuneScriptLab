@@ -40,6 +40,48 @@ Describe 'Copy-IslSharedFile' -Tag 'Unit', 'Private' {
         [System.IO.File]::ReadAllText($destination) | Should-Be "line one`r`n"
     }
 
+    It 'copies a file that a writer holds with delete access, as one that rotates its log does' {
+        $source = Join-Path $TestDrive 'Rotating.log'
+        $destination = Join-Path $TestDrive 'copy-rotating.log'
+        $rights = [System.Security.AccessControl.FileSystemRights]'Write, Delete'
+        $share = [System.IO.FileShare]'ReadWrite, Delete'
+        if ($PSVersionTable.PSVersion -lt [version]'6.0') {
+            $writer = [System.IO.FileStream]::new($source, 'Create', $rights, $share, 4096, 'None')
+        } else {
+            $writer = [System.IO.FileSystemAclExtensions]::Create(
+                [System.IO.FileInfo]$source, 'Create', $rights, $share, 4096, 'None', $null)
+        }
+        try {
+            $bytes = [System.Text.Encoding]::ASCII.GetBytes("rotating`r`n")
+            $writer.Write($bytes, 0, $bytes.Length)
+            $writer.Flush()
+            # What delete sharing is for: a reader that shares only reading and writing is refused
+            { [System.IO.File]::Open($source, 'Open', 'Read', 'ReadWrite').Dispose() } | Should-Throw
+
+            Copy-Shared -Source $source -Destination $destination
+        } finally {
+            $writer.Dispose()
+        }
+
+        [System.IO.File]::ReadAllText($destination) | Should-Be "rotating`r`n"
+    }
+
+    It 'removes the part copy when the source cannot be read to its end' {
+        $source = Join-Path $TestDrive 'Locked.log'
+        $destination = Join-Path $TestDrive 'copy-locked.log'
+        [System.IO.File]::WriteAllText($source, ('x' * 1000))
+        # A byte range that another stream has locked cannot be read, though the file opens
+        $holder = [System.IO.File]::Open($source, 'Open', 'ReadWrite', 'ReadWrite, Delete')
+        try {
+            $holder.Lock(0, 1000)
+            { Copy-Shared -Source $source -Destination $destination } | Should-Throw -ExceptionMessage '*lock*'
+        } finally {
+            $holder.Dispose()
+        }
+
+        Test-Path -LiteralPath $destination | Should-BeFalse
+    }
+
     It 'replaces a file that is at the destination' {
         $source = Join-Path $TestDrive 'Agent.log'
         $destination = Join-Path $TestDrive 'copy-replaced.log'

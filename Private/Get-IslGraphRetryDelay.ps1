@@ -9,7 +9,9 @@ function Get-IslGraphRetryDelay {
     or as a date, and otherwise 2 to the power of the attempt; it is at most 60 seconds. For any
     other failure there is nothing to wait for, and the function returns nothing. The status code
     and the response are read from Invoke-MgGraphRequest's exception by name, so an exception
-    of another type with the same members serves in the tests.
+    of another type with the same members serves in the tests. A response without a Retry-After
+    header, or of a type that has no RetryAfter member, such as the HttpWebResponse of a
+    WebException, gets the doubling delay.
 
     .PARAMETER ErrorRecord
     The error of the request that failed.
@@ -41,19 +43,34 @@ function Get-IslGraphRetryDelay {
 
     $exception = $ErrorRecord.Exception
     $status = 0
-    if ($exception.PSObject.Properties['StatusCode'] -and $exception.StatusCode) {
-        $status = [int]$exception.StatusCode
+    $exceptionStatus = Get-IslPropertyValue -InputObject $exception -Name 'StatusCode'
+    if ($exceptionStatus) { $status = [int]$exceptionStatus }
+    $response = Get-IslPropertyValue -InputObject $exception -Name 'Response'
+    if (-not $status -and $response) {
+        $responseStatus = Get-IslPropertyValue -InputObject $response -Name 'StatusCode'
+        if ($responseStatus) { $status = [int]$responseStatus }
     }
-    $response = if ($exception.PSObject.Properties['Response']) { $exception.Response } else { $null }
-    if (-not $status -and $response) { $status = [int]$response.StatusCode }
     if ($status -notin 429, 503, 504) { return }
 
     $delay = 0
-    $retryAfter = if ($response) { $response.Headers.RetryAfter } else { $null }
+    # Headers.RetryAfter is a member of HttpResponseMessage only. The response of another type,
+    # such as the HttpWebResponse of a WebException, has no such member and gets the doubling
+    # delay. The headers are a collection, which a function would unroll into its entries, so
+    # they are read here and not through Get-IslPropertyValue
+    $retryAfter = $null
+    $headersProperty = $null
+    if ($null -ne $response) { $headersProperty = $response.PSObject.Properties['Headers'] }
+    if ($null -ne $headersProperty -and $null -ne $headersProperty.Value) {
+        $retryProperty = $headersProperty.Value.PSObject.Properties['RetryAfter']
+        if ($null -ne $retryProperty) { $retryAfter = $retryProperty.Value }
+    }
     if ($retryAfter) {
-        if ($null -ne $retryAfter.Delta) { $delay = [Math]::Ceiling($retryAfter.Delta.TotalSeconds) }
-        elseif ($null -ne $retryAfter.Date) {
-            $delay = [Math]::Ceiling(($retryAfter.Date.UtcDateTime - [datetime]::UtcNow).TotalSeconds)
+        $retryDelta = Get-IslPropertyValue -InputObject $retryAfter -Name 'Delta'
+        $retryDate = Get-IslPropertyValue -InputObject $retryAfter -Name 'Date'
+        if ($null -ne $retryDelta) {
+            $delay = [Math]::Ceiling($retryDelta.TotalSeconds)
+        } elseif ($null -ne $retryDate) {
+            $delay = [Math]::Ceiling(($retryDate.UtcDateTime - [datetime]::UtcNow).TotalSeconds)
         }
     }
     if ($delay -lt 1) { $delay = [Math]::Pow(2, $Attempt) }

@@ -23,6 +23,7 @@ BeforeAll {
     $null = New-ItemProperty -Path $script:Key -Name 'Name' -Value 'Widget'
     $null = New-ItemProperty -Path $script:Key -Name 'Blob' -PropertyType Binary -Value ([byte[]](1, 2, 3))
     $null = New-ItemProperty -Path $script:Key -Name 'Long' -Value ('x' * 450)
+    $null = New-ItemProperty -Path $script:Key -Name 'PSVersion' -Value '5.1'
     $null = New-Item -Path "$($script:Key)\Child"
     $null = New-ItemProperty -Path "$($script:Key)\Child" -Name 'Inner' -Value 1
     $null = New-Item -Path "$($script:Key)\Child\Grandchild"
@@ -35,7 +36,15 @@ Describe 'Get-IslRegistryText' -Tag 'Unit', 'Private' {
 
         $lines[0] | Should-BeLikeString '`[*\Policies`]'
         $lines | Should-ContainCollection '  Name = Widget'
-        @($lines | Where-Object { $_ -like '  PS*' }) | Should-BeCollection @()
+        $providerPattern = '^  PS(Path|ParentPath|ChildName|Drive|Provider) = '
+        $providerLines = @($lines | Where-Object { $_ -match $providerPattern })
+        $providerLines | Should-BeCollection @()
+    }
+
+    It 'keeps a value of the key whose name starts with PS' {
+        $lines = Get-Text -Key $script:Key -Depth 0
+
+        $lines | Should-ContainCollection '  PSVersion = 5.1'
         @($lines | Where-Object { $_ -like '`[*\Child`]' }) | Should-BeCollection -Count 1
         $lines | Should-ContainCollection '  Inner = 1'
     }
@@ -49,11 +58,14 @@ Describe 'Get-IslRegistryText' -Tag 'Unit', 'Private' {
         $long[0] | Should-Be ('  Long = ' + ('x' * 400) + '...')
     }
 
-    It 'goes down as many levels as asked' {
+    It 'gives Depth + 1 levels of subkeys below the key' {
         $shallow = Get-Text -Key $script:Key -Depth 0
         $deep = Get-Text -Key $script:Key -Depth 1
 
-        @($shallow | Where-Object { $_ -like '`[*' }).Count | Should-Be 2
+        # Depth 0: the key and its subkeys, without the grandchild
+        $shallowKeys = @($shallow | Where-Object { $_ -like '`[*' })
+        $shallowKeys | Should-BeCollection -Count 2
+        @($shallowKeys | Where-Object { $_ -like '`[*Grandchild`]' }) | Should-BeCollection @()
         @($deep | Where-Object { $_ -like '`[*Grandchild`]' }) | Should-BeCollection -Count 1
     }
 

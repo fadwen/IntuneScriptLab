@@ -10,7 +10,9 @@ function Compress-IslFolder {
     the folder with forward slashes, on every host. Empty folders are not kept. The archive must
     not exist yet. It does not ask ShouldProcess: the command that calls it has asked for the
     whole package, and it writes even when -WhatIf or -Confirm reached it through the
-    preferences. A failure ends the function with its error.
+    preferences. A failure ends the function with its error. An archive that this call created
+    and could not fill is removed, so a failure leaves no archive that looks complete; one that
+    was there before the call is left as it is.
 
     .PARAMETER Folder
     The full path of the folder to compress, without a trailing separator.
@@ -53,7 +55,21 @@ function Compress-IslFolder {
             $count++
         }
     } catch {
-        $PSCmdlet.ThrowTerminatingError($_)
+        $failure = $_
+        if ($null -ne $archive) {
+            # Disposing writes the central directory, which makes the part archive a valid zip
+            $partArchive = $archive
+            $archive = $null
+            try {
+                $partArchive.Dispose()
+                [System.IO.File]::Delete($Destination)
+            } catch {
+                # The compression's own failure is the one to report; the archive that stays is named
+                $reason = $_.Exception.Message
+                Write-Warning "The incomplete archive at $Destination could not be removed: $reason"
+            }
+        }
+        $PSCmdlet.ThrowTerminatingError($failure)
     } finally {
         if ($null -ne $archive) { $archive.Dispose() }
     }

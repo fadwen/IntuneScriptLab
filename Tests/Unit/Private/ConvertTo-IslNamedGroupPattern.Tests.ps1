@@ -29,6 +29,13 @@ Describe 'ConvertTo-IslNamedGroupPattern' -Tag 'Unit', 'Private' {
         @{ Pattern = 'a\(b\)'; Expected = 'a\(b\)'; Count = 0 }
         @{ Pattern = 'a[(]b(c)'; Expected = 'a[(]b(?<e3g1>c)'; Count = 1 }
         @{ Pattern = 'plain text'; Expected = 'plain text'; Count = 0 }
+        @{ Pattern = '^(\w+) .* \1$'; Expected = '^(?<e3g1>\w+) .* \k<e3g1>$'; Count = 1 }
+        @{ Pattern = '\2(a)(b)'; Expected = '\k<e3g2>(?<e3g1>a)(?<e3g2>b)'; Count = 2 }
+        @{ Pattern = '(a)\k<1>'; Expected = '(?<e3g1>a)\k<e3g1>'; Count = 1 }
+        @{ Pattern = '(a)[\1]'; Expected = '(?<e3g1>a)[\1]'; Count = 1 }
+        @{ Pattern = '(a)\\1'; Expected = '(?<e3g1>a)\\1'; Count = 1 }
+        @{ Pattern = '(a)\0'; Expected = '(?<e3g1>a)\0'; Count = 1 }
+        @{ Pattern = '(a)\12'; Expected = '(?<e3g1>a)\12'; Count = 1 }
     ) {
         $result = ConvertTo-Named -Pattern $Pattern
 
@@ -47,5 +54,20 @@ Describe 'ConvertTo-IslNamedGroupPattern' -Tag 'Unit', 'Private' {
         $renamed.Success | Should-BeTrue
         $renamed.Groups['e3g1'].Value | Should-Be $original.Groups[1].Value
         $renamed.Groups['e3g2'].Value | Should-Be $original.Groups[2].Value
+    }
+
+    It 'keeps a backreference to its own group when the pattern is joined after another' {
+        $first = InModuleScope IntuneScriptLab { ConvertTo-IslNamedGroupPattern -Pattern '^(x)y' -Prefix 'e0g' }
+        $second = InModuleScope IntuneScriptLab {
+            ConvertTo-IslNamedGroupPattern -Pattern '^(\w+) and \1$' -Prefix 'e1g'
+        }
+        $joined = "(?<e0>$($first['Pattern']))|(?<e1>$($second['Pattern']))"
+
+        $match = [regex]::Match('same and same', $joined)
+
+        $match.Success | Should-BeTrue
+        $match.Groups['e1'].Success | Should-BeTrue
+        $match.Groups['e1g1'].Value | Should-Be 'same'
+        [regex]::IsMatch('same and other', $joined) | Should-BeFalse
     }
 }
