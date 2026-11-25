@@ -57,6 +57,36 @@ Describe 'Get-IslRegistryText' -Tag 'Unit', 'Private' {
         @($deep | Where-Object { $_ -like '`[*Grandchild`]' }) | Should-BeCollection -Count 1
     }
 
+    It 'passes over a key that is there but cannot be read, without an error' {
+        # A key in the test registry that the current user may not read; Test-Path still finds it
+        $null = New-Item -Path 'TestRegistry:\Denied\Child' -Force
+        $root = (Get-PSDrive -Name TestRegistry).Root -replace '^HKEY_CURRENT_USER\\', ''
+        $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+        $rights = [System.Security.AccessControl.RegistryRights]::ReadKey
+        $deny = [System.Security.AccessControl.RegistryAccessRule]::new($user, $rights, 'Deny')
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(
+            "$root\Denied", [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+            [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+        $sections = [System.Security.AccessControl.AccessControlSections]::Access
+        $acl = $key.GetAccessControl($sections)
+        $acl.AddAccessRule($deny)
+        $key.SetAccessControl($acl)
+        try {
+            $output = InModuleScope IntuneScriptLab {
+                Get-IslRegistryText -Key 'TestRegistry:\Denied' -Depth 1 -ErrorAction Continue 2>&1
+            }
+        } finally {
+            # Pester removes the test registry after the file, which the rule would stop
+            $acl = $key.GetAccessControl($sections)
+            $null = $acl.RemoveAccessRule($deny)
+            $key.SetAccessControl($acl)
+            $key.Dispose()
+        }
+
+        @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }) | Should-BeCollection @()
+        @($output) | Should-BeCollection @()
+    }
+
     It 'gives one line for a key that is not there' {
         $missing = 'TestRegistry:\NotThere'
         Get-Text -Key $missing -Depth 1 | Should-BeCollection @("$missing : not present")

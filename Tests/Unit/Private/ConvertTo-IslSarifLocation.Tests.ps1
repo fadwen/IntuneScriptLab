@@ -55,5 +55,12 @@ Describe 'ConvertTo-IslSarifLocation' -Tag 'Unit', 'Private' {
             $location['uri'] | Should-Be 'file:///D:/elsewhere/Detect.ps1'
             $location.Contains('uriBaseId') | Should-BeFalse
         }
+
+        It 'gives a path below the file system root of Linux, an empty root, as a relative URI' {
+            $location = ConvertTo-Location '/repo/Remediations/Detect.ps1' ''
+
+            $location['uri'] | Should-Be 'repo/Remediations/Detect.ps1'
+            $location['uriBaseId'] | Should-Be '%SRCROOT%'
+        }
     }
 }

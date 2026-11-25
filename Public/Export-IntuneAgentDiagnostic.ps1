@@ -55,7 +55,7 @@ function Export-IntuneAgentDiagnostic {
             foreach ($file in $logFiles) {
                 $destination = Join-Path -Path $logFolder -ChildPath $file.Name
                 # A log the agent holds open is copied through a shared-read stream
-                Copy-IslSharedFile -Source $file.FullName -Destination $destination @script:IslInternal
+                Copy-IslSharedFile -Source $file.FullName -Destination $destination
             }
             $manifest.Add("Logs: $($logFiles.Count) file(s) from $LogPath")
         }
@@ -81,11 +81,11 @@ function Export-IntuneAgentDiagnostic {
         if ($agentExe -and (Test-Path -LiteralPath $agentExe)) {
             $system.Add("Agent version: $((Get-Item -LiteralPath $agentExe).VersionInfo.FileVersion)")
         }
-        Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system @script:IslInternal
+        Write-IslTextFile -Root $staging -RelativePath 'Device\system.txt' -Line $system
         if (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue) {
             $joinState = @(& dsregcmd.exe /status 2>&1 | ForEach-Object { "$_" })
             $sectionSplat = @{ Root = $staging; RelativePath = 'Device\dsregcmd.txt'; Line = $joinState }
-            Write-IslTextFile @sectionSplat @script:IslInternal
+            Write-IslTextFile @sectionSplat
             $manifest.Add('Device: system.txt, dsregcmd.txt')
         }
         else { $manifest.Add('Device: system.txt (dsregcmd not available)') }
@@ -104,7 +104,7 @@ function Export-IntuneAgentDiagnostic {
             foreach ($entry in $keys) {
                 $lines = @(Get-IslRegistryText -Key $entry.Key -Depth $entry.Depth)
                 $sectionSplat = @{ Root = $staging; RelativePath = "Registry\$($entry.Name).txt"; Line = $lines }
-                Write-IslTextFile @sectionSplat @script:IslInternal
+                Write-IslTextFile @sectionSplat
             }
             $manifest.Add("Registry: $(($keys | ForEach-Object { $_.Name }) -join ', ')")
         }
@@ -132,14 +132,14 @@ function Export-IntuneAgentDiagnostic {
         else { $manifest.Add('Timeline: skipped') }
 
         $manifest.Insert(0, "IntuneScriptLab diagnostic package, $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))")
-        Write-IslTextFile -Root $staging -RelativePath 'Manifest.txt' -Line $manifest @script:IslInternal
+        Write-IslTextFile -Root $staging -RelativePath 'Manifest.txt' -Line $manifest
 
         if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force @script:IslInternal }
         $zipFolder = Split-Path -Path $zip -Parent
         if ($zipFolder -and -not (Test-Path -LiteralPath $zipFolder)) {
             $null = New-Item -ItemType Directory -Path $zipFolder -Force @script:IslInternal
         }
-        $entryCount = Compress-IslFolder -Folder $staging -Destination $zip @script:IslInternal
+        $entryCount = Compress-IslFolder -Folder $staging -Destination $zip
     }
     catch {
         # Whatever failed, the package is not complete: the command ends without a result
