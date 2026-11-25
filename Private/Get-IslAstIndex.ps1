@@ -1,6 +1,3 @@
-# AST helpers shared by the rules. Type names are compared as strings so the module loads on
-# Windows PowerShell 5.1, where the PowerShell 7 node types (ternary, pipeline chain) don't exist.
-
 # One walk per tree, shared by every rule that asks about it: the nodes grouped by type name and
 # the commands grouped by name. Fifteen rules each walking the tree, some of them once per command
 # name they look for, was most of the time an analysis took. The table is keyed on the AST object
