@@ -104,7 +104,12 @@ BeforeAll {
         )
 
         $archive = [System.IO.Compression.ZipFile]::OpenRead($Zip)
-        try { @($archive.Entries | ForEach-Object { $_.FullName }) } finally { $archive.Dispose() }
+        try {
+            $names = @($archive.Entries | ForEach-Object { $_.FullName })
+        } finally {
+            $archive.Dispose()
+        }
+        $names
     }
     function script:Read-ZipEntry {
         <#

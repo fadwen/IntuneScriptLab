@@ -275,7 +275,9 @@ function Get-AllGraphItem {
     } catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
-    $items
+    foreach ($item in $items) {
+        $item
+    }
 }
 
 

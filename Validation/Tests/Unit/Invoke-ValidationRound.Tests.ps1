@@ -28,25 +28,155 @@ BeforeAll {
     $script:VmId = 125
     $script:prefix = 'ISL-'
 
-    # Stubs so the commands exist to be mocked; neither is installed on a CI runner. ssh takes its
-    # arguments through $args, as a native command would: a declared parameter would make -o ambiguous
-    function ssh { throw 'ssh stub called' }
-    function Invoke-MgGraphRequest { param($Method, $Uri, $Body) throw "Graph stub called: $Method $Uri $Body" }
+    # Stubs so the commands exist to be mocked; neither is installed on a CI runner
+    # Exception to FUN-01: a stand-in for a native command must accept '-o' as an argument, and an
+    # advanced function reads it as an ambiguous prefix of -OutVariable and -OutBuffer
+    function ssh {
+        <#
+        .SYNOPSIS
+            Stands in for the ssh executable, which every test mocks.
+
+        .DESCRIPTION
+            Fails when a test reaches it without a mock. It takes its arguments as a native command
+            does, which is why it is not an advanced function: CmdletBinding adds -OutVariable and
+            -OutBuffer, and the driver's '-o BatchMode=yes' would then be an ambiguous parameter
+            name.
+
+        .EXAMPLE
+            ssh -o BatchMode=yes pve 'qm list'
+
+            Fails, unless a test mocks it.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        throw 'ssh stub called'
+    }
+
+
+    function Invoke-MgGraphRequest {
+        <#
+        .SYNOPSIS
+            Stands in for Invoke-MgGraphRequest, which every test mocks.
+
+        .DESCRIPTION
+            The command has to exist for Mock to replace it, and a CI runner does not have the Graph
+            module. It fails, naming the request, when a test reaches it without a mock.
+
+        .PARAMETER Method
+            The HTTP method.
+
+        .PARAMETER Uri
+            The request URI.
+
+        .PARAMETER Body
+            The request body.
+
+        .EXAMPLE
+            Invoke-MgGraphRequest -Method GET -Uri '/v1.0/groups'
+
+            Fails, unless a test mocks it.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [string]$Method,
+
+            [string]$Uri,
+
+            [object]$Body
+        )
+
+        $exception = [System.InvalidOperationException]::new("Graph stub called: $Method $Uri $Body")
+        $category = [System.Management.Automation.ErrorCategory]::NotImplemented
+        $PSCmdlet.ThrowTerminatingError(
+            [System.Management.Automation.ErrorRecord]::new($exception, 'GraphStubCalled', $category, $Uri))
+    }
 
     . $script:Lifted
     . (Join-Path $script:KitRoot 'GuestAgent.ps1')
 
     # Mock bodies see only their own parameters, so call records go through a file under TestDrive
     $script:CallLog = Join-Path $TestDrive 'calls.log'
-    function Get-CallLog { if (Test-Path $script:CallLog) { @(Get-Content $script:CallLog) } else { @() } }
+    function Get-CallLog {
+        <#
+        .SYNOPSIS
+            Gets the calls the mocks recorded in the call log, one line each.
+
+        .DESCRIPTION
+            Mock bodies see only their own parameters, so they append a line for each call to a file
+            under TestDrive, and the tests read it back here.
+
+        .EXAMPLE
+            @(Get-CallLog) | Should-BeCollection -Count 2
+
+            Asserts that two calls were made.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            System.String. One line for each recorded call; nothing when none was made.
+        #>
+        [CmdletBinding()]
+        [OutputType([string])]
+        param()
+
+        if (Test-Path -LiteralPath $script:CallLog) {
+            Get-Content -LiteralPath $script:CallLog
+        }
+    }
 
     # What the fake Proxmox host answers, one line per call and the last line repeated: the start
     # calls ("qm guest exec") and the result calls ("qm guest exec-status") each have a queue.
     # "{M}" stands for the marker the command under test printed first; "!255 text" is a failed call
     function Use-HostReply {
-        param([string[]]$Start = '{"pid":4242}', [Parameter(Mandatory)][string[]]$Status)
-        Set-Content -Path (Join-Path $TestDrive 'start-replies.txt') -Value $Start
-        Set-Content -Path (Join-Path $TestDrive 'status-replies.txt') -Value $Status
+        <#
+        .SYNOPSIS
+            Sets what the fake Proxmox host answers to the start and the result calls.
+
+        .DESCRIPTION
+            Writes one queue for "qm guest exec" and one for "qm guest exec-status" under TestDrive,
+            where the ssh mock reads them.
+
+        .PARAMETER Start
+            The answers to the start calls, one a call, the last one repeated.
+
+        .PARAMETER Status
+            The answers to the result calls, one a call, the last one repeated.
+
+        .EXAMPLE
+            Use-HostReply -Status '{"exited":1,"exitcode":0,"out-data":"{M}"}'
+
+            One start that returns pid 4242, and a result with the command's marker.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [Parameter()]
+            [string[]]$Start = '{"pid":4242}',
+
+            [Parameter(Mandatory)]
+            [string[]]$Status
+        )
+
+        Set-Content -LiteralPath (Join-Path $TestDrive 'start-replies.txt') -Value $Start
+        Set-Content -LiteralPath (Join-Path $TestDrive 'status-replies.txt') -Value $Status
     }
 }
 

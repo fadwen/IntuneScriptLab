@@ -15,10 +15,53 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
     if (-not (Get-Command Invoke-MgGraphRequest -ErrorAction SilentlyContinue)) {
-        # The parameters exist so the mocks' parameter filters can bind to them
         function global:Invoke-MgGraphRequest {
-            param($Method, $Uri, $Body, $Headers, $ErrorAction)
-            $null = $Method, $Uri, $Body, $Headers, $ErrorAction
+            <#
+            .SYNOPSIS
+                Stands in for Invoke-MgGraphRequest where Microsoft.Graph.Authentication is missing.
+
+            .DESCRIPTION
+                The command has to exist for Mock to replace it, and a CI runner does not have the
+                Graph module. The parameters are the ones the seam passes, so that the mocks'
+                parameter filters can bind to them; -ErrorAction is the common parameter. Every
+                test mocks it, so the body does nothing.
+
+            .PARAMETER Method
+                The HTTP method.
+
+            .PARAMETER Uri
+                The request URI.
+
+            .PARAMETER Body
+                The request body.
+
+            .PARAMETER Headers
+                The request headers.
+
+            .EXAMPLE
+                Invoke-MgGraphRequest -Method GET -Uri '/v1.0/me'
+
+                Returns nothing unless a test mocks it.
+
+            .INPUTS
+                None.
+
+            .OUTPUTS
+                None.
+            #>
+            [CmdletBinding()]
+            [OutputType([void])]
+            param(
+                [string]$Method,
+
+                [string]$Uri,
+
+                [object]$Body,
+
+                [object]$Headers
+            )
+
+            $null = $Method, $Uri, $Body, $Headers
         }
         $script:StubCreated = $true
     }
