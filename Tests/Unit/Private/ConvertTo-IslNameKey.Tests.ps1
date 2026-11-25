@@ -1,0 +1,25 @@
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+
+<#
+    The key that a tenant policy and its local folder or file are matched by.
+#>
+
+BeforeAll {
+    $script:ModuleRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    if (-not (Get-Module -Name IntuneScriptLab)) {
+        Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1')
+    }
+}
+
+Describe 'ConvertTo-IslNameKey' -Tag 'Unit', 'Private' {
+
+    It 'gives <Expected> for <Value>' -ForEach @(
+        @{ Value = 'Detect Printer (x64)'; Expected = 'detect_printer__x64_' }
+        @{ Value = 'Widget: 2.0'; Expected = 'widget__2.0' }
+        @{ Value = 'Fix-Widget_1'; Expected = 'fix-widget_1' }
+        @{ Value = ''; Expected = '' }
+    ) {
+        InModuleScope IntuneScriptLab -Parameters @{ Value = $Value } { ConvertTo-IslNameKey -Value $Value } |
+            Should-Be $Expected
+    }
+}
