@@ -112,7 +112,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         foreach ($command in (Get-Command -Module IntuneScriptLab -CommandType Function)) {
             $synopsis = (Get-Help $command.Name).Synopsis.Trim()
             $synopsis.Contains("`n") | Should-BeFalse -Because "the synopsis of $($command.Name) is one line"
-            $synopsis.Length | Should-BeLessThanOrEqual 80 -Because "DOC-10 limits the synopsis of $($command.Name)"
+            $synopsis.Length | Should-BeLessThanOrEqual 80 -Because "DOC-10 limits $($command.Name)"
             # The one-line .SYNOPSIS beside .EXTERNALHELP is what a reader of the source sees
             $source = $command.ScriptBlock.Ast.GetHelpContent().Synopsis.Trim()
             $source | Should-Be $synopsis -Because "the source and the help of $($command.Name) say the same"
