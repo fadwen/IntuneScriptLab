@@ -5,9 +5,10 @@ function New-IslFilterParser {
 
     .DESCRIPTION
     For ConvertFrom-IslFilterRule. The rule is split into parentheses, brackets, commas,
-    double-quoted strings, which have no escapes, and words. The state that the Read-IslFilter*
-    functions share is returned with the tokens: the cursor (Pos), the first failure (Error), the
-    clauses and warnings read so far, the rule itself, the Windows device properties from
+    double-quoted strings, which have no escapes, and words, each an IntuneScriptLab.FilterToken
+    with its Type, Text, Position and End. The state that the Read-IslFilter* functions share is
+    returned with the tokens: the cursor (Pos), the first failure (Error), the clauses and
+    warnings read so far, the rule itself, the Windows device properties from
     Get-IslFilterProperty, the operators the service accepts and the reasons it refuses others.
 
     An empty rule, or a character that no token can start with, sets Error, and tokenizing stops
@@ -75,6 +76,7 @@ function New-IslFilterParser {
         foreach ($kind in 'lparen', 'rparen', 'lbracket', 'rbracket', 'comma', 'string', 'word') {
             if ($match.Groups[$kind].Success) {
                 $parser.Tokens.Add([pscustomobject]@{
+                        PSTypeName = 'IntuneScriptLab.FilterToken'
                         Type = $kind; Text = $match.Groups[$kind].Value
                         Position = $match.Index + 1; End = $match.Index + $match.Length
                     })

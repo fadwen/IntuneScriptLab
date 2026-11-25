@@ -33,9 +33,13 @@ Describe 'Read-IslFilterValue' -Tag 'Unit', 'Private' {
         It 'reads <Text> for -<Operator> on <Property> as <Expected>' -ForEach @(
             @{ Text = '"LAB-PC-01"'; Property = 'devicename'; Operator = 'eq'; Expected = @('LAB-PC-01') }
             @{ Text = '["a", "b",]'; Property = 'osversion'; Operator = 'in'; Expected = @('a', 'b') }
-            @{ Text = '10.0.22631'; Property = 'operatingsystemversion'; Operator = 'ge'; Expected = '10.0.22631' }
             @{
-                Text = '"10.0.22631"'; Property = 'operatingsystemversion'; Operator = 'ge'; Expected = '10.0.22631'
+                Text = '10.0.22631'; Property = 'operatingsystemversion'; Operator = 'ge'
+                Expected = '10.0.22631'
+            }
+            @{
+                Text = '"10.0.22631"'; Property = 'operatingsystemversion'; Operator = 'ge'
+                Expected = '10.0.22631'
             }
             @{ Text = '$null'; Property = 'devicename'; Operator = 'eq'; Expected = @($null) }
             @{ Text = 'null'; Property = 'devicename'; Operator = 'ne'; Expected = @($null) }

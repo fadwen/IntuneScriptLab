@@ -21,10 +21,10 @@ function Get-IslFilterToken {
     None.
 
     .OUTPUTS
-    System.Management.Automation.PSCustomObject. The token, or nothing at the end of the rule.
+    IntuneScriptLab.FilterToken. The token, or nothing at the end of the rule.
     #>
     [CmdletBinding()]
-    [OutputType([psobject])]
+    [OutputType('IntuneScriptLab.FilterToken')]
     param(
         [Parameter(Mandatory)]
         [hashtable]$Parser

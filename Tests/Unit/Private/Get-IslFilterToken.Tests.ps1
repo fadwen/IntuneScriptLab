@@ -28,6 +28,7 @@ Describe 'Get-IslFilterToken' -Tag 'Unit', 'Private' {
         $output = @(Get-Token -Rule '(device.deviceName -eq "X")' -Position 2)
 
         $output | Should-BeCollection -Count 2
+        $output[0] | Should-HaveType 'IntuneScriptLab.FilterToken'
         $output[0].Type | Should-Be 'word'
         $output[0].Text | Should-Be '-eq'
         $output[1] | Should-Be 2
