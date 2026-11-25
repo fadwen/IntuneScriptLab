@@ -53,10 +53,10 @@ BeforeAll {
 # The driver targets PowerShell 7.6 (Convert.ToHexString, SHA256.HashData); under Windows PowerShell
 # 5.1 the suite reports as skipped rather than failing on the language gap
 BeforeDiscovery {
-    $onPowerShell7 = $PSVersionTable.PSVersion -ge [version]'7.0'
+    $script:OnPowerShell7 = $PSVersionTable.PSVersion -ge [version]'7.0'
 }
 
-Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:(-not $onPowerShell7) {
+Describe 'Invoke-ValidationRound helpers' -Tag 'Unit', 'Validation' -Skip:(-not $script:OnPowerShell7) {
 
     BeforeEach {
         Remove-Item $script:CallLog -ErrorAction SilentlyContinue
