@@ -70,7 +70,12 @@ function Get-IslCredentialSource {
         'InvokeMemberExpressionAst' {
             $onType = $Expression.Expression.GetType().Name -eq 'TypeExpressionAst' -and
                 $Expression.Expression.TypeName.FullName -match $credentialType
-            if ($onType -and "$($Expression.Member.Value)" -eq 'new') { return '[pscredential]::new()' }
+            # A member named by a variable, as in [pscredential]::$m(), has no Value, and the
+            # method it calls cannot be known from the script
+            $namedMember = $Expression.Member.GetType().Name -eq 'StringConstantExpressionAst'
+            if ($onType -and $namedMember -and $Expression.Member.Value -eq 'new') {
+                return '[pscredential]::new()'
+            }
         }
         'ConvertExpressionAst' {
             if ($Expression.Type.TypeName.FullName -match $credentialType) { return 'a [pscredential] cast' }

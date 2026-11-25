@@ -159,6 +159,11 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- `Test-IntuneScript` ended with `The property 'Value' cannot be found on this object` on a
+  script that calls a method whose name is a variable, such as `$host.UI.$m()` or
+  `[pscredential]::$m($user, $secure)`. The interactive-call rule (`IslInteractiveCall`) now
+  leaves such a call alone, since which method it calls cannot be known from the script, and a
+  credential built that way counts as one that may be a name (#109).
 - A version in an assignment filter with a part too large for a 64-bit number, such as
   `10.0.99999999999999999999`, is not a version that `Test-IntuneAssignmentFilter` can order, so
   `-gt`, `-ge`, `-lt` and `-le` on it do not match, `-eq` does not match even the same text, and
