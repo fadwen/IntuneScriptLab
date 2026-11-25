@@ -4,9 +4,11 @@
     The password of a -Credential goes to the Task Scheduler and nowhere else (SEC-06, TST-43). A
     run as another account is driven from Invoke-IntunePlatformScriptTest down to the scheduled
     task, with the task cmdlets faked at that boundary, for an account without a session, which is
-    the case that hands the password over. Every stream is captured with -Verbose and -Debug on,
-    and the password must be in none of them, in no error, in no part of the result and in no file
-    the run leaves behind; the task registration must be the one call that receives it.
+    the case that hands the password over. Every stream is captured with -Verbose on, and with
+    -Debug on PowerShell 7 (Windows PowerShell 5.1 makes -Debug Inquire, which a test host cannot
+    answer, so its debug stream is not read). The password must be in none of them, in no error,
+    in no part of the result and in no file the run leaves behind; the task registration must be
+    the one call that receives it.
 #>
 
 BeforeAll {
@@ -103,8 +105,8 @@ Describe 'The password of -Credential' -Tag 'Unit', 'Security' {
         Mock Get-ScheduledTaskInfo -ModuleName IntuneScriptLab { [pscustomobject]@{ LastTaskResult = 267009 } }
         # What the task's wrapper would write into the run folder
         Mock Start-ScheduledTask -ModuleName IntuneScriptLab {
-            $runId = $TaskName.Substring('IntuneScriptLab-'.Length)
-            $folder = Join-Path (Join-Path $env:ProgramData 'IntuneScriptLabRuns') $runId
+            # The task is named after the run folder, which is directly under ProgramData
+            $folder = Join-Path $env:ProgramData $TaskName.Substring('IntuneScriptLab-'.Length)
             [IO.File]::WriteAllText((Join-Path $folder 'stdout.txt'), "ran`r`n")
             [IO.File]::WriteAllText((Join-Path $folder 'stderr.txt'), '')
             [IO.File]::WriteAllText((Join-Path $folder 'exitcode.txt'), "0`r`n")
@@ -134,16 +136,16 @@ Describe 'The password of -Credential' -Tag 'Unit', 'Security' {
 
         $null = Invoke-RunAsAccount
 
+        # A run as another account writes only under ProgramData, which the test points at its own
+        # drive, so that is the whole of what it can leave
         $left = @(Get-ChildItem -LiteralPath $env:ProgramData -Recurse -File -ErrorAction SilentlyContinue)
-        $tempRuns = Join-Path ([System.IO.Path]::GetTempPath()) 'IntuneScriptLab'
-        $left += @(Get-ChildItem -LiteralPath $tempRuns -Recurse -File -ErrorAction SilentlyContinue)
         $holding = @($left | Where-Object {
                 [System.IO.File]::ReadAllText($_.FullName).Contains($script:Secret)
             })
         $holding | Should-BeCollection -Count 0
         # The run folder itself is gone, with the copy and the task's output in it
-        $runs = Join-Path $env:ProgramData 'IntuneScriptLabRuns'
-        @(Get-ChildItem -LiteralPath $runs -Directory) | Should-BeCollection -Count 0
+        $runs = @(Get-ChildItem -LiteralPath $env:ProgramData -Filter 'IntuneScriptLabRun-*' -Directory)
+        $runs | Should-BeCollection -Count 0
     }
 
     It 'is not in the error when the Task Scheduler refuses the task' {

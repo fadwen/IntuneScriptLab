@@ -10,8 +10,11 @@
     well inside and one that grows with the square of the lines does not. Every measurement is
     written to the information stream as a MEASURE line, for the baselines of the performance gate.
 
-    On a Windows 11 laptop, 20,000 lines took 5 to 6 seconds for the log reader and 6 to 11 seconds
-    for the timeline, on PowerShell 7.6 and Windows PowerShell 5.1.
+    The readers run once on a small log before they are measured, so that the first measurement
+    does not carry the one-time cost of compiling the module's script blocks and expressions. On a
+    Windows 11 laptop, 10,000 lines took 3.5 to 4.1 seconds and kept 26 to 27 MB for the log
+    reader, and 3.8 to 5.2 seconds and 19 to 20 MB for the timeline, on PowerShell 7.6 and Windows
+    PowerShell 5.1; four times the lines took 3.9 to 4.8 times as long.
 #>
 
 BeforeAll {
@@ -89,9 +92,9 @@ BeforeAll {
 
         .DESCRIPTION
             Collects garbage first, so the memory before is what is live; runs the script block
-            with a stopwatch; reads the memory again while the result is still held, so the
-            difference is what the reader returned and kept. Writes a MEASURE line to the
-            information stream.
+            with a stopwatch; collects again and reads the memory while the result is still held,
+            so the difference is what the reader returned and kept, not what it dropped. Writes a
+            MEASURE line to the information stream.
 
         .PARAMETER Name
             The name of the measurement, for the MEASURE line.
@@ -131,7 +134,8 @@ BeforeAll {
         $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $result = @(& $Reader)
         $stopwatch.Stop()
-        $memoryAfter = [System.GC]::GetTotalMemory($false)
+        # Collected while the result is still referenced: what the reader keeps, not what it dropped
+        $memoryAfter = [System.GC]::GetTotalMemory($true)
         $measurement = [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.Test.Measurement'
             Count = $result.Count
@@ -148,6 +152,10 @@ BeforeAll {
     $script:LargeRuns = 2000
     $script:SmallLogs = New-HealthScriptsLog -Runs $script:SmallRuns
     $script:LargeLogs = New-HealthScriptsLog -Runs $script:LargeRuns
+    # The warm-up: the first call of a reader in a process compiles what it uses
+    $warmUp = New-HealthScriptsLog -Runs 20
+    $null = @(Get-IntuneAgentLog -Path $warmUp)
+    $null = @(Get-IntuneAgentTimeline -Path $warmUp)
 }
 
 Describe 'Agent log readers on a large log' -Tag 'Performance' {
