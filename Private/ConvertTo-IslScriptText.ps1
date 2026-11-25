@@ -1,7 +1,7 @@
 function ConvertTo-IslScriptText {
     <#
     .SYNOPSIS
-    Reads a script's bytes as UTF-8 text, and tells whether they start with a byte order mark.
+    Reads a script's bytes as UTF-8 text and tells whether they have a BOM.
 
     .DESCRIPTION
     For Compare-IntuneDeployedScript. The UTF-8 byte order mark, EF BB BF, is left out of the

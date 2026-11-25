@@ -1,7 +1,7 @@
 function ConvertTo-IslHealthReport {
     <#
     .SYNOPSIS
-    Builds the health line of one deployed script policy from what Get-IntuneScriptHealth read.
+    Builds the health line of one deployed script policy.
 
     .DESCRIPTION
     For Get-IntuneScriptHealth. Puts together the policy's findings from

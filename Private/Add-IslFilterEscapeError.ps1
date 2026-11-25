@@ -1,7 +1,7 @@
 function Add-IslFilterEscapeError {
     <#
     .SYNOPSIS
-    Records that an assignment filter rule tries to escape a double quote inside a value.
+    Records that a filter rule tries to escape a double quote inside a value.
 
     .DESCRIPTION
     For the assignment filter parser, once Test-IslFilterEscapedQuote has found the mistake. The

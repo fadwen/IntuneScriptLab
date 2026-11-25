@@ -35,7 +35,7 @@ On an ARM64 device the native host reports PROCESSOR_ARCHITECTURE=ARM64 (and the
 
 ## IslContextIssue
 
-Flags per-user locations in SYSTEM scripts and privileged writes in user scripts.
+Flags per-user places in SYSTEM scripts and privileged writes in user scripts.
 
 As SYSTEM, HKCU: is the SYSTEM account's own hive, USERPROFILE is C:\WINDOWS\system32\config\systemprofile, APPDATA sits under it, TEMP is C:\WINDOWS\TEMP, there is no console session and no mapped drives. A script written and tested in the admin's own session works there and silently does the wrong thing under Intune. Running as the signed-in user has the opposite problem: standard users can't write HKLM or Program Files.
 
@@ -54,7 +54,7 @@ Experiments: PS-PROBE-SYS64, PS-PROBE-USER, REM-DRIVES-SYS, REM-PROBE-SYS64, REM
 
 ## IslEncodingIssue
 
-Flags files whose bytes Windows PowerShell 5.1 will decode as something other than UTF-8.
+Flags files Windows PowerShell 5.1 decodes as something other than UTF-8.
 
 Intune delivers the script bytes unchanged. Without a UTF-8 BOM, Windows PowerShell 5.1 reads the file as ANSI, so every non-ASCII character in the source is corrupted before the script runs ("Grüße — ✓" became "GrÃ¼ÃŸe â€" âœ""). With a BOM the source decodes correctly, but text the script *outputs* still goes through the OEM console code page on its way to Intune and loses anything outside it.
 
@@ -69,7 +69,7 @@ Experiments: REM-ENC-BOM, REM-PROBE-SYS64
 
 ## IslExecutionPolicyCall
 
-Flags Set-ExecutionPolicy calls, which the agent's own launch makes redundant or harmful.
+Flags Set-ExecutionPolicy, which the agent's launch makes redundant or harmful.
 
 Every script the agent runs is launched as powershell.exe -NoProfile -ExecutionPolicy Bypass -File <script> (AgentExecutor.log, all rounds), so the process already runs with Bypass and a Set-ExecutionPolicy -Scope Process changes nothing. Any other scope is a change to the machine or the user policy made as SYSTEM on every run: a side effect that outlives the script and does nothing for it.
 
@@ -118,7 +118,7 @@ Experiments: PS-PROBE-SYS64, REM-CRED-BUILT, REM-PROBE-SYS64
 
 ## IslLongSleep
 
-Flags waits long enough to hit the agent's timeout or hold up other remediations.
+Flags waits that hit the agent's timeout or hold up other remediations.
 
 Platform scripts are killed after 30 minutes, remediations and Win32 detection after 60. Remediations also run strictly one after another, so a long wait in one delays every other remediation assigned to the device.
 
@@ -170,7 +170,7 @@ Experiments: REM-EXIT-ERRNOEXIT, REM-OUT-HOSTLAST, REM-OUT-LONG, REM-OUT-STREAMS
 
 ## IslPowerShell7Syntax
 
-Flags syntax, cmdlets, parameters and parameter values that only exist in PowerShell 7.
+Flags syntax, cmdlets, parameters and values that only PowerShell 7 has.
 
 The Intune Management Extension runs every script with Windows PowerShell 5.1 (observed: PSVersion 5.1.26100, Desktop edition, for remediations, platform scripts and Win32 detection). PowerShell 7 syntax is a parse error there, which means the script never runs: a detection script exits 1 and triggers the remediation, a Win32 detection reports "not detected". A #Requires -Version 7 ends the same way, before the first line. A cmdlet, a parameter or a parameter value only PowerShell 7 has does parse, so the script starts: that one call fails with an error and the script carries on to its own exit, without the result it was written to use.
 
@@ -213,7 +213,7 @@ Experiments: PS-PROBE-USER
 
 ## IslScriptSize
 
-Flags scripts over the documented 200 KB, and over the size the service actually refuses.
+Flags scripts over the documented 200 KB and over the size the service refuses.
 
 Microsoft Learn puts the limit for remediation and platform scripts at 200 KB. The service takes more than that: through the Graph API a remediation of 504 KB and a platform script of 660 KB were accepted, while 512 KB and 680 KB were refused with a generic error, and a 250 KB remediation and a 500 KB platform script ran on the device (REM-SIZE-250KB, PS-SIZE-500KB). A script over the documented limit is therefore reported as a warning, because the portal and other tooling may hold to it; a script over what the API refused is an error, because it cannot be deployed.
 
@@ -226,7 +226,7 @@ Experiments: PS-SIZE-500KB, REM-SIZE-250KB
 
 ## IslSignatureIssue
 
-Flags a Win32 detection script that the agent will refuse to run under a signature check.
+Flags a Win32 detection script the agent refuses to run under a signature check.
 
 With "Enforce script signature check" on a Win32 PowerShell detection rule, the agent hands the script to AgentExecutor, which returns exit 1 without running it when the script is not signed (no probe record, log "EnforceSignatureCheck: 1 ... applicationDetected: False", W32-DET-SIGCHECK). The app is then "not detected", the install runs, and the app ends in 0x87D1041C, not detected after installation. The rule applies when the context says the check is on: -EnforceSignatureCheck on Test-IntuneScript, or the directive # IntuneScriptLab: EnforceSignatureCheck=true in the script.
 

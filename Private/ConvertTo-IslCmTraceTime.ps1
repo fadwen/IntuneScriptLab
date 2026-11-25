@@ -19,6 +19,12 @@ function ConvertTo-IslCmTraceTime {
         ConvertTo-IslCmTraceTime -Time '09:06:34.5901742' -Date '9-25-2026'
 
         2026-09-25 09:06:34.5901742 as a DateTime.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.DateTime.
     #>
     [CmdletBinding()]
     [OutputType([datetime])]

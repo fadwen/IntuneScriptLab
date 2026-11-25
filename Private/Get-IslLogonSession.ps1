@@ -1,7 +1,7 @@
 function Get-IslLogonSession {
     <#
     .SYNOPSIS
-        Lists the logon sessions with a desktop on this machine: user, SID and session id.
+        Lists this machine's logon sessions with a desktop: user, SID and session id.
 
     .DESCRIPTION
         The agent runs user-context scripts inside the signed-in user's own session (session 2,
@@ -20,6 +20,12 @@ function Get-IslLogonSession {
         Get-IslLogonSession | Where-Object Sid -eq $account.Sid
 
         The session of that account, if it has one.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.LogonSession.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.LogonSession')]

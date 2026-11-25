@@ -1,7 +1,7 @@
 function Invoke-IslWin32ContentCommand {
     <#
     .SYNOPSIS
-    Runs a Win32 app's install or uninstall command line from a copy of its content folder.
+    Runs a Win32 app's install or uninstall command from a copy of its content.
 
     .DESCRIPTION
     For Invoke-IntuneWin32AppTest. The content is copied to a run folder, the command line runs

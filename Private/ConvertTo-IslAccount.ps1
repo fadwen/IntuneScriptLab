@@ -1,7 +1,7 @@
 function ConvertTo-IslAccount {
     <#
     .SYNOPSIS
-        Asks Windows for the SID behind one account name and for the name it gives that SID.
+        Gets the SID behind an account name, and the name Windows gives that SID.
 
     .DESCRIPTION
         The two translations Resolve-IslAccount is built on, kept apart so the unit tests can stand
@@ -15,6 +15,12 @@ function ConvertTo-IslAccount {
         ConvertTo-IslAccount -Name 'NT AUTHORITY\SYSTEM'
 
         Name NT AUTHORITY\SYSTEM, Sid S-1-5-18.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Account.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Account')]

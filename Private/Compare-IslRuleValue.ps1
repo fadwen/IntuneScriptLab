@@ -1,7 +1,7 @@
 function Compare-IslRuleValue {
     <#
     .SYNOPSIS
-        Compares a value read from the device with a rule's comparison value the way the agent does.
+        Compares a device value with a rule's comparison value, as the agent does.
 
     .DESCRIPTION
         The typed comparison behind the file, registry and product code rules (W32-FILE-*, W32-REG-*,
@@ -27,6 +27,12 @@ function Compare-IslRuleValue {
         Compare-IslRuleValue -Actual '10.0.1' -Expected '9.0' -Type Version -Operator GreaterThanOrEqual
 
         Met: the values are compared as versions, not as text.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.RuleComparison.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.RuleComparison')]

@@ -1,7 +1,7 @@
 function Get-IslVersionPart {
     <#
     .SYNOPSIS
-    Splits a version text into four numbers, the way an assignment filter compares versions.
+    Splits a version text into four numbers, as an assignment filter compares them.
 
     .DESCRIPTION
     A text of one to four numbers separated by dots, with white space around it allowed, gives

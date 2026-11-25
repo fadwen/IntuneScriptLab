@@ -1,7 +1,7 @@
 function Get-IslFilterProperty {
     <#
     .SYNOPSIS
-        The device properties a Windows assignment filter rule can use, with their operators and values.
+        Lists the device properties of Windows filter rules, with operators and values.
 
     .DESCRIPTION
         One entry per property of the device entity on the "Windows 10 and later" platform, as the
@@ -26,6 +26,12 @@ function Get-IslFilterProperty {
         (Get-IslFilterProperty)['operatingsystemversion'].Operators
 
         eq, ne, gt, ge, lt, le: the only property with ordering operators, and no string operators.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Collections.Hashtable.
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]

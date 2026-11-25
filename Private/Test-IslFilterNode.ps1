@@ -1,7 +1,7 @@
 function Test-IslFilterNode {
     <#
     .SYNOPSIS
-    Tells whether a node of a parsed assignment filter rule matches the facts of a device.
+    Tells whether a node of a parsed filter rule matches the facts of a device.
 
     .DESCRIPTION
     The node is one element of the tree that ConvertFrom-IslFilterRule builds: a Clause, or an

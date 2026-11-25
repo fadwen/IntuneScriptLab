@@ -19,6 +19,12 @@ function Grant-IslFolderAccess {
         Grant-IslFolderAccess -Path C:\ProgramData\IntuneScriptLab\Runs\abc -Account isl-user
 
         Modify, inherited by files and subfolders, for isl-user.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        None.
     #>
     [CmdletBinding()]
     [OutputType([void])]

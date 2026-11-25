@@ -1,7 +1,7 @@
 function Test-IslFilterEscapedQuote {
     <#
     .SYNOPSIS
-    Tells whether two assignment filter tokens are a double quote someone tried to escape.
+    Tells whether two filter tokens are a double quote someone tried to escape.
 
     .DESCRIPTION
     For the assignment filter parser. A double quote inside a value has no escape (FLT-V44,

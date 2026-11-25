@@ -1,9 +1,32 @@
 function Test-IslCommandParameter {
     <#
     .SYNOPSIS
-        True when the command is called with the named parameter (prefix match, like PowerShell).
+        Tells whether a command invocation passes the named parameter.
+
+    .DESCRIPTION
+        For the analyzer's rules. A parameter written as a prefix of the name counts, as it
+        does when PowerShell binds it: -ErrorA matches ErrorAction. The comparison ignores letter
+        case. Only parameters written by name count; a value passed by position does not.
+
+    .PARAMETER Command
+        The command invocation.
+
+    .PARAMETER ParameterName
+        The parameter's full name, without the dash, such as ErrorAction.
+
+    .EXAMPLE
+        Test-IslCommandParameter -Command $command -ParameterName 'ErrorAction'
+
+        $true for Get-Item C:\a -ErrorAction Stop.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Boolean.
     #>
     [CmdletBinding()]
+    [OutputType([bool])]
     param(
         [Parameter(Mandatory)]
         [System.Management.Automation.Language.CommandAst]$Command,

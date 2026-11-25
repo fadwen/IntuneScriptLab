@@ -1,7 +1,7 @@
 ﻿function Get-IslFilterWarningMessage {
     <#
     .SYNOPSIS
-        The text of a filter parser warning, with what it means for the mode the filter is attached in.
+        Gets the text of a filter parser warning for the mode the filter is used in.
 
     .DESCRIPTION
         ConvertFrom-IslFilterRule reports a clause as "never matches" or "matches every device"
@@ -27,6 +27,9 @@
 
     .OUTPUTS
         System.String
+
+    .INPUTS
+        None.
     #>
     [CmdletBinding()]
     [OutputType([string])]

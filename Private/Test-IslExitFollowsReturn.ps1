@@ -1,7 +1,7 @@
 function Test-IslExitFollowsReturn {
     <#
     .SYNOPSIS
-    Tells whether an exit with a code other than 0 follows a return in the same block.
+    Tells whether an exit with a non-zero code follows a return in the same block.
 
     .DESCRIPTION
     For the exit-code rule. Such an exit is the one the author meant. Writing exit 0 in front of

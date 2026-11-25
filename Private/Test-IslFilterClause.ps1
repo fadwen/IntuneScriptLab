@@ -1,7 +1,7 @@
 function Test-IslFilterClause {
     <#
     .SYNOPSIS
-    Tells whether one clause of an assignment filter rule matches the facts of a device.
+    Tells whether one clause of a filter rule matches the facts of a device.
 
     .DESCRIPTION
     The clause is one comparison that ConvertFrom-IslFilterRule read, such as

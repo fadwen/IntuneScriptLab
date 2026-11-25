@@ -1,13 +1,27 @@
 function Get-IslHostPath {
     <#
     .SYNOPSIS
-        Resolves the Windows PowerShell host the Intune agent would launch for an architecture.
+        Resolves the Windows PowerShell host the agent launches for an architecture.
 
     .DESCRIPTION
         x86 is SysWOW64\WindowsPowerShell\v1.0\powershell.exe on every 64-bit device (native on
         x64, emulated on ARM64). x64 and arm64 are both System32\...\powershell.exe, which is
         whichever native binary the device has, so each is refused on the other CPU. When the
         harness itself is a 32-bit process, System32 is reached through Sysnative.
+
+    .PARAMETER Architecture
+        The host to resolve: x86, x64 or arm64.
+
+    .EXAMPLE
+        (Get-IslHostPath -Architecture 'x86').Path
+
+        C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe on a 64-bit device.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Host.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.Host')]

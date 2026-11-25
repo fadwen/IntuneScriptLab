@@ -1,7 +1,7 @@
 function Find-IslScriptSize {
     <#
     .SYNOPSIS
-        Flags scripts over the documented 200 KB, and over the size the service actually refuses.
+        Flags scripts over the documented 200 KB and over the size the service refuses.
 
     .DESCRIPTION
         Microsoft Learn puts the limit for remediation and platform scripts at 200 KB. The service
@@ -20,8 +20,15 @@ function Find-IslScriptSize {
         Find-IslScriptSize -Context (Get-IslScriptContext -Path .\Detect.ps1)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

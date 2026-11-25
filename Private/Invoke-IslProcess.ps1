@@ -1,7 +1,7 @@
 ﻿function Invoke-IslProcess {
     <#
     .SYNOPSIS
-        Runs an executable as the current user, as SYSTEM or as another account, capturing its result.
+        Runs an executable as the current user, SYSTEM or another account.
 
     .DESCRIPTION
         User: a direct child process with stdin closed and both output streams read through
@@ -22,6 +22,47 @@
         password, "run whether user is logged on or not", and runs in session 0 with the account's
         profile loaded but no interactive session. -LogonType forces one or the other. Needs an
         elevated session either way, and the account needs write access to the work folder.
+
+    .PARAMETER FilePath
+        The executable to run.
+
+    .PARAMETER Arguments
+        Its command line, as one string.
+
+    .PARAMETER WorkingDirectory
+        The folder it runs in.
+
+    .PARAMETER WorkFolder
+        A scratch folder for the output files of the task modes. Its leaf name is the run's id.
+
+    .PARAMETER Context
+        User, the default, or System.
+
+    .PARAMETER Credential
+        Runs it as this account through a scheduled task. Context User only.
+
+    .PARAMETER LogonType
+        How the credential's task logs on. Auto, the default, picks Interactive when the
+        account has a logon session and Password otherwise.
+
+    .PARAMETER TimeoutSeconds
+        How long it may run, 300 by default, before it is stopped and reported as timed out.
+
+    .PARAMETER LauncherBitness
+        Which cmd.exe hosts the task: x64, the default, for an explicit host path, or x86 so that
+        a bare powershell.exe resolves to SysWOW64 as it does from the agent's own 32-bit process.
+
+    .EXAMPLE
+        Invoke-IslProcess -FilePath $hostPath -Arguments $arguments -WorkingDirectory $env:TEMP -WorkFolder $work
+        # $arguments holds the command line, such as -NoProfile -File "C:\work\Detect.ps1"
+
+        The exit code, output, error text and duration of one run as the current user.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.ProcessResult.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.ProcessResult')]

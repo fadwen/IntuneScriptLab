@@ -1,7 +1,7 @@
 function Resolve-IslRulePath {
     <#
     .SYNOPSIS
-        Expands a file rule's path the way the agent does, in the 64-bit or the 32-bit context.
+        Expands a file rule's path as the agent does, in the 64- or 32-bit context.
 
     .DESCRIPTION
         A file rule's path may hold %VARIABLE% references. The agent expands them in the 64-bit
@@ -21,6 +21,12 @@ function Resolve-IslRulePath {
         Resolve-IslRulePath -Path '%ProgramFiles%\Vendor' -Check32BitOn64System $true
 
         C:\Program Files (x86)\Vendor on a 64-bit device.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String.
     #>
     [CmdletBinding()]
     [OutputType([string])]

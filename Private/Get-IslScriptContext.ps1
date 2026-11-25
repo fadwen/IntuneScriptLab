@@ -13,6 +13,42 @@ function Get-IslScriptContext {
         Directive comment, anywhere in the script:
             # IntuneScriptLab: ScriptType=Detection Context=User Architecture=x86
             # IntuneScriptLab: ScriptType=Win32Detection EnforceSignatureCheck=true
+
+    .PARAMETER Path
+        The script file.
+
+    .PARAMETER ScriptType
+        Detection, Remediation, PlatformScript, Win32Detection or Win32Requirement. Auto reads
+        the directive, the settings, then the file name.
+
+    .PARAMETER Context
+        System or User. Auto reads the directive, the settings, then takes the portal's default:
+        User for a platform script, System for every other type.
+
+    .PARAMETER Architecture
+        The host the script runs in: x86 (SysWOW64), x64 (System32 on an x64 device) or arm64
+        (System32 on an ARM64 device, which has no x64 host). Auto reads the directive, the
+        settings, then takes the portal's default: x64 for a Win32 detection or requirement
+        script, x86 for every other type.
+
+    .PARAMETER EnforceSignatureCheck
+        The Win32 rule's "Enforce script signature check". Auto reads the directive, the
+        settings, then takes off.
+
+    .PARAMETER Settings
+        The IntuneScriptLab.Settings object for the script, from Get-IslSetting. Its entries
+        apply when neither a parameter nor a directive sets them.
+
+    .EXAMPLE
+        Get-IslScriptContext -Path .\Remediations\Printer\Detect.ps1
+
+        The context of a detection script, its type inferred from the file name.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.ScriptContext.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.ScriptContext')]

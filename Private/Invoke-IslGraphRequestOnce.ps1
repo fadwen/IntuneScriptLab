@@ -1,7 +1,7 @@
 function Invoke-IslGraphRequestOnce {
     <#
     .SYNOPSIS
-    Sends one Graph request, and sends it again up to three times when Graph asks for that.
+    Sends one Graph request, again up to three times when Graph asks for that.
 
     .DESCRIPTION
     One page of Invoke-IslGraphRequest. A reply of 429, 503 or 504 is followed by a wait of the

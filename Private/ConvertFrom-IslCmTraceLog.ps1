@@ -52,6 +52,12 @@ function ConvertFrom-IslCmTraceLog {
         ConvertFrom-IslCmTraceLog -Path .\AppWorkload.log -Id 9b6543c3-6d66-4cfb-a8fb-d780079278f6 -Level Error
 
         The error entries that mention the app, without building the others.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.AgentLogEntry.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.AgentLogEntry')]

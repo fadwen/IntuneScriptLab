@@ -42,6 +42,13 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- Every private function has full comment-based help, the only documentation these functions
+  have: a synopsis of one line and at most 80 characters, a description, an entry for each
+  parameter, an example, and `.INPUTS` and `.OUTPUTS`. Each declares its output type, and
+  `.OUTPUTS` names it; `Get-IslExportReport` declares `[object]` where it declared
+  `[PSCustomObject]` (#66). `Tests/Unit/Module.PrivateHelp.Tests.ps1` holds every private
+  function to that. The synopses of seven analyzer rules are shorter, and `docs/Rules.md` with
+  them.
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

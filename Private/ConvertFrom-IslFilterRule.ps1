@@ -1,7 +1,7 @@
 function ConvertFrom-IslFilterRule {
     <#
     .SYNOPSIS
-        Parses an assignment filter rule into its clauses and a tree, refusing what the service refuses.
+        Parses an assignment filter rule, refusing what the service refuses.
 
     .DESCRIPTION
         The rule syntax of Intune assignment filters, as the reference documents it and as the
@@ -46,6 +46,12 @@ function ConvertFrom-IslFilterRule {
         (ConvertFrom-IslFilterRule -Rule "(device.deviceName -eq 'X')").Error
 
         The message names the position and what the service expects (double quotes).
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.FilterRule.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.FilterRule')]

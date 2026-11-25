@@ -1,7 +1,7 @@
 function Get-IslAgentLogEvent {
     <#
     .SYNOPSIS
-        Names the event an agent log message records, from the lines the experiments identified.
+        Names the event that an agent log message records, as the experiments found.
 
     .DESCRIPTION
         A table of message patterns for the four Intune Management Extension logs, each pattern a
@@ -25,6 +25,12 @@ function Get-IslAgentLogEvent {
         Get-IslAgentLogEvent -Message 'Powershell execution is done, exitCode = 1'
 
         Event ScriptExit with Detail 1.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.AgentLogEvent.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.AgentLogEvent')]

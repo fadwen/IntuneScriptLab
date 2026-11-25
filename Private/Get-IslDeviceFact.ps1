@@ -12,6 +12,12 @@ function Get-IslDeviceFact {
         Get-IslDeviceFact
 
         The facts of this device as an IntuneScriptLab.DeviceFact object.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.DeviceFact.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.DeviceFact')]

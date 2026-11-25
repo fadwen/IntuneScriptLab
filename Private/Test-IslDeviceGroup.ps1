@@ -1,7 +1,7 @@
 function Test-IslDeviceGroup {
     <#
     .SYNOPSIS
-    Tells whether every member of an Entra group is a device, asking Graph once for each group.
+    Tells whether every member of an Entra group is a device, asking once a group.
 
     .DESCRIPTION
     For Test-IntuneDeployedScript, which notes a user-context script or app assigned to devices.

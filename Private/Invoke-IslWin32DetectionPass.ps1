@@ -1,7 +1,7 @@
 function Invoke-IslWin32DetectionPass {
     <#
     .SYNOPSIS
-    Runs one detection pass of a Win32 app: its detection script, if any, and each of its rules.
+    Runs one detection pass of a Win32 app: its detection script and its rules.
 
     .DESCRIPTION
     For Invoke-IntuneWin32AppTest, for the app itself or for a dependency or a superseded app.

@@ -1,7 +1,7 @@
 function Get-IslRunSummary {
     <#
     .SYNOPSIS
-    Gets the run summary of a remediation or platform script, or nothing when it cannot be read.
+    Gets a script policy's run summary, or nothing when it cannot be read.
 
     .DESCRIPTION
     For Get-IntuneScriptHealth. Reads the runSummary of one policy through Invoke-IslGraphRequest.

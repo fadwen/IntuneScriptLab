@@ -1,7 +1,7 @@
 function Get-IslDesktopModulePath {
     <#
     .SYNOPSIS
-        The PSModulePath a child process should get: this session's, without PowerShell 7's own folders.
+        Gets the PSModulePath a child process gets: this one's, without PowerShell 7's.
 
     .DESCRIPTION
         A process started from PowerShell 7 inherits its PSModulePath, which lists PowerShell 7's
@@ -23,6 +23,12 @@ function Get-IslDesktopModulePath {
         Get-IslDesktopModulePath
 
         This session's PSModulePath as a Windows PowerShell child should see it.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String.
     #>
     [CmdletBinding()]
     [OutputType([string])]

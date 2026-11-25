@@ -1,7 +1,7 @@
 function Find-IslSignatureIssue {
     <#
     .SYNOPSIS
-        Flags a Win32 detection script that the agent will refuse to run under a signature check.
+        Flags a Win32 detection script the agent refuses to run under a signature check.
 
     .DESCRIPTION
         With "Enforce script signature check" on a Win32 PowerShell detection rule, the agent hands the
@@ -20,8 +20,15 @@ function Find-IslSignatureIssue {
         Find-IslSignatureIssue -Context (Get-IslScriptContext -Path .\Detect-App.ps1 -EnforceSignatureCheck)
 
         The findings this rule produces for one script, as IntuneScriptLab.Finding objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [pscustomobject]$Context

@@ -11,6 +11,12 @@ function Get-IslDsregStatus {
         Get-IslDsregStatus | Select-String 'AzureAdJoined'
 
         The join line of this device.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String.
     #>
     [CmdletBinding()]
     [OutputType([string[]])]
