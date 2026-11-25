@@ -263,14 +263,65 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
         }
 
         It 'reads a BOM-less file that is not UTF-8 as ANSI and writes it back as UTF-8 with a BOM, intact' {
+            # The host's ANSI code page is pinned to Windows-1252, so the answer does not depend on
+            # the machine the suite runs on
+            $windows1252 = [System.Text.Encoding]::GetEncoding(1252)
+            Mock Get-IslOemEncoding -ModuleName IntuneScriptLab { $windows1252 }
             $path = Join-Path $TestDrive 'Detect-Ansi.ps1'
             $text = 'Write-Output "Gr' + [char]0xFC + [char]0xDF + 'e"' + "`nexit 0"
-            [System.IO.File]::WriteAllBytes($path, [System.Text.Encoding]::GetEncoding(1252).GetBytes($text))
+            [System.IO.File]::WriteAllBytes($path, $windows1252.GetBytes($text))
             $result = Repair-IntuneScript -Path $path -ScriptType PlatformScript
             $result.Written | Should-BeTrue
             $bytes = [System.IO.File]::ReadAllBytes($path)
             @($bytes[0], $bytes[1], $bytes[2]) | Should-BeCollection @([byte]0xEF, [byte]0xBB, [byte]0xBF)
             [System.Text.Encoding]::UTF8.GetString($bytes, 3, $bytes.Length - 3) | Should-Be $text
+        }
+
+        It 'leaves an ANSI file unchanged, with a warning, where the ANSI code page is UTF-8' {
+            # A host with "Use Unicode UTF-8 for worldwide language support" has ACP 65001: the bytes
+            # of a Windows-1252 file are not valid there, and a repair would replace them with U+FFFD
+            $utf8 = [System.Text.UTF8Encoding]::new($false)
+            Mock Get-IslOemEncoding -ModuleName IntuneScriptLab { $utf8 }
+            $path = Join-Path $TestDrive 'Detect-Ansi-Utf8Host.ps1'
+            $text = 'Write-Output "Gr' + [char]0xFC + [char]0xDF + 'e"' + "`nexit 0"
+            $original = [System.Text.Encoding]::GetEncoding(1252).GetBytes($text)
+            [System.IO.File]::WriteAllBytes($path, $original)
+
+            $output = Repair-IntuneScript -Path $path -ScriptType PlatformScript -WarningAction Continue 3>&1
+            $warnings = @($output | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $results = @($output | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            $results | Should-BeCollection -Count 1
+            $results[0].Written | Should-BeFalse
+            $results[0].Applied | Should-Be 0
+            $results[0].Remaining | Should-BeGreaterThan 0
+            @($warnings | Where-Object { "$_" -like '*not repaired*' }) | Should-BeCollection -Count 1
+            [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($path)) |
+                Should-Be ([System.Convert]::ToBase64String($original))
+        }
+
+        It 'leaves a file with a byte order mark and an invalid byte unchanged, and names its own encoding' {
+            # A UTF-8 file with a byte order mark whose comment holds 0xFF, which UTF-8 never uses
+            $folder = Join-Path $TestDrive 'Remediations\InvalidByte'
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            $path = Join-Path $folder 'Detect.ps1'
+            $ascii = [System.Text.Encoding]::ASCII
+            $original = [byte[]](0xEF, 0xBB, 0xBF) +
+            $ascii.GetBytes("if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n# ") + [byte[]](0xFF) +
+            $ascii.GetBytes("`r`n")
+            [System.IO.File]::WriteAllBytes($path, $original)
+
+            $output = Repair-IntuneScript -Path $path -WarningAction Continue 3>&1
+            $warnings = @($output | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $results = @($output | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            $results | Should-BeCollection -Count 1
+            $results[0].Written | Should-BeFalse
+            $results[0].Applied | Should-Be 0
+            $warnings | Should-BeCollection -Count 1
+            "$($warnings[0])" | Should-BeLikeString '*not valid utf-8, the encoding its byte order mark names*'
+            [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($path)) |
+                Should-Be ([System.Convert]::ToBase64String($original))
         }
     }
 

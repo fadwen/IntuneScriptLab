@@ -100,7 +100,32 @@ function Repair-IntuneScript {
                             [System.Text.UTF8Encoding]::new($false)
                         } catch { Get-IslOemEncoding -Kind ANSI }
                     }
-                    $text = $encoding.GetString($bytes).TrimStart([char]0xFEFF)
+                    $decoded = $encoding.GetString($bytes)
+                    # A decode that does not give the same bytes back has lost characters, as an
+                    # ANSI file does on a host whose system code page is UTF-8 (65001), where the
+                    # fallback above is a UTF-8 decode too. Writing that text would make the loss
+                    # permanent, so the file is left as it is
+                    $lossless = [System.Convert]::ToBase64String($encoding.GetBytes($decoded)) -ceq
+                    [System.Convert]::ToBase64String($bytes)
+                    if (-not $lossless) {
+                        # Only a file without a byte order mark was read in the host's fallback
+                        # encoding; a file with one holds bytes its own encoding does not allow
+                        $hasBom = $encoding.GetPreamble().Length -gt 0 -and
+                        $bytes.Length -ge $encoding.GetPreamble().Length -and
+                        [System.Convert]::ToBase64String($bytes, 0, $encoding.GetPreamble().Length) -ceq
+                        [System.Convert]::ToBase64String($encoding.GetPreamble())
+                        $reason = if ($hasBom) {
+                            "it holds bytes that are not valid $($encoding.WebName), the encoding its byte " +
+                            'order mark names, so it was not repaired. Correct those bytes, then run again'
+                        } else {
+                            "its bytes do not decode in $($encoding.WebName), the encoding this host reads a " +
+                            'script without a byte order mark in, so it was not repaired. Save it as UTF-8 ' +
+                            'with a byte order mark in an editor set to its code page, then run again'
+                        }
+                        Write-Warning "${file}: $reason"
+                        $fixable = @()
+                    }
+                    $text = $decoded.TrimStart([char]0xFEFF)
                     $lineStarts = [System.Collections.Generic.List[int]]::new()
                     $lineStarts.Add(0)
                     for ($i = 0; $i -lt $text.Length; $i++) {

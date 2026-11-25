@@ -226,6 +226,11 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- `Repair-IntuneScript` replaced the non-ASCII characters of a script saved in an ANSI code page
+  with U+FFFD, and wrote that back, on a host whose system code page is UTF-8 ("Use Unicode UTF-8
+  for worldwide language support"): there, the fallback for a file without a byte order mark is a
+  UTF-8 decode too. A file whose bytes do not decode without loss is now left as it is, with a
+  warning that says how to convert it by hand (#75).
 - `Compare-IntuneDeployedScript` ended with `The property 'Count' cannot be found on this object`
   when a script and its local copy differed and one of them had a single line once the blank lines
   at its end were left out: the line came back as a string, which has no `Count` under strict

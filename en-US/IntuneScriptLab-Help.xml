@@ -4577,6 +4577,10 @@ finding has no fix and stays.
 Text edits are applied from the
 end of the file backwards so line numbers stay valid, line endings are kept, and an edit
 whose text no longer matches the file is skipped with a warning.
+A file whose bytes do not decode without loss in the encoding the command reads it in is not
+written at all: an ANSI file on a host whose system code page is UTF-8 (65001), or a file
+whose byte order mark names an encoding that some of its bytes are not valid in. A warning
+says which, and its findings stay in Remaining.
 The command supports
 -WhatIf and -Confirm; nothing is written under -WhatIf.
 
