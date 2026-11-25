@@ -23,6 +23,11 @@ Describe 'Get-IslRegexLiteralPrefix' -Tag 'Unit', 'Private' {
         @{ Pattern = 'ab{2}'; Expected = 'a' }
         @{ Pattern = '(start)'; Expected = '' }
         @{ Pattern = 'ends with a backslash\'; Expected = 'ends with a backslash' }
+        @{ Pattern = 'Script failed|Script timed out'; Expected = '' }
+        @{ Pattern = '^abc|def'; Expected = '' }
+        @{ Pattern = 'abc(def|ghi)'; Expected = 'abc' }
+        @{ Pattern = 'abc[|]def'; Expected = 'abc' }
+        @{ Pattern = 'abc\|def'; Expected = 'abc|def' }
     ) {
         $parameters = @{ Pattern = $Pattern }
         $prefix = InModuleScope IntuneScriptLab -Parameters $parameters {
@@ -40,5 +45,15 @@ Describe 'Get-IslRegexLiteralPrefix' -Tag 'Unit', 'Private' {
 
         'Powershell exit code is -1' -match $pattern | Should-BeTrue
         'Powershell exit code is -1'.Contains($prefix) | Should-BeTrue
+    }
+
+    It 'gives no text that a match of the second alternative lacks' {
+        $pattern = 'Script failed|Script timed out'
+        $prefix = InModuleScope IntuneScriptLab -Parameters @{ Pattern = $pattern } {
+            Get-IslRegexLiteralPrefix -Pattern $Pattern
+        }
+
+        'Script timed out' -match $pattern | Should-BeTrue
+        'Script timed out'.Contains($prefix) | Should-BeTrue
     }
 }
