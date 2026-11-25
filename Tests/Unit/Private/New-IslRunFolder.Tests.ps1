@@ -167,9 +167,11 @@ Describe 'New-IslRunFolder' -Tag 'Unit', 'Private' {
 
         It 'refuses a folder that came out <Case>' -ForEach @(
             @{ Case = 'owned by another user'; Owner = 'S-1-5-21-1-2-3-1001'; Protected = $true
-                Problem = 'is owned by S-1-5-21-1-2-3-1001' }
+                Problem = 'is owned by S-1-5-21-1-2-3-1001'
+            }
             @{ Case = 'inheriting from ProgramData'; Owner = 'S-1-5-32-544'; Protected = $false
-                Problem = 'inherits the access of ProgramData' }
+                Problem = 'inherits the access of ProgramData'
+            }
         ) {
             # What another user would leave if they made the folder between the check and the
             # creation; a test cannot hand its folder to someone else, so the access list is faked
