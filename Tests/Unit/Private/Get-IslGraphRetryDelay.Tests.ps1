@@ -74,6 +74,21 @@ Describe 'Get-IslGraphRetryDelay' -Tag 'Unit', 'Private' {
         @(Get-Delay -Record (New-GraphFailureRecord -StatusCode $Status) -Attempt 1) | Should-BeCollection @()
     }
 
+    It 'doubles the wait for a <Status> whose response has no RetryAfter member' -ForEach @(
+        @{ Status = 503 }
+        @{ Status = 429 }
+    ) {
+        # The shape of a WebException's HttpWebResponse: a status code and a header collection
+        # that holds Retry-After as text, with no RetryAfter member
+        $headers = [System.Net.WebHeaderCollection]::new()
+        $headers.Add('Retry-After', '7')
+        $failure = [RetryDelayGraphException]::new("Response status code does not indicate success: $Status")
+        $failure.Response = [pscustomobject]@{ StatusCode = $Status; Headers = $headers }
+        $record = [System.Management.Automation.ErrorRecord]::new($failure, 'WebFailure', 'InvalidResult', $null)
+
+        Get-Delay -Record $record -Attempt 2 | Should-Be 4
+    }
+
     It 'gives nothing for a failure that carries no status at all' {
         $record = [System.Management.Automation.ErrorRecord]::new(
             [System.InvalidOperationException]::new('no connection'), 'NoStatus', 'ConnectionError', $null)
