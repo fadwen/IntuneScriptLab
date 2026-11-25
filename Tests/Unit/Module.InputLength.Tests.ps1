@@ -1,29 +1,30 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 <#
-    SEC-16: text that names or identifies something is refused when it binds if it is longer than
-    1,000 characters. An assignment filter rule may be as long as the service takes, 3,072
-    characters (FLT-X11, FLT-X12). Paths are left out on purpose: Windows accepts far longer ones
+    SEC-16: text that names or identifies something is refused when it is longer than 1,000
+    characters. The optional parameters check it in the body, because [ValidateLength()] would
+    also refuse $null, which they take to mean "not given". An assignment filter rule may be as
+    long as the service takes, 3,072 characters (FLT-X11, FLT-X12), and is mandatory, so it keeps
+    the attribute. Paths are left out on purpose: Windows accepts far longer ones
     (docs/StandardsDecisions.md).
 #>
 
 BeforeDiscovery {
     $script:Limited = @(
-        @{ Command = 'Compare-IntuneDeployedScript'; Parameter = 'Name'; Limit = 1000 }
-        @{ Command = 'Compare-IntuneDeployedScript'; Parameter = 'Id'; Limit = 1000 }
-        @{ Command = 'Get-IntuneAgentLog'; Parameter = 'Id'; Limit = 1000 }
-        @{ Command = 'Get-IntuneAgentTimeline'; Parameter = 'Id'; Limit = 1000 }
-        @{ Command = 'Get-IntuneScriptHealth'; Parameter = 'Name'; Limit = 1000 }
-        @{ Command = 'Get-IntuneScriptHealth'; Parameter = 'Id'; Limit = 1000 }
-        @{ Command = 'Repair-IntuneScript'; Parameter = 'IncludeRule'; Limit = 1000 }
-        @{ Command = 'Repair-IntuneScript'; Parameter = 'ExcludeRule'; Limit = 1000 }
-        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'Name'; Limit = 1000 }
-        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'Id'; Limit = 1000 }
-        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'IncludeRule'; Limit = 1000 }
-        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'ExcludeRule'; Limit = 1000 }
-        @{ Command = 'Test-IntuneScript'; Parameter = 'IncludeRule'; Limit = 1000 }
-        @{ Command = 'Test-IntuneScript'; Parameter = 'ExcludeRule'; Limit = 1000 }
-        @{ Command = 'Test-IntuneAssignmentFilter'; Parameter = 'Rule'; Limit = 3072 }
+        @{ Command = 'Compare-IntuneDeployedScript'; Parameter = 'Name' }
+        @{ Command = 'Compare-IntuneDeployedScript'; Parameter = 'Id' }
+        @{ Command = 'Get-IntuneAgentLog'; Parameter = 'Id' }
+        @{ Command = 'Get-IntuneAgentTimeline'; Parameter = 'Id' }
+        @{ Command = 'Get-IntuneScriptHealth'; Parameter = 'Name' }
+        @{ Command = 'Get-IntuneScriptHealth'; Parameter = 'Id' }
+        @{ Command = 'Repair-IntuneScript'; Parameter = 'IncludeRule' }
+        @{ Command = 'Repair-IntuneScript'; Parameter = 'ExcludeRule' }
+        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'Name' }
+        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'Id' }
+        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'IncludeRule' }
+        @{ Command = 'Test-IntuneDeployedScript'; Parameter = 'ExcludeRule' }
+        @{ Command = 'Test-IntuneScript'; Parameter = 'IncludeRule' }
+        @{ Command = 'Test-IntuneScript'; Parameter = 'ExcludeRule' }
     )
 }
 
@@ -37,26 +38,49 @@ BeforeAll {
 
 Describe 'Length of text parameters' -Tag 'Unit', 'Contract' {
 
-    It '<Command> -<Parameter> allows <Limit> characters' -ForEach $script:Limited {
-        $attribute = (Get-Command -Name $Command).Parameters[$Parameter].Attributes |
-            Where-Object { $_ -is [System.Management.Automation.ValidateLengthAttribute] }
+    Context 'Optional names, ids and rule names' {
+        It '<Command> -<Parameter> refuses 1,001 characters before it does anything' -ForEach $script:Limited {
+            $splat = @{ $Parameter = 'a' * 1001 }
+            # A mandatory -Path is given, so that the check, not the binding, answers
+            if ((Get-Command -Name $Command).Parameters['Path'].Attributes.Mandatory -contains $true) {
+                $splat['Path'] = $TestDrive
+            }
 
-        @($attribute) | Should-BeCollection -Count 1
-        $attribute.MaxLength | Should-Be $Limit
+            { & $Command @splat -ErrorAction Stop } | Should-Throw -FullyQualifiedErrorId "InputTooLong,$Command"
+        }
+
+        It '<Command> -<Parameter> has no attribute that would refuse $null' -ForEach $script:Limited {
+            $attributes = (Get-Command -Name $Command).Parameters[$Parameter].Attributes |
+                Where-Object { $_ -is [System.Management.Automation.ValidateArgumentsAttribute] }
+
+            @($attributes) | Should-BeCollection @()
+        }
+
+        It 'takes $null, and a value of 1,000 characters, as an id' {
+            $logs = Join-Path -Path $TestDrive -ChildPath 'no-logs'
+            $null = New-Item -ItemType Directory -Path $logs
+
+            # -ErrorAction Stop makes any error, a refusal at binding among them, fail the test
+            $timelineSplat = @{ Path = $logs; WarningAction = 'SilentlyContinue'; ErrorAction = 'Stop' }
+            $none = @(Get-IntuneAgentTimeline -Id $null @timelineSplat)
+            $longest = @(Get-IntuneAgentTimeline -Id ('a' * 1000) @timelineSplat)
+
+            $none | Should-BeCollection @()
+            $longest | Should-BeCollection @()
+        }
     }
 
-    It '<Command> -<Parameter> refuses one character more when it binds' -ForEach $script:Limited {
-        $splat = @{ $Parameter = 'a' * ($Limit + 1) }
+    Context 'Assignment filter rule' {
+        It 'allows the 3,072 characters the service takes, and refuses one more when it binds' {
+            $attribute = (Get-Command -Name Test-IntuneAssignmentFilter).Parameters['Rule'].Attributes |
+                Where-Object { $_ -is [System.Management.Automation.ValidateLengthAttribute] }
+            $longest = '(device.deviceName -eq "' + ('a' * 3046) + '")'
 
-        { & $Command @splat } | Should-Throw -FullyQualifiedErrorId "ParameterArgumentValidationError,$Command"
-    }
-
-    It 'takes an assignment filter rule of the 3,072 characters the service takes' {
-        $rule = '(device.deviceName -eq "' + ('a' * 3046) + '")'
-
-        $result = Test-IntuneAssignmentFilter -Rule $rule -SyntaxOnly -ErrorAction Stop
-
-        $rule.Length | Should-Be 3072
-        $result.Reason | Should-BeLikeString 'The rule is valid*'
+            $attribute.MaxLength | Should-Be 3072
+            (Test-IntuneAssignmentFilter -Rule $longest -SyntaxOnly -ErrorAction Stop).Reason |
+                Should-BeLikeString 'The rule is valid*'
+            { Test-IntuneAssignmentFilter -Rule ($longest + ' ') -SyntaxOnly } |
+                Should-Throw -FullyQualifiedErrorId 'ParameterArgumentValidationError,Test-IntuneAssignmentFilter'
+        }
     }
 }

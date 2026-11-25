@@ -50,17 +50,19 @@ entries are carried over from the manifest's release notes.
   `Build/Test-MarkdownLink.ps1`, in the `help` job on Linux, where a link that differs from its
   file in case fails as it does on GitHub (#137).
 - `Export-IntuneAgentDiagnostic` lists the modules loaded in the session, with their versions and
-  folders, in `Device\system.txt`; a folder under the user's profile is written from
-  `%USERPROFILE%` (#133).
+  folders, in `Device\system.txt`; a folder under the user's Documents, which folder redirection
+  can put on a share named after the user, is written from `<Documents>`, and one under the
+  profile from `%USERPROFILE%` (#133).
 - `Test-IntuneDeployedScript` checks the folder it writes each deployed script to: the policy is
   refused with `PolicyIdInvalid` when its id holds anything but letters, digits, `-` and `_`, as
   a Graph id does, and with `PolicyPathOutsideWorkFolder` when the resolved path would leave the
   work folder. The characters of the display name are still replaced to keep the folder name
   readable (#131).
 - `-Name`, `-Id`, `-IncludeRule` and `-ExcludeRule` refuse a value of more than 1,000 characters
-  when they bind (SEC-16), and `Test-IntuneAssignmentFilter -Rule` one of more than 3,072, the
-  most the service takes: a rule of 3,073 characters is refused by Graph's `validateFilter`
-  (#130).
+  with `InputTooLong` before the command does anything (SEC-16); `$null` and an empty value still
+  mean "not given". `Test-IntuneAssignmentFilter -Rule` refuses one of more than 3,072 characters
+  when it binds, the most the service takes: a rule of 3,073 characters is refused by Graph's
+  `validateFilter` (#130).
 - Every private function has full comment-based help, the only documentation these functions
   have: a synopsis of one line and at most 80 characters, a description, an entry for each
   parameter, an example, and `.INPUTS` and `.OUTPUTS`. Each declares its output type, and

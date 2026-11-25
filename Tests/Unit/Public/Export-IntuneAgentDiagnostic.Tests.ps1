@@ -236,9 +236,33 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
 
             $system | Should-BeLikeString "*Loaded modules:*  IntuneScriptLab $($module.Version) *"
             $system | Should-BeLikeString '*  Pester *'
-            if ($env:USERPROFILE) {
-                $system.Contains("$env:USERPROFILE\") | Should-BeFalse
-            }
+        }
+
+        It 'writes Documents and the profile as placeholders, and leaves a sibling folder alone' {
+            # The command asks the process for the profile and .NET for Documents, so the modules
+            # are placed under whatever those are on this machine
+            $realProfile = "$env:USERPROFILE".TrimEnd('\')
+            $realDocuments = [System.Environment]::GetFolderPath('MyDocuments').TrimEnd('\')
+            $script:FakeModules = @(
+                [pscustomobject]@{
+                    Name = 'InDocuments'; Version = '1.0'; ModuleBase = "$realDocuments\PowerShell\Modules\A"
+                }
+                [pscustomobject]@{ Name = 'InProfile'; Version = '1.0'; ModuleBase = "$realProfile\Tools\B" }
+                [pscustomobject]@{ Name = 'Sibling'; Version = '1.0'; ModuleBase = "$realProfile.CONTOSO\Tools\C" }
+                [pscustomobject]@{
+                    Name = 'System'; Version = '1.0'; ModuleBase = 'C:\Program Files\PowerShell\Modules\D'
+                }
+            )
+            Mock Get-Module -ModuleName IntuneScriptLab { $script:FakeModules }
+            $zip = Join-Path $TestDrive 'masked.zip'
+            $exportSplat = @{ Path = $zip; LogPath = $script:Logs; SkipRegistry = $true; SkipTimeline = $true }
+            $result = Export-IntuneAgentDiagnostic @exportSplat
+
+            $system = Read-ZipEntry -Zip $result.Path -Name 'Device/system.txt'
+            $system | Should-BeLikeString '*  InDocuments 1.0 <Documents>\PowerShell\Modules\A*'
+            $system | Should-BeLikeString '*  InProfile 1.0 %USERPROFILE%\Tools\B*'
+            $system | Should-BeLikeString "*  Sibling 1.0 $realProfile.CONTOSO\Tools\C*"
+            $system | Should-BeLikeString '*  System 1.0 C:\Program Files\PowerShell\Modules\D*'
         }
     }
 

@@ -13,13 +13,18 @@ function Get-IntuneAgentTimeline {
         [ValidateSet('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor', 'All')]
         [string[]]$Log = @('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor'),
 
-        [ValidateLength(0, 1000)]
         [string[]]$Id,
 
         [datetime]$After,
 
         [datetime]$Before
     )
+    # SEC-16: checked here, not with [ValidateLength()], which would also refuse $null
+    try {
+        Assert-IslTextLength -Name 'Id' -Value $Id
+    } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+    }
     Write-Verbose "Starting $($MyInvocation.MyCommand.Name)"
 
     $logSplat = @{ Log = $Log }

@@ -41,7 +41,8 @@ writes it as one zip file:
   -SkipRegistry);
 - Device\: system.txt (Windows build, architecture, PowerShell version, agent version and
   service state, time zone, this module's version, and the modules loaded in the session with
-  their versions and folders, a folder under the user's profile written from %USERPROFILE%) and
+  their versions and folders, a folder under the user's Documents written from <Documents> and
+  one under the profile from %USERPROFILE%) and
   dsregcmd.txt (the join state);
 - Timeline\: events.csv, every log line the event table names, and timelines.csv, one line
   per policy or app from Get-IntuneAgentTimeline (skip with -SkipTimeline);
