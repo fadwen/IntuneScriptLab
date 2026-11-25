@@ -8,9 +8,9 @@
 #>
 
 BeforeDiscovery {
-    $moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $moduleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
     $isFunction = { param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] }
-    $files = Get-ChildItem -LiteralPath (Join-Path $moduleRoot 'Private') -Recurse -Filter '*.ps1'
+    $files = Get-ChildItem -LiteralPath (Join-Path -Path $moduleRoot -ChildPath 'Private') -Recurse -Filter '*.ps1'
     $script:Functions = foreach ($file in $files) {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
         foreach ($function in $ast.FindAll($isFunction, $false)) {
@@ -25,7 +25,8 @@ BeforeAll {
         param([string]$Argument)
         $text = $Argument.Trim()
         if ($text -match "^'(.+)'$") { return $Matches[1] }
-        $inner = $text.Trim('[', ']')
+        # Only the outer brackets go: [string[]] names System.String[], not System.String
+        $inner = if ($text -match '^\[(.+)\]$') { $Matches[1] } else { $text }
         switch ($inner) {
             'void' { return 'None' }
             'object' { return 'System.Object' }
@@ -78,10 +79,13 @@ Describe 'Private function help' -Tag 'Unit', 'Contract' {
         $arguments = @($declared[0].PositionalArguments | ForEach-Object { $_.Extent.Text })
         @($arguments | Where-Object { $_ -match '(?i)^\[(System\.Management\.Automation\.)?PSCustomObject\]$' }) |
             Should-BeCollection @() -Because 'FUN-10 rules out [OutputType([PSCustomObject])]'
-        $outputs = $function.GetHelpContent().Outputs -join ' '
+        # Each .OUTPUTS entry starts with the type it names, followed by a full stop, comma or colon
+        $documented = @($function.GetHelpContent().Outputs | ForEach-Object {
+                ($_.Trim() -split '\s+')[0].TrimEnd('.', ',', ':')
+            })
         foreach ($argument in $arguments) {
-            $typeName = Get-TypeName $argument
-            $outputs | Should-BeLikeString "*$typeName*" -Because ".OUTPUTS of $Name names $argument"
+            $typeName = Get-TypeName -Argument $argument
+            $documented | Should-ContainCollection $typeName -Because ".OUTPUTS of $Name names $argument"
         }
     }
 }

@@ -30,7 +30,7 @@ function Get-IslInboxModule {
         System.String.
     #>
     [CmdletBinding()]
-    [OutputType([string[]])]
+    [OutputType([string])]
     param()
 
     @(

@@ -19,7 +19,7 @@ function Get-IslDsregStatus {
         System.String.
     #>
     [CmdletBinding()]
-    [OutputType([string[]])]
+    [OutputType([string])]
     param()
 
     if (-not (Get-Command -Name dsregcmd.exe -ErrorAction SilentlyContinue)) { return @() }
