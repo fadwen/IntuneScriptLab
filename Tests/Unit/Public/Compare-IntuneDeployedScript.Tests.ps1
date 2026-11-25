@@ -275,6 +275,31 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
         }
     }
 
+    Context 'Scripts of one line' {
+        It 'reports the drift of a detection script of one line on each side' {
+            # Trimmed to one line, each side came back as a string, and .Count on it ended the
+            # command under strict mode
+            $root = Join-Path $TestDrive 'one-line'
+            $null = New-Item -ItemType Directory -Path (Join-Path $root 'One-Liner') -Force
+            [System.IO.File]::WriteAllText((Join-Path $root 'One-Liner\Detect.ps1'), "Write-Output 'abc'")
+            $script:OneLine = ConvertTo-Base64 "Write-Output 'abd'"
+            Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab {
+                $policy = @{ id = 'one'; displayName = 'One-Liner' }
+                if ($Uri -notmatch '\?') {
+                    $policy['runAsAccount'] = 'system'
+                    $policy['detectionScriptContent'] = $script:OneLine
+                }
+                $policy
+            }
+
+            $results = @(Compare-IntuneDeployedScript -Path $root -Kind 'Remediation')
+            $detect = Get-Result -Results $results -Policy 'One-Liner' -Role 'detection'
+
+            $detect.State | Should-Be 'Drifted'
+            $detect.Detail | Should-BeLikeString "content differs from line 1: local 'Write-Output 'abc'', tenant*"
+        }
+    }
+
     Context 'Error Handling' {
         It 'refuses a -Path that is not a folder' {
             $file = Join-Path $script:Root 'Scripts\Dup.ps1'

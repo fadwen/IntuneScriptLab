@@ -45,13 +45,14 @@ entries are carried over from the manifest's release notes.
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,
-  `Get-IslSetting`, `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest`, the assignment filter
-  parser `ConvertFrom-IslFilterRule` and three analyzer rules (`IslInteractiveCall`,
-  `IslExitCodeIssue`, `IslModuleDependency`) are private functions of their own, each an advanced
-  function with help and tests (#65). `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`
-  and `Get-IntuneScriptHealth` select the tenant's policies through one function where each had
-  its own copy, and `Test-IntuneDeployedScript` selects rules through the one `Test-IntuneScript`
-  uses. A settings value that is not allowed still ends `Test-IntuneScript` with
+  `Compare-IntuneDeployedScript`, `Get-IslSetting`, `Get-IslAgentLogEvent`,
+  `Invoke-IslGraphRequest`, the assignment filter parser `ConvertFrom-IslFilterRule` and three
+  analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`, `IslModuleDependency`) are private
+  functions of their own, each an advanced function with help and tests (#65).
+  `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript` and `Get-IntuneScriptHealth` select
+  the tenant's policies through one function where each had its own copy, and
+  `Test-IntuneDeployedScript` selects rules through the one `Test-IntuneScript` uses. A settings
+  value that is not allowed still ends `Test-IntuneScript` with
   `SettingsInvalid,Test-IntuneScript`. One error changes: a detection rule entry that is `$null`,
   for the app or for one of its `-DependsOn` or `-Supersedes` apps, ends
   `Invoke-IntuneWin32AppTest` with `DetectionRuleEmpty` among its argument checks, before
@@ -163,6 +164,10 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- `Compare-IntuneDeployedScript` ended with `The property 'Count' cannot be found on this object`
+  when a script and its local copy differed and one of them had a single line once the blank lines
+  at its end were left out: the line came back as a string, which has no `Count` under strict
+  mode. It reports the script as `Drifted`, with the first line that differs.
 - `Get-IntuneScriptHealth -Id` with no `-Name` analyzed and compared every policy of the tenant,
   then kept only the requested ones: it passed its default `-Name` of `*` on to
   `Test-IntuneDeployedScript` and `Compare-IntuneDeployedScript`, which select by name as well as
