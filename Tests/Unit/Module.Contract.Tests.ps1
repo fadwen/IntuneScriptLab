@@ -299,6 +299,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         It 'fails the import when a data file <Problem>' -ForEach @(
             @{ Problem = 'is missing'; Body = $null }
             @{ Problem = 'does not parse'; Body = '@{ Modules = @(' }
+            @{ Problem = 'lacks its table'; Body = "@{ Module = @('Microsoft.PowerShell.Utility') }" }
         ) {
             # The tables the commands read are data (MOD-20); a module without them would import
             # and then fail in every command that reads one

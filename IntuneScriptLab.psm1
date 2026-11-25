@@ -40,8 +40,9 @@ foreach ($functionFolder in $functionFolders) {
 # for each of these, and a No to the copy started the host on a file that was not there.
 $script:IslInternal = @{ WhatIf = $false; Confirm = $false }
 
-# Static tables live as data under Data (MOD-20), each read once here. A file that is missing or
-# does not parse fails the import, as a function file that does not load does.
+# Static tables live as data under Data (MOD-20), each read once here. A file that is missing,
+# that does not parse or that lacks its table fails the import, as a function file that does not
+# load does.
 # RuleOrder: every Find-* function in Private\Rules is a rule, and Test-IntuneScript runs them in
 # this order. IslInboxModules, IslWindowsReleaseBuilds and IslAgentLogEventDefinitions are read by
 # Get-IslInboxModule, Get-IslWindowsReleaseBuild and Get-IslAgentLogEvent.
@@ -60,6 +61,10 @@ foreach ($entry in $dataFiles.GetEnumerator()) {
         # Rethrown, as for a function file: without it Import-Module reports the error and leaves
         # it to the caller to notice that nothing was imported
         throw
+    }
+    # A missing key reads as $null, and every command that uses the table would fail far from here
+    if (-not $data.ContainsKey($entry.Value[1])) {
+        throw "The data file '$dataPath' has no '$($entry.Value[1])' table."
     }
     Set-Variable -Name $entry.Key -Scope Script -Value $data[$entry.Value[1]]
 }
@@ -115,6 +120,8 @@ Export-ModuleMember -Function @(
 
 $ExecutionContext.SessionState.Module.OnRemove = {
     Write-Verbose 'Cleaning up IntuneScriptLab module'
-    $tables = 'RuleOrder', 'IslInboxModules', 'IslWindowsReleaseBuilds', 'IslAgentLogEventDefinitions'
+    # The four tables read from Data, and the expression Get-IslAgentLogEvent compiles from the last
+    $tables = 'RuleOrder', 'IslInboxModules', 'IslWindowsReleaseBuilds', 'IslAgentLogEventDefinitions',
+    'IslAgentLogEvents'
     Remove-Variable -Name $tables -Scope Script -ErrorAction SilentlyContinue
 }
