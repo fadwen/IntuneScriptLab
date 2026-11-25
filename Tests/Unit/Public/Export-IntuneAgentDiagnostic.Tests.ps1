@@ -209,6 +209,14 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             $timelines[0].Outcome | Should-Be 'DetectionResult pre False'
         }
 
+        It 'starts each CSV with its header line, with no #TYPE line under Windows PowerShell 5.1' {
+            # ConvertFrom-Csv skips a #TYPE line, so the first line is read as text
+            $events = Read-ZipEntry -Zip $script:Result.Path -Name 'Timeline/events.csv'
+            $timelines = Read-ZipEntry -Zip $script:Result.Path -Name 'Timeline/timelines.csv'
+            ($events -split "`r?`n")[0].TrimStart([char]0xFEFF) | Should-BeLikeString '"Time","Log",*'
+            ($timelines -split "`r?`n")[0].TrimStart([char]0xFEFF) | Should-BeLikeString '"Id","Name",*'
+        }
+
         It 'records the device facts and the manifest' {
             $system = Read-ZipEntry -Zip $script:Result.Path -Name 'Device/system.txt'
             $system | Should-BeLikeString "*Computer: $env:COMPUTERNAME*PowerShell: $($PSVersionTable.PSVersion)*"

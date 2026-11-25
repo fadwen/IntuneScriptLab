@@ -26,7 +26,8 @@
         Pester suites (*.Tests.ps1), which the suite template places next to the scripts, and the
         contents of a Win32 app's Package folder (Win32\<app>\Package\, what becomes the .intunewin),
         which the agent runs through the install command rather than as a script. A file named
-        directly is analyzed. Default: the current directory.
+        directly is analyzed. Each path is literal: wildcards are not expanded, so name a folder
+        to analyze everything in it. Default: the current directory.
 
     .PARAMETER FailOn
         The lowest severity that fails the build: Error (default), Warning, Information, or None
@@ -142,11 +143,37 @@ function Get-RelativePath {
 }
 
 function Write-GateLine {
-    # GitHub reads workflow commands (::error, ::warning) from plain lines of stdout, which is where
-    # the host writes an information record. The success stream stays for the findings, which go
-    # to the pipeline only with -PassThru
+    <#
+    .SYNOPSIS
+        Writes one line of the gate's output to the console.
+
+    .DESCRIPTION
+        GitHub reads workflow commands (::error, ::warning) from plain lines of stdout, which is
+        where the host writes an information record. The success stream stays for the findings,
+        which go to the pipeline only with -PassThru.
+
+    .PARAMETER Text
+        The line to write. An empty string writes an empty line.
+
+    .EXAMPLE
+        Write-GateLine -Text '::error file=Detect.ps1,line=3::Exit code is missing'
+
+        Writes a workflow command that GitHub shows as an annotation.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        None. The line is an information record.
+    #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)] [AllowEmptyString()] [string]$Text)
+    [OutputType([void])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Text
+    )
+
     Write-Information -MessageData $Text -InformationAction Continue
 }
 
