@@ -101,7 +101,11 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
     }
 
     It 'gives every public function help with worked examples (read from the shipped MAML)' {
-        foreach ($command in (Get-Command -Module IntuneScriptLab -CommandType Function)) {
+        # Counted first, so that an empty list cannot pass the loop without checking anything
+        $exported = @((Import-PowerShellDataFile -LiteralPath $script:ManifestPath).FunctionsToExport)
+        $commands = @(Get-Command -Module IntuneScriptLab -CommandType Function)
+        $commands | Should-BeCollection -Count $exported.Count
+        foreach ($command in $commands) {
             $help = Get-Help $command.Name -Full
             $help.Synopsis | Should-NotBeWhiteSpaceString
             @($help.Examples.Example).Count | Should-BeGreaterThanOrEqual 3
@@ -109,7 +113,10 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
     }
 
     It 'gives every public function a one-line synopsis of at most 80 characters, the same in both places' {
-        foreach ($command in (Get-Command -Module IntuneScriptLab -CommandType Function)) {
+        $exported = @((Import-PowerShellDataFile -LiteralPath $script:ManifestPath).FunctionsToExport)
+        $commands = @(Get-Command -Module IntuneScriptLab -CommandType Function)
+        $commands | Should-BeCollection -Count $exported.Count
+        foreach ($command in $commands) {
             $synopsis = (Get-Help $command.Name).Synopsis.Trim()
             $synopsis.Contains("`n") | Should-BeFalse -Because "the synopsis of $($command.Name) is one line"
             $synopsis.Length | Should-BeLessThanOrEqual 80 -Because "DOC-10 limits $($command.Name)"

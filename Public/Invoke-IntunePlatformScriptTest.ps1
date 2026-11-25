@@ -39,11 +39,13 @@ function Invoke-IntunePlatformScriptTest {
             }
             $PSCmdlet.ThrowTerminatingError((New-IslErrorRecord @recordSplat))
         }
-        Write-Verbose "Starting $($MyInvocation.MyCommand.Name) for $($PSBoundParameters.Keys -join ', ')"
+        Write-Verbose "Starting $($MyInvocation.MyCommand.Name)"
     }
 
     process {
         foreach ($scriptItem in $Path) {
+            # Path is bound only here when it comes from the pipeline, so each script is named here
+            Write-Verbose "Testing $scriptItem"
             $scriptRunSplat = @{
                 Path           = $scriptItem
                 Architecture   = $Architecture

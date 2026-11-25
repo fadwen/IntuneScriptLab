@@ -55,7 +55,8 @@ function Test-IntuneAssignmentFilter {
                     Category     = 'InvalidData'
                     TargetObject = $ruleText
                 }
-                Write-Error @errorSplat
+                # One rule that does not parse is one failed item; the rules after it are still tested
+                $PSCmdlet.WriteError((New-IslErrorRecord @errorSplat))
                 continue
             }
             # The parser does not know the mode; in exclude mode a clause that never matches excludes
