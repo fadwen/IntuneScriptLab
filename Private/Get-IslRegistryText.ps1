@@ -5,8 +5,10 @@ function Get-IslRegistryText {
 
     .DESCRIPTION
     For the registry sections of the diagnostic package. Each key is a line "[name]", followed
-    by one line "  name = value" for each of its values. The PowerShell provider's own properties
-    are left out, binary values are shown by their length, and a value longer than 400
+    by one line "  name = value" for each of its values. The five properties that the PowerShell
+    provider adds to every key (PSPath, PSParentPath, PSChildName, PSDrive and PSProvider) are
+    left out, and a value of the key whose name only starts with PS, such as PSVersion, is kept.
+    Binary values are shown by their length, and a value longer than 400
     characters is cut there and marked with "...". A key or a subkey that cannot be read is
     passed over without an error; a key that is not there gives the one line "<key> : not
     present".
@@ -16,12 +18,14 @@ function Get-IslRegistryText {
     HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension.
 
     .PARAMETER Depth
-    How many levels of subkeys below the key are included.
+    How many levels below the key's own subkeys are included, as Get-ChildItem -Depth counts
+    them: 0 gives the key and its subkeys, and each step adds one more level, so Depth N gives
+    N + 1 levels of subkeys.
 
     .EXAMPLE
     Get-IslRegistryText -Key 'HKLM:\SOFTWARE\Microsoft\IntuneManagementExtension\Policies' -Depth 2
 
-    The policy keys of the agent, two levels down.
+    The policy keys of the agent, three levels of subkeys down.
 
     .INPUTS
     None.
@@ -45,14 +49,18 @@ function Get-IslRegistryText {
     }
     $children = @(Get-ChildItem -LiteralPath $Key -Recurse -Depth $Depth -ErrorAction SilentlyContinue)
     $keys = @(Get-Item -LiteralPath $Key -ErrorAction SilentlyContinue) + $children
+    $providerProperties = 'PSPath', 'PSParentPath', 'PSChildName', 'PSDrive', 'PSProvider'
     foreach ($item in $keys) {
         "[$($item.Name)]"
         $values = Get-ItemProperty -LiteralPath $item.PSPath -ErrorAction SilentlyContinue
         if (-not $values) { continue }
         foreach ($property in $values.PSObject.Properties) {
-            if ($property.Name -like 'PS*') { continue }
-            $text = if ($property.Value -is [byte[]]) { "byte[$($property.Value.Length)]" }
-            else { "$($property.Value)" }
+            if ($property.Name -in $providerProperties) { continue }
+            if ($property.Value -is [byte[]]) {
+                $text = "byte[$($property.Value.Length)]"
+            } else {
+                $text = "$($property.Value)"
+            }
             if ($text.Length -gt 400) { $text = $text.Substring(0, 400) + '...' }
             "  $($property.Name) = $text"
         }

@@ -52,6 +52,24 @@ Describe 'Compress-IslFolder' -Tag 'Unit', 'Private' {
         Test-Path -LiteralPath $zip | Should-BeTrue
     }
 
+    It 'ends with an error and leaves no archive when a file cannot be added' {
+        $zip = Join-Path $TestDrive 'part.zip'
+        $locked = Join-Path $script:Folder 'Registry\Deep\Key.txt'
+        # A stream that writes to the file and shares only reading keeps the archive from opening it
+        $holder = [System.IO.File]::Open($locked, 'Open', 'ReadWrite', 'Read')
+        try {
+            {
+                InModuleScope IntuneScriptLab -Parameters @{ Folder = $script:Folder; Zip = $zip } {
+                    Compress-IslFolder -Folder $Folder -Destination $Zip
+                }
+            } | Should-Throw -ExceptionMessage '*Key.txt*'
+        } finally {
+            $holder.Dispose()
+        }
+
+        Test-Path -LiteralPath $zip | Should-BeFalse
+    }
+
     It 'ends with an error when the archive is there already, and leaves it as it was' {
         $zip = Join-Path $TestDrive 'taken.zip'
         [System.IO.File]::WriteAllText($zip, 'not a zip')
