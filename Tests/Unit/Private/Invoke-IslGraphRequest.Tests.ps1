@@ -138,12 +138,12 @@ Describe 'Invoke-IslGraphRequest' -Tag 'Unit', 'Private' {
             function script:Invoke-NextFailure {
                 <#
                 .SYNOPSIS
-                    Throws the next queued Graph failure, or returns the answer when none is left.
+                    Fails with the next queued Graph failure, or returns the answer when none is left.
 
                 .DESCRIPTION
-                    Takes the first failure off the queue in $script:Failures and throws it, so that a
-                    mock of Invoke-MgGraphRequest fails as many times as the test queued and then
-                    answers.
+                    Takes the first failure off the queue in $script:Failures and ends with it as a
+                    terminating error, as the compiled Invoke-MgGraphRequest does, so that a mock of it
+                    fails as many times as the test queued and then answers.
 
                 .PARAMETER Answer
                     What the mock returns once the queue is empty.
@@ -151,7 +151,7 @@ Describe 'Invoke-IslGraphRequest' -Tag 'Unit', 'Private' {
                 .EXAMPLE
                     Invoke-NextFailure -Answer @{ id = 'x' }
 
-                    Throws the next queued failure, or returns the hashtable when the queue is empty.
+                    Fails with the next queued failure, or returns the hashtable when the queue is empty.
 
                 .INPUTS
                     None.
@@ -168,7 +168,10 @@ Describe 'Invoke-IslGraphRequest' -Tag 'Unit', 'Private' {
                 if ($script:Failures.Count) {
                     $next = $script:Failures[0]
                     $script:Failures.RemoveAt(0)
-                    throw $next
+                    $category = [System.Management.Automation.ErrorCategory]::InvalidResult
+                    $record = [System.Management.Automation.ErrorRecord]::new(
+                        $next, 'GraphFailure', $category, $null)
+                    $PSCmdlet.ThrowTerminatingError($record)
                 }
                 $Answer
             }
