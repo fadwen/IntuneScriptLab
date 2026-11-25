@@ -95,14 +95,29 @@ function Export-IntuneAgentDiagnostic {
             $system.Add("Agent version: $((Get-Item -LiteralPath $agentExe).VersionInfo.FileVersion)")
         }
         # The modules of this session, which decide what a harness run or an analysis loaded
-        # (ERR-41). A folder under the user's profile is written from %USERPROFILE%, so the list
-        # names nobody the rest of the package does not
+        # (ERR-41). A folder under the user's Documents, which folder redirection can put on a
+        # share named after the user, is written from <Documents>, and one under the profile from
+        # %USERPROFILE%, so the list does not add the user's folder names to the package
         $system.Add('Loaded modules:')
-        $profileRoot = "$env:USERPROFILE"
+        $userRoots = [ordered]@{
+            '<Documents>' = [System.Environment]::GetFolderPath('MyDocuments')
+            '%USERPROFILE%' = "$env:USERPROFILE"
+        }
         foreach ($loadedModule in @(Get-Module | Sort-Object -Property Name, Version)) {
             $base = "$($loadedModule.ModuleBase)"
-            if ($profileRoot -and $base.StartsWith($profileRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-                $base = '%USERPROFILE%' + $base.Substring($profileRoot.Length)
+            foreach ($entry in $userRoots.GetEnumerator()) {
+                $root = "$($entry.Value)".TrimEnd('\', '/')
+                if (-not $root) {
+                    continue
+                }
+                # The root itself, or a folder under it: C:\Users\bob.CONTOSO is not under C:\Users\bob
+                $isRoot = $base.Equals($root, [System.StringComparison]::OrdinalIgnoreCase)
+                $isUnder = $base.StartsWith("$root\", [System.StringComparison]::OrdinalIgnoreCase) -or
+                $base.StartsWith("$root/", [System.StringComparison]::OrdinalIgnoreCase)
+                if ($isRoot -or $isUnder) {
+                    $base = $entry.Key + $base.Substring($root.Length)
+                    break
+                }
             }
             $system.Add("  $($loadedModule.Name) $($loadedModule.Version) $base")
         }
