@@ -44,8 +44,9 @@ entries are carried over from the manifest's release notes.
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`,
-  `Get-IslSetting`, `Get-IslAgentLogEvent` and `Invoke-IslGraphRequest` are private functions of
-  their own, each an advanced function with help and tests (#65). Nothing changes for a caller: a
+  `Get-IslSetting`, `Get-IslAgentLogEvent`, `Invoke-IslGraphRequest` and three analyzer rules
+  (`IslInteractiveCall`, `IslExitCodeIssue`, `IslModuleDependency`) are private functions of their
+  own, each an advanced function with help and tests (#65). Nothing changes for a caller: a
   settings value that is not allowed still ends `Test-IntuneScript` with
   `SettingsInvalid,Test-IntuneScript`.
 - The README's section headings no longer carry the version that introduced each feature, the
