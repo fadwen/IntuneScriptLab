@@ -33,7 +33,8 @@ writes it as one zip file:
 
 - Logs\: every log in the agent's folder (IntuneManagementExtension, AppWorkload,
   HealthScripts, AgentExecutor and the rest, rolled files included), copied with shared
-  access so the live agent is no obstacle;
+  access so the live agent is no obstacle, and can still write, rename or rotate a log while it
+  is copied;
 - Registry\: the agent's own state under HKLM\SOFTWARE\Microsoft\IntuneManagementExtension
   (policies, Win32 app states, script reports), the enrollment's FirstSync values, the
   Enrollment Status Page tracking and the Autopilot diagnostics, as text (skip with
@@ -249,6 +250,10 @@ those sections are present) and SizeBytes.
 Author: Jeffrey Stuhr.
 The registry is read with the caller's rights; a key that cannot be read is left out of the
 zip rather than failing the export. dsregcmd /status runs when dsregcmd.exe is on the path.
+A log that cannot be copied, such as one that rotated away after the folder was listed, is
+reported as a non-terminating error and named on a "Logs not copied" line of Manifest.txt,
+and the rest of the package is still written; with -ErrorAction Stop the export ends there
+and writes no package.
 
 ## RELATED LINKS
 

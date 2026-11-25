@@ -43,7 +43,8 @@ entries are carried over from the manifest's release notes.
 ### Changed
 
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
-  `Export-IntuneFindingSarif` and `Get-IslSetting` are private functions of their own, each an
+  `Export-IntuneFindingSarif`, `Export-IntuneAgentDiagnostic`, `Get-IslSetting`,
+  `Get-IslAgentLogEvent` and `Invoke-IslGraphRequest` are private functions of their own, each an
   advanced function with help and tests (#65). Nothing changes for a caller: a settings value that
   is not allowed still ends `Test-IntuneScript` with `SettingsInvalid,Test-IntuneScript`.
 - The README's section headings no longer carry the version that introduced each feature, the
@@ -151,6 +152,29 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- `Export-IntuneAgentDiagnostic` left every registry value whose name starts with `PS`, such as
+  `PSVersion`, out of the registry text. Only the five properties that the PowerShell provider
+  adds to each key are left out now.
+- One log that `Export-IntuneAgentDiagnostic` could not copy ended the whole export with no
+  package. A log is now opened with delete sharing as well, so a writer that holds it with delete
+  access does not keep it out, and the agent can rename or rotate it during the copy. A log that
+  still cannot be copied, such as one that rotated away after the folder was listed, is reported
+  as a non-terminating error and named on a "Logs not copied" line of the manifest, and the rest
+  of the package is written; `-ErrorAction Stop` ends the export there. A failure while the zip
+  is written no longer leaves an incomplete zip at the destination, which under `-Force` had
+  already replaced the earlier package.
+- `Get-IntuneAgentLog -EventName` would have skipped lines of an event whose pattern has
+  alternatives at its top level, such as `Script failed|Script timed out`: the text the pattern
+  starts with, which the reader looks for before it runs the pattern, was taken from the first
+  alternative only. Such a pattern now has no such text and every line is tried. A numbered
+  backreference in an event pattern, such as `\1`, referred to a group of another pattern once
+  the reader joined the patterns into one, and it now refers to the pattern's own group. No event
+  pattern of the module has either; the reader is ready for one that does.
+- A Graph request that failed with 429, 503 or 504 and whose response had no `RetryAfter` member,
+  such as the `HttpWebResponse` of a `WebException`, wrote the strict-mode error "The property
+  'RetryAfter' cannot be found" before it tried again, and under `-ErrorAction Stop` ended with
+  that error in place of Graph's own, which hid the status code from the caller. It now waits the
+  doubling delay and tries again without an error.
 - A test of `New-IslFinding` left out a mandatory parameter and expected an error. A host that can
   prompt asks for the value instead, so the suites waited for an answer at a console and wherever
   the standard input stayed open. The test reads the parameters from the command now, and a new

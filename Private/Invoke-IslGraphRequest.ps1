@@ -78,61 +78,17 @@ function Invoke-IslGraphRequest {
     if ($Body) { $requestSplat.Body = $Body }
     if ($Headers) { $requestSplat.Headers = $Headers }
 
-    # How long to wait before sending a failed request again, or nothing when the failure is not
-    # one that passes. Invoke-MgGraphRequest's exception carries the status code and the response;
-    # both are read by name so a stand-in exception with the same members serves in the tests
-    function Get-RetryDelay {
-        param($ErrorRecord, [int]$Attempt)
-        $exception = $ErrorRecord.Exception
-        $status = 0
-        if ($exception.PSObject.Properties['StatusCode'] -and $exception.StatusCode) {
-            $status = [int]$exception.StatusCode
-        }
-        $response = if ($exception.PSObject.Properties['Response']) { $exception.Response } else { $null }
-        if (-not $status -and $response) { $status = [int]$response.StatusCode }
-        if ($status -notin 429, 503, 504) { return $null }
-
-        $delay = 0
-        $retryAfter = if ($response) { $response.Headers.RetryAfter } else { $null }
-        if ($retryAfter) {
-            if ($null -ne $retryAfter.Delta) { $delay = [Math]::Ceiling($retryAfter.Delta.TotalSeconds) }
-            elseif ($null -ne $retryAfter.Date) {
-                $delay = [Math]::Ceiling(($retryAfter.Date.UtcDateTime - [datetime]::UtcNow).TotalSeconds)
-            }
-        }
-        if ($delay -lt 1) { $delay = [Math]::Pow(2, $Attempt) }
-        [int][Math]::Min($delay, 60)
-    }
-
-    function Invoke-Once {
-        param([hashtable]$Splat)
-        $attempt = 0
-        while ($true) {
-            try {
-                return Invoke-MgGraphRequest @Splat
-            }
-            catch {
-                $attempt++
-                $delay = if ($attempt -le 3) { Get-RetryDelay -ErrorRecord $_ -Attempt $attempt } else { $null }
-                if ($null -eq $delay) { throw }
-                Write-Verbose ("Graph answered $($_.Exception.Message); retry $attempt of 3 in $delay s: " +
-                    $Splat.Uri)
-                Start-Sleep -Seconds $delay
-            }
-        }
-    }
-
     # The request that failed for good ends this function with Graph's own error, unchanged, so
     # that a caller reads the status code and the response from it as before
     $items = [System.Collections.Generic.List[object]]::new()
     try {
         if (-not $All) {
-            $reply = Invoke-Once -Splat $requestSplat
+            $reply = Invoke-IslGraphRequestOnce -Request $requestSplat
         } else {
             $next = $Uri
             while ($next) {
                 $requestSplat.Uri = $next
-                $page = Invoke-Once -Splat $requestSplat
+                $page = Invoke-IslGraphRequestOnce -Request $requestSplat
                 # The last page has no next link, and an empty collection may come without a value
                 $pageItems = @(Get-IslPropertyValue -InputObject $page -Name 'value')
                 if ($pageItems.Count -gt 0) { $items.AddRange([object[]]$pageItems) }
