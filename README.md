@@ -229,16 +229,30 @@ Applied Remaining Written Fixes                          Path
       1         0 False   IslEncodingIssue@0             C:\repo\Remediations\Widget\Remediate.ps1
 ```
 
-Three findings come with an edit the tool can make for you, each behaviour-preserving: a
-script-scope `return` becomes the `exit 0` it already produced, with any returned value written
-first (`return 'ok'` to `'ok'; exit 0`); a UTF-16 or BOM-less non-ASCII file is rewritten as UTF-8
-with a BOM; a padded requirement value (`' ok '`) is trimmed. Another eight edits follow the
-finding's own advice: `-Force` on `Install-Module` and its kin, `-Confirm:$false` on
-`Register-PSRepository`, `-ErrorAction SilentlyContinue` on a probing cmdlet, `exit 1` for an exit
-code Intune reads as 1 anyway, `$env:ProgramW6432` for `$env:ProgramFiles`, `'ARM64|AMD64'` as a
-`-match` pattern, `$PSScriptRoot` for `$PWD`, a `Get-Credential -Credential` call that returns
-what it was handed replaced by the argument, and a `Set-ExecutionPolicy` or `#Requires -Version 7`
-line removed. `Repair-IntuneScript` applies them
+Some findings come with an edit the tool can make for you, listed here by rule. Three are
+behaviour-preserving:
+
+- `IslExitCodeIssue`: a script-scope `return` becomes the `exit 0` it already produced, with any
+  returned value written first (`return 'ok'` to `'ok'; exit 0`).
+- `IslEncodingIssue`: a UTF-16 or BOM-less non-ASCII file is rewritten as UTF-8 with a BOM.
+- `IslOutputIssue`: a padded requirement value (`' ok '`) is trimmed.
+
+The others follow the finding's own advice:
+
+- `IslInteractiveCall`: `-Force` on `Install-Module` and its kin, `-Confirm:$false` on
+  `Register-PSRepository`, and a `Get-Credential -Credential` call that returns what it was handed
+  replaced by the argument.
+- `IslOutputIssue`: `-ErrorAction SilentlyContinue` on a probing cmdlet in a Win32 detection or
+  requirement script, and `-ErrorAction Stop` on one in a remediation, so that its failure is one.
+- `IslExitCodeIssue`: `exit 1` for an exit code Intune reads as 1 anyway.
+- `IslArchitectureIssue`: `$env:ProgramW6432` for `$env:ProgramFiles`.
+- `IslArm64Assumption`: `'ARM64|AMD64'` as a `-match` pattern.
+- `IslRelativePath`: `$PSScriptRoot` for `$PWD`.
+- `IslExecutionPolicyCall`: a `Set-ExecutionPolicy` line removed.
+- `IslPowerShell7Syntax`: a `#Requires -Version 7` line removed.
+
+`Tests/Unit/Readme.Tests.ps1` fails when a rule that offers an edit is missing from this list.
+`Repair-IntuneScript` applies them
 per script, reports what it changed and how many findings remain, previews with `-WhatIf`, and
 takes `-ScriptType`, `-Context`, `-Architecture` and `-EnforceSignatureCheck` the way `Test-IntuneScript` does.
 Whether that `exit 0` should have been an `exit 1` is still the author's call, which is why the
