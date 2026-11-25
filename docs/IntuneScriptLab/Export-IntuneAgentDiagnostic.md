@@ -40,7 +40,10 @@ writes it as one zip file:
   Enrollment Status Page tracking and the Autopilot diagnostics, as text (skip with
   -SkipRegistry);
 - Device\: system.txt (Windows build, architecture, PowerShell version, agent version and
-  service state, time zone, this module's version) and dsregcmd.txt (the join state);
+  service state, time zone, this module's version, and the modules loaded in the session with
+  their versions and folders, a folder under the user's Documents written from <Documents> and
+  one under the profile from %USERPROFILE%) and
+  dsregcmd.txt (the join state);
 - Timeline\: events.csv, every log line the event table names, and timelines.csv, one line
   per policy or app from Get-IntuneAgentTimeline (skip with -SkipTimeline);
 - Manifest.txt: what the package holds and when it was made.
