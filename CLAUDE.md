@@ -259,6 +259,8 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 ./Build/Invoke-Build.ps1                           # all of it in order: help, rule reference, links, analysis, unit suites on 7 and 5.1
 ./Tests/Invoke-Tests.ps1                           # every suite, shuffled; suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -CodeCoverage             # the same with the 80% coverage gate, as the tests job runs it
+./Tests/Invoke-Tests.ps1 -TestType Performance     # the log readers on a generated log, not part of the default run
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security  # where a -Credential password goes, and the checks on input
 ./Build/Invoke-Analysis.ps1                        # PSScriptAnalyzer with the settings file, as the tests job runs it
 ./Build/Build-Help.ps1 -SkipUpdate                 # rebuild MAML after editing docs/, the form CI compares
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule

@@ -43,6 +43,8 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 ./Build/Invoke-Build.ps1                                # everything below that a pull request needs, in order
 ./Tests/Invoke-Tests.ps1                                # a few minutes, shuffled; suites needing elevation,
                                                         # a lab account or PSScriptAnalyzer skip themselves
+./Tests/Invoke-Tests.ps1 -TestType Performance          # the log readers on a generated log, with the limits CI holds
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security   # where a -Credential password goes, and the checks on input
 ./Build/Invoke-Analysis.ps1                             # PSScriptAnalyzer, as CI runs it
 ./Build/Build-Help.ps1 -SkipUpdate                      # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule

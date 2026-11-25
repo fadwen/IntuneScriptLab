@@ -113,6 +113,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           ./Tests/Invoke-Tests.ps1 -CodeCoverage -OutputPath ./reports -Output Detailed -SummaryPath $env:GITHUB_STEP_SUMMARY
 
+      # The log readers on a generated log of 10,000 lines (TST-43), in their declared order and
+      # outside the coverage run, whose instrumentation would slow what they measure. Each test
+      # holds an absolute limit with room for a slow runner and a check that four times the lines
+      # take less than six times as long; the MEASURE lines in the log are the figures the
+      # performance gate (#136) will record as baselines.
+      - name: Performance tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./Tests/Invoke-Tests.ps1 -TestType Performance -OutputPath ./reports/performance -Output Detailed -SummaryPath $env:GITHUB_STEP_SUMMARY
+
       - name: Upload test results and coverage
         if: always()
         uses: actions/upload-artifact@v7
