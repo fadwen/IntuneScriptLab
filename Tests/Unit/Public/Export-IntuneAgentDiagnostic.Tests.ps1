@@ -171,6 +171,59 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             Get-ZipEntry -Zip $zip | Should-ContainCollection 'Timeline/events.csv'
         }
 
+        It 'reports a log that cannot be copied, names it in the manifest and writes the rest' {
+            $partly = Join-Path $TestDrive 'PartlyLocked'
+            Copy-Item -LiteralPath $script:Logs -Destination $partly -Recurse
+            $lockedLog = Join-Path $partly 'Locked.log'
+            [System.IO.File]::WriteAllText($lockedLog, ('x' * 100))
+            $zip = Join-Path $TestDrive 'partly.zip'
+            # A byte range that another stream has locked cannot be read, though the file opens
+            $holder = [System.IO.File]::Open($lockedLog, 'Open', 'ReadWrite', 'ReadWrite, Delete')
+            try {
+                $holder.Lock(0, 100)
+                $exportSplat = @{
+                    Path = $zip; LogPath = $partly; SkipRegistry = $true; SkipTimeline = $true
+                    ErrorAction = 'Continue'
+                }
+                $output = Export-IntuneAgentDiagnostic @exportSplat 2>&1
+            } finally {
+                $holder.Dispose()
+            }
+            $errors = @($output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $result = @($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            $errors | Should-BeCollection -Count 1
+            "$($errors[0])" | Should-BeLikeString '*lock*'
+            $result | Should-BeCollection -Count 1
+            $result[0].Logs | Should-Be 2
+            $entries = Get-ZipEntry -Zip $zip
+            $entries | Should-NotContainCollection 'Logs/Locked.log'
+            $entries | Should-ContainCollection 'Logs/HealthScripts.log'
+            $manifest = Read-ZipEntry -Zip $zip -Name 'Manifest.txt'
+            $manifest | Should-BeLikeString '*Logs: 2 file(s)*Logs not copied: Locked.log*'
+        }
+
+        It 'ends with no package under -ErrorAction Stop when a log cannot be copied' {
+            $partly = Join-Path $TestDrive 'PartlyLockedStop'
+            Copy-Item -LiteralPath $script:Logs -Destination $partly -Recurse
+            $lockedLog = Join-Path $partly 'Locked.log'
+            [System.IO.File]::WriteAllText($lockedLog, ('x' * 100))
+            $zip = Join-Path $TestDrive 'partly-stop.zip'
+            $holder = [System.IO.File]::Open($lockedLog, 'Open', 'ReadWrite', 'ReadWrite, Delete')
+            try {
+                $holder.Lock(0, 100)
+                $exportSplat = @{
+                    Path = $zip; LogPath = $partly; SkipRegistry = $true; SkipTimeline = $true
+                    ErrorAction = 'Stop'
+                }
+                { Export-IntuneAgentDiagnostic @exportSplat } | Should-Throw -ExceptionMessage '*lock*'
+            } finally {
+                $holder.Dispose()
+            }
+
+            Test-Path -LiteralPath $zip | Should-BeFalse
+        }
+
         It 'writes no package and returns nothing when a step fails, for a script without try' {
             $existing = Join-Path $TestDrive 'existing.zip'
             [System.IO.File]::WriteAllText($existing, 'not a zip')

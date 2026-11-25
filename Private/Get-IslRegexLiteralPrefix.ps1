@@ -9,7 +9,9 @@ function Get-IslRegexLiteralPrefix {
     read up to the first metacharacter. A leading ^ is skipped, an escaped punctuation character
     counts as itself, and an escaped letter or digit ends the text, because it stands for a
     class. When a quantifier follows the text, its last character is optional in the pattern and
-    is left out.
+    is left out. A pattern with a | outside every group and character class, such as
+    'Script failed|Script timed out', has alternatives that need not share any text, and gives
+    an empty string.
 
     .PARAMETER Pattern
     The regular expression.
@@ -24,7 +26,7 @@ function Get-IslRegexLiteralPrefix {
 
     .OUTPUTS
     System.String. The literal text, or an empty string when the pattern starts with a
-    metacharacter.
+    metacharacter or has alternatives at its top level.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -32,6 +34,25 @@ function Get-IslRegexLiteralPrefix {
         [Parameter(Mandatory)]
         [string]$Pattern
     )
+
+    $depth = 0
+    $inClass = $false
+    for ($index = 0; $index -lt $Pattern.Length; $index++) {
+        $character = $Pattern[$index]
+        if ($character -eq '\') {
+            $index++
+        } elseif ($inClass) {
+            if ($character -eq ']') { $inClass = $false }
+        } elseif ($character -eq '[') {
+            $inClass = $true
+        } elseif ($character -eq '(') {
+            $depth++
+        } elseif ($character -eq ')') {
+            if ($depth -gt 0) { $depth-- }
+        } elseif ($character -eq '|' -and $depth -eq 0) {
+            return ''
+        }
+    }
 
     $literal = [System.Text.StringBuilder]::new()
     $index = if ($Pattern.StartsWith('^')) { 1 } else { 0 }
