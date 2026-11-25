@@ -52,10 +52,10 @@ Test-IntuneScript -Path .\Detect-ContosoAgent.ps1 -ScriptType Detection
 
 For a remediation detection script that reads `HKLM:\SOFTWARE\Contoso\Agent` and exits 0 when
 the key is there, the analysis reports the registry redirection that the 32-bit host, the
-portal's default for remediations, applies to it:
+portal's default for remediations, applies to it. The output, with the folder shortened:
 
 ```text
-   Script: .\Detect-ContosoAgent.ps1
+   Script: C:\...\Detect-ContosoAgent.ps1
 
 Severity    Rule                    Line Message
 --------    ----                    ---- -------
@@ -72,12 +72,12 @@ the script the way the agent does, and [In your own Pester suite](#in-your-own-p
 | Component | Minimum | Recommended |
 |---|---|---|
 | PowerShell | Windows PowerShell 5.1 or PowerShell 7 | PowerShell 7.6, with Windows PowerShell 5.1 present for the runtime harness |
-| Operating system | Any that PowerShell 7 runs on, for the static analysis; Windows, for everything else | Windows 11 on x64 or ARM64, the systems CI tests on |
+| Operating system | Any that PowerShell 7 runs on, for the static analysis; Windows, for everything else | Windows Server (x64) or Windows 11 (ARM64), the systems CI tests on |
 
 | Module | Version | Needed for |
 |---|---|---|
 | Pester | 6.2.0 or later | The `Should-*` assertions |
-| PSScriptAnalyzer | 1.25.0, the version CI uses | The rule module that `Get-IntuneAnalyzerRulePath` returns |
+| PSScriptAnalyzer | 1.25.0 or later | The rule module that `Get-IntuneAnalyzerRulePath` returns |
 | Microsoft.Graph.Authentication | Any version with `Invoke-MgGraphRequest` | The tenant commands: `Test-IntuneDeployedScript`, `Compare-IntuneDeployedScript`, `Get-IntuneScriptHealth` |
 
 | Layer | Needs |
@@ -811,11 +811,12 @@ Install-PSResource Microsoft.PowerShell.PlatyPS   # 1.0.3 or later, once
 
 ## Troubleshooting
 
-Run the command again with `-Verbose`, which prints each step, and read the ID of the error it
-ended with:
+Run the command again with `-Verbose` and read the ID of the error it ended with. A harness command
+prints each step of the run; `Test-IntuneScript` prints one line for each file, with the script
+type it analyzed the file as:
 
 ```powershell
-Test-IntuneScript -Path .\Detect.ps1 -Verbose
+Invoke-IntuneDetectionTest -Path .\Detect.ps1 -Verbose
 $Error[0].FullyQualifiedErrorId
 ```
 
@@ -849,6 +850,9 @@ $Error[0].FullyQualifiedErrorId
 | `LocalPathNotFolder` | `Compare-IntuneDeployedScript -Path` names a file | Pass the folder that holds the local scripts |
 | `IslFilterRuleInvalid` | The service would refuse the assignment filter rule | Correct the rule as the message says; the other rules are still judged |
 | `DeviceFactsNeedWindows` | `Test-IntuneAssignmentFilter` was asked for this device's facts off Windows | Pass the facts with `-Device` |
+| `DetectionMissing`, `DetectionRuleEmpty`, `IntentCommandMissing` | `Invoke-IntuneWin32AppTest` has no detection, a detection rule with nothing in it, or no command for its intent | Pass `-DetectionPath` or `-DetectionRule`, fill in the rule the message numbers, or pass the `-InstallCommand` or `-UninstallCommand` that the intent needs |
+| `RelatedAppNameMissing`, `RelatedAppDetectionMissing` | An entry of `-DependsOn` or `-Supersedes` has no name, or no way to detect it | Give each entry a `Name` and a `DetectionPath`, `DetectionRule` entries, or both |
+| `RuleOperatorMissing`, `RuleValueMissing`, `RegistryHiveUnknown` | A `Test-IntuneWin32Rule` call lacks the operator or value its kind of rule compares with, or a registry key does not start with a hive | Pass `-Operator` and `-Value` as the message says, or start the key with a hive such as `HKEY_LOCAL_MACHINE\` |
 | `RuleTypeUnknown`, `RuleIsScript`, `RuleValueNameMissing` | A Win32 rule passed to `Invoke-IntuneWin32AppTest` or `Test-IntuneWin32Rule` is incomplete | Give the rule a type, run a script rule with `Invoke-IntuneDetectionTest`, or pass `-ValueName` |
 | `WindowsReleaseUnknown` | `-MinimumWindowsRelease` names a release the module does not know | Use one of the values the parameter lists |
 | `UnknownAgentLogEvent` | `Get-IntuneAgentLog -EventName` names an event it does not know | `Get-IntuneAgentLog -ListEvent` lists the names |
