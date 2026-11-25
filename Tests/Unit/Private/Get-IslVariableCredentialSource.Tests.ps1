@@ -48,6 +48,18 @@ Describe 'Get-IslVariableCredentialSource' -Tag 'Unit', 'Private' {
         Get-Source -Text $text | Should-BeCollection @('Import-Clixml, a [pscredential] parameter')
     }
 
+    It 'takes a typed assignment, whatever its right side is' {
+        $text = "[pscredential]`$cred = Get-Secret -Name x`nGet-Credential -Credential `$cred"
+
+        Get-Source -Text $text | Should-BeCollection @('a [pscredential] variable')
+    }
+
+    It 'gives nothing for a parameter that is not typed as a credential' {
+        $text = "param(`$Cred)`nGet-Credential -Credential `$Cred"
+
+        Get-Source -Text $text | Should-BeCollection @()
+    }
+
     It 'gives nothing when one assignment could be something else' {
         $text = "`$cred = Import-Clixml .\c.xml`n`$cred = Get-Secret -Name x`nGet-Credential -Credential `$cred"
 

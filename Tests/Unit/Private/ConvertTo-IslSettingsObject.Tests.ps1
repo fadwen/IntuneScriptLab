@@ -97,6 +97,22 @@ Describe 'ConvertTo-IslSettingsObject' -Tag 'Unit', 'Private' {
                 Case = 'a severity that is a list'; Table = @{ Severity = @('IslLongSleep', 'Error') }
                 Text = '*Severity must be a hashtable of rule names*'
             }
+            @{
+                Case = 'a severity of 0'; Table = @{ Severity = 0 }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
+            @{
+                Case = 'a severity of $false'; Table = @{ Severity = $false }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
+            @{
+                Case = 'a severity that is an empty text'; Table = @{ Severity = '' }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
+            @{
+                Case = 'a severity that is an empty list'; Table = @{ Severity = @() }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
         ) {
             $failure = { ConvertTo-SettingsTable -Table $Table -Source 'C:\repo\IntuneScriptLab.settings.psd1' } |
                 Should-Throw -ExceptionMessage $Text

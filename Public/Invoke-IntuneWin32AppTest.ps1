@@ -97,6 +97,31 @@ function Invoke-IntuneWin32AppTest {
             $PSCmdlet.ThrowTerminatingError($record)
         }
     }
+    # A null rule entry is a rule that is missing, not one to leave out. It is found here, before
+    # -WhatIf is answered and any detection runs; each detection pass checks it again
+    $ruleSets = @(
+        @{ Rule = $DetectionRule; Label = '' }
+        foreach ($related in @($DependsOn)) {
+            if ($related) {
+                @{ Rule = $related['DetectionRule']; Label = " for dependency $($related['Name'])" }
+            }
+        }
+        foreach ($related in @($Supersedes)) {
+            if ($related) {
+                @{ Rule = $related['DetectionRule']; Label = " for superseded app $($related['Name'])" }
+            }
+        }
+    )
+    foreach ($ruleSet in $ruleSets) {
+        $entries = @(if ($null -ne $ruleSet['Rule']) { $ruleSet['Rule'] })
+        for ($index = 0; $index -lt $entries.Count; $index++) {
+            if ($null -eq $entries[$index]) {
+                $message = "Detection rule $($index + 1)$($ruleSet['Label']) is empty"
+                $record = New-IslErrorRecord -Message $message -ErrorId 'DetectionRuleEmpty' @argumentError
+                $PSCmdlet.ThrowTerminatingError($record)
+            }
+        }
+    }
     # A content folder that is not there is found before anything runs
     try {
         $null = Resolve-Path -LiteralPath $ContentPath -ErrorAction Stop

@@ -69,7 +69,9 @@ function ConvertTo-IslSettingsObject {
         $problem = 'Context must be System or User'
     } elseif ($architecture -and "$architecture" -notin 'x86', 'x64', 'arm64') {
         $problem = 'Architecture must be x86, x64 or arm64'
-    } elseif ($severityTable -and $severityTable -isnot [System.Collections.IDictionary]) {
+    } elseif ($null -ne $severityTable -and $severityTable -isnot [System.Collections.IDictionary]) {
+        # A falsy value such as 0, $false, '' or @() is refused too: an empty hashtable is the way
+        # to give no overrides
         $problem = 'Severity must be a hashtable of rule names and severities'
     }
     $severity = @{}
