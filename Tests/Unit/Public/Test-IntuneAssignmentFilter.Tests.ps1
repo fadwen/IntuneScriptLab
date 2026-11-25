@@ -203,6 +203,14 @@ Describe 'Test-IntuneAssignmentFilter' -Tag 'Unit', 'Public' {
             $onDevice.Matched | Should-BeFalse
         }
 
+        It 'treats a version with a part too large for a 64-bit number as never equal, even to itself' {
+            $huge = @{ operatingSystemVersion = '10.0.99999999999999999999' }
+            $equal = '(device.operatingSystemVersion -eq "10.0.99999999999999999999")'
+            (Test-IntuneAssignmentFilter -Rule $equal -Device $huge).Matched | Should-BeFalse
+            $unequal = '(device.operatingSystemVersion -ne "10.0.99999999999999999999")'
+            (Test-IntuneAssignmentFilter -Rule $unequal -Device $huge).Matched | Should-BeTrue
+        }
+
         It 'validates the syntax without a device on request' {
             $result = Test-IntuneAssignmentFilter -Rule '(device.cpuArchitecture -eq "x64")' -SyntaxOnly 3>$null
             $result.Matched | Should-BeNull
