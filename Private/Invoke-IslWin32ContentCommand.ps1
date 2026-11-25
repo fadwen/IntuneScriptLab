@@ -93,10 +93,16 @@ function Invoke-IslWin32ContentCommand {
         # The same host hides inside a batch file the command line names: install.cmd calling
         # powershell.exe runs it 32-bit too, from the agent's 32-bit cmd.exe, without the
         # command line showing it
-        $first = if ($CommandLine -match '^\s*"([^"]+)"') { $Matches[1] }
-        else { ($CommandLine.Trim() -split '\s+', 2)[0] }
-        $batch = if ($first -match '(?i)\.(cmd|bat)$') { Join-Path -Path $source -ChildPath $first }
-        else { $null }
+        $first = if ($CommandLine -match '^\s*"([^"]+)"') {
+            $Matches[1]
+        } else {
+            ($CommandLine.Trim() -split '\s+', 2)[0]
+        }
+        $batch = if ($first -match '(?i)\.(cmd|bat)$') {
+            Join-Path -Path $source -ChildPath $first
+        } else {
+            $null
+        }
         if ($batch -and (Test-Path -LiteralPath $batch -PathType Leaf)) {
             $hit = Select-String -LiteralPath $batch -Pattern $hostPattern | Select-Object -First 1
             if ($hit) {

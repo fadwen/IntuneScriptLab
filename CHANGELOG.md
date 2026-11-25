@@ -47,8 +47,12 @@ entries are carried over from the manifest's release notes.
   `Export-IntuneAgentDiagnostic`, `Get-IslSetting`, `Get-IslAgentLogEvent`,
   `Invoke-IslGraphRequest` and three analyzer rules (`IslInteractiveCall`, `IslExitCodeIssue`,
   `IslModuleDependency`) are private functions of their own, each an advanced function with help
-  and tests (#65). Nothing changes for a caller: a settings value that is not allowed still ends
-  `Test-IntuneScript` with `SettingsInvalid,Test-IntuneScript`.
+  and tests (#65). A settings value that is not allowed still ends `Test-IntuneScript` with
+  `SettingsInvalid,Test-IntuneScript`. One error changes: a detection rule entry that is `$null`,
+  for the app or for one of its `-DependsOn` or `-Supersedes` apps, ends `Invoke-IntuneWin32AppTest`
+  with `DetectionRuleEmpty` among its argument checks, before `-WhatIf` is answered and anything
+  runs, where it ended with the parameter-binding error of `Test-IntuneWin32Rule` once the flow had
+  started.
 - The README's section headings no longer carry the version that introduced each feature, the
   tenant pre-flight paragraph no longer says since when each check exists, and the roadmap points
   at this changelog instead of listing versions; a first-time reader wants the overview, and the
@@ -95,7 +99,8 @@ entries are carried over from the manifest's release notes.
   `CredentialWithSystemContext`, `HostArchitectureUnavailable`, `HostNotFound`,
   `ProcessStartFailed`, `ScheduledTaskNotRegistered`, `ScheduledTaskNotStarted` and
   `FolderAccessNotGranted`, and for the arguments of `Invoke-IntuneWin32AppTest` `DetectionMissing`,
-  `IntentCommandMissing`, `RelatedAppNameMissing` and `RelatedAppDetectionMissing`. **A script
+  `DetectionRuleEmpty`, `IntentCommandMissing`, `RelatedAppNameMissing` and
+  `RelatedAppDetectionMissing`. **A script
   that calls one of them without `try` and without `$ErrorActionPreference = 'Stop'` now goes on
   at its next statement after the failure, where it used to end.** In return,
   `-ErrorAction SilentlyContinue` on the call no longer lets the command carry on past its own

@@ -32,6 +32,7 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
             $script:Seen['Arguments'] = $Arguments
             $script:Seen['Bitness'] = $LauncherBitness
             $script:Seen['WorkFolder'] = $WorkFolder
+            $script:Seen['Credential'] = $Credential
             $script:Seen['Copied'] = Test-Path -LiteralPath (Join-Path $WorkingDirectory 'setup.exe')
             [pscustomobject]@{
                 ExitCode = 3010; TimedOut = $false; StdOut = 'done'; StdErr = ''; Duration = [timespan]::Zero
@@ -72,6 +73,69 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
 
         $script:Warnings | Should-BeCollection -Count 1
         $script:Warnings[0] | Should-BeLikeString 'powershell.exe in install.cmd (line 2)*'
+    }
+
+    It 'reads a quoted batch file name with a space in it' {
+        Set-Content -LiteralPath (Join-Path $script:Content 'install app.cmd') -Encoding ascii -Value @(
+            '@echo off', 'powershell.exe -File install.ps1')
+        $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = '"install app.cmd" /q' }
+        $null = Invoke-Content ($run + $script:Base)
+
+        $script:Warnings | Should-BeCollection -Count 1
+        $script:Warnings[0] | Should-BeLikeString 'powershell.exe in install app.cmd (line 2)*'
+    }
+
+    It 'runs the current user without a credential and without granting a folder' {
+        Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { }
+        $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = 'setup.exe' }
+        $credential = [System.Management.Automation.PSCredential]::Empty
+        $null = Invoke-Content ($run + $script:Base + @{ Credential = $credential })
+
+        $script:Seen['Credential'].UserName | Should-BeNull
+        $script:Seen['WorkFolder'] | Should-BeLikeString "$([System.IO.Path]::GetTempPath())*"
+        Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly
+    }
+
+    Context 'as another account' {
+        BeforeEach {
+            # The copy goes under ProgramData, which the test points at its own drive
+            $script:SavedProgramData = $env:ProgramData
+            $env:ProgramData = Join-Path $TestDrive "programdata-$([guid]::NewGuid().ToString('N'))"
+            Mock Grant-IslFolderAccess -ModuleName IntuneScriptLab { $script:Seen['Granted'] = $Account }
+            $script:Account = [System.Management.Automation.PSCredential]::new(
+                'LAB\tester', [System.Security.SecureString]::new())
+        }
+
+        AfterEach {
+            $env:ProgramData = $script:SavedProgramData
+        }
+
+        It 'copies the content under ProgramData, grants the account the folder and runs as it' {
+            $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = 'setup.exe' }
+            $null = Invoke-Content ($run + $script:Base + @{ Credential = $script:Account })
+
+            $runs = Join-Path $env:ProgramData 'IntuneScriptLab\Runs'
+            $script:Seen['WorkFolder'] | Should-BeLikeString "$runs\*"
+            $script:Seen['Granted'] | Should-Be 'LAB\tester'
+            $script:Seen['Credential'].UserName | Should-Be 'LAB\tester'
+            $script:Seen['Copied'] | Should-BeTrue
+            Test-Path -LiteralPath $script:Seen['WorkFolder'] | Should-BeFalse
+        }
+
+        It 'ends with the launch''s error when the launch fails, and still removes the copy' {
+            Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
+                $script:Seen['WorkFolder'] = $WorkFolder
+                $record = [System.Management.Automation.ErrorRecord]::new(
+                    [System.InvalidOperationException]::new('The launch failed'), 'ProcessStartFailed',
+                    [System.Management.Automation.ErrorCategory]::InvalidOperation, $null)
+                throw $record
+            }
+            $run = @{ Phase = 'install'; Content = $script:Content; CommandLine = 'setup.exe' }
+
+            { Invoke-Content ($run + $script:Base + @{ Credential = $script:Account }) } |
+                Should-Throw -FullyQualifiedErrorId 'ProcessStartFailed*' -ExceptionMessage 'The launch failed'
+            Test-Path -LiteralPath $script:Seen['WorkFolder'] | Should-BeFalse
+        }
     }
 
     It 'ends without starting anything when the content folder is not there' {

@@ -114,9 +114,13 @@ function Invoke-IslWin32DetectionPass {
     foreach ($miss in $unmet) {
         $Warning.Add("$Phase detection rule not met$Label ($($miss.Kind) $($miss.Operation)): " + $miss.Reason)
     }
-    $reason = if ($scriptResult -and -not $scriptResult.Detected) { $scriptResult.Reason }
-    elseif ($unmet.Count) { ($unmet | ForEach-Object { $_.Reason }) -join '; ' }
-    else { 'Script and rules all report installed' }
+    $reason = if ($scriptResult -and -not $scriptResult.Detected) {
+        $scriptResult.Reason
+    } elseif ($unmet.Count) {
+        ($unmet | ForEach-Object { $_.Reason }) -join '; '
+    } else {
+        'Script and rules all report installed'
+    }
     [pscustomobject]@{
         PSTypeName = 'IntuneScriptLab.Win32DetectionPass'
         Detected = $detected
