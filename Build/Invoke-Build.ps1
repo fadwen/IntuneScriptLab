@@ -17,9 +17,10 @@
     6. Tests/Invoke-Tests.ps1 -TestType Unit under Windows PowerShell 5.1, on Windows, unless
        -SkipWindowsPowerShell.
 
-    Steps 1 and 2 rewrite en-US/IntuneScriptLab-Help.xml and docs/Rules.md. When they change a
-    file, git status shows it, and the change belongs in the same commit as its cause. The script
-    ends with the list of files those two steps changed.
+    Steps 1 and 2 rewrite en-US/IntuneScriptLab-Help.xml and docs/Rules.md. A change to either
+    belongs in the same commit as its cause. The script ends with the list of the two files whose
+    content those steps changed, compared by hash before and after them, so an edit made before
+    the build is not counted.
 
 .PARAMETER TestType
     Which suites step 5 runs: Unit (the default), Integration or All.
@@ -102,21 +103,70 @@ function Write-BuildStep {
 }
 
 
+function Get-GeneratedHash {
+    <#
+    .SYNOPSIS
+        Gets the hash of each generated file, by its path in the repository.
+
+    .DESCRIPTION
+        Returns a table of the SHA-256 hash of each file that steps 1 and 2 write, with $null for
+        a file that is not there, so that the content before and after the steps can be compared.
+
+    .EXAMPLE
+        $before = Get-GeneratedHash
+
+        Hashes en-US/IntuneScriptLab-Help.xml and docs/Rules.md.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Collections.Hashtable. The hash of each file, by its path in the repository.
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
+
+    $hashes = @{}
+    foreach ($file in $generated) {
+        $path = Join-Path -Path $repositoryRoot -ChildPath $file
+        $hashes[$file] = $null
+        if (Test-Path -LiteralPath $path) {
+            $hashes[$file] = (Get-FileHash -LiteralPath $path).Hash
+        }
+    }
+    $hashes
+}
+
+
+$hashBefore = Get-GeneratedHash
+
 Write-BuildStep -Text 'Help: compiled from the committed Markdown'
 & (Join-Path -Path $PSScriptRoot -ChildPath 'Build-Help.ps1') -SkipUpdate
 
 Write-BuildStep -Text 'Rule reference: docs/Rules.md'
 & (Join-Path -Path $PSScriptRoot -ChildPath 'Build-RuleReference.ps1')
 
+$hashAfter = Get-GeneratedHash
+$changed = @($generated | Where-Object { $hashAfter[$_] -ne $hashBefore[$_] })
+
 Write-BuildStep -Text 'Markdown links'
 & (Join-Path -Path $PSScriptRoot -ChildPath 'Test-MarkdownLink.ps1')
 
 Write-BuildStep -Text 'PSScriptAnalyzer'
 # A new process: once the help build has loaded the module, the analyzer resolves the module's
-# Should-* aliases and reports every Pester assertion of the suites as an alias
-$hostPath = (Get-Process -Id $PID).Path
+# Should-* aliases and reports every Pester assertion of the suites as an alias. The shell of this
+# edition, not this host: in the ISE the host is powershell_ise.exe, which opens -File in an editor
+$shellName = if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    'powershell.exe'
+} elseif ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
+    'pwsh.exe'
+} else {
+    'pwsh'
+}
+$shellPath = Join-Path -Path $PSHOME -ChildPath $shellName
 $analysis = Join-Path -Path $PSScriptRoot -ChildPath 'Invoke-Analysis.ps1'
-& $hostPath -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $analysis
+& $shellPath -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $analysis
 if ($LASTEXITCODE -ne 0) {
     throw "PSScriptAnalyzer reported findings (exit code $LASTEXITCODE)."
 }
@@ -136,10 +186,6 @@ if (-not $SkipTests) {
     }
 }
 
-$changed = @()
-if (Get-Command -Name git -ErrorAction SilentlyContinue) {
-    $changed = @(& git -C $repositoryRoot status --porcelain -- $generated)
-}
 if ($changed.Count -gt 0) {
     Write-Information -InformationAction Continue -MessageData (
         "Build done. Generated files that changed, to commit with their cause:`n$($changed -join "`n")")
