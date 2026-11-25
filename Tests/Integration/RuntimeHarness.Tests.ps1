@@ -187,6 +187,14 @@ Describe 'Remediation output as Intune reports it' -Tag 'Integration', 'Runtime'
 
     It 'passes non-ASCII output through the OEM code page like Intune' {
         $text = 'Gr' + [char]0xFC + [char]0xDF + 'e ' + [char]0x2014 + ' ' + [char]0x2713
+        # The text changes only where the OEM code page cannot hold it. On a host whose OEM code page
+        # is UTF-8 (65001) it comes through intact, as it would from such a device, and there is
+        # nothing to assert
+        $oem = InModuleScope IntuneScriptLab { Get-IslOemEncoding -Kind OEM }
+        if ($oem.GetString($oem.GetBytes($text)) -ceq $text) {
+            Set-ItResult -Skipped -Because "the OEM code page of this host ($($oem.CodePage)) holds the text"
+            return
+        }
         $detect = New-TestScript 'Detect.ps1' "Write-Output '$text'; exit 0" -Bom
         $result = Invoke-IntuneRemediationTest -DetectionPath $detect -Architecture x86
         $result.IntuneOutput | Should-NotBe $text

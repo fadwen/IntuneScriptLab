@@ -100,7 +100,21 @@ function Repair-IntuneScript {
                             [System.Text.UTF8Encoding]::new($false)
                         } catch { Get-IslOemEncoding -Kind ANSI }
                     }
-                    $text = $encoding.GetString($bytes).TrimStart([char]0xFEFF)
+                    $decoded = $encoding.GetString($bytes)
+                    # A decode that does not give the same bytes back has lost characters, as an
+                    # ANSI file does on a host whose system code page is UTF-8 (65001), where the
+                    # fallback above is a UTF-8 decode too. Writing that text would make the loss
+                    # permanent, so the file is left as it is
+                    $lossless = [System.Convert]::ToBase64String($encoding.GetBytes($decoded)) -ceq
+                    [System.Convert]::ToBase64String($bytes)
+                    if (-not $lossless) {
+                        Write-Warning ("${file}: its bytes do not decode in $($encoding.WebName), the " +
+                            'encoding this host reads a script without a byte order mark in, so it was not ' +
+                            'repaired. Save it as UTF-8 with a byte order mark in an editor set to its ' +
+                            'code page, then run again')
+                        $fixable = @()
+                    }
+                    $text = $decoded.TrimStart([char]0xFEFF)
                     $lineStarts = [System.Collections.Generic.List[int]]::new()
                     $lineStarts.Add(0)
                     for ($i = 0; $i -lt $text.Length; $i++) {
