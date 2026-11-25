@@ -166,6 +166,11 @@ Describe's `BeforeAll`. `Should-Invoke` for a call made in `BeforeAll` needs `-S
 failure message; a test that only passes in declaration order fails there first, and
 `-ShuffleSeed` runs that order again.
 
+A test file imports the module only when no copy is loaded or the loaded one is not this tree's,
+and none removes it; only `Module.Contract.Tests.ps1` imports it anew (TST-05). A session that
+already loaded the module therefore keeps that code: after editing the module, import it once with
+`-Force`, or run the suites in a new process as `Invoke-Tests.ps1` in CI does.
+
 ### The MAML filename carries a capital H
 
 `en-US/IntuneScriptLab-Help.xml`, matching every `.EXTERNALHELP IntuneScriptLab-Help.xml` keyword
