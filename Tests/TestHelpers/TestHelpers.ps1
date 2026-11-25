@@ -133,8 +133,8 @@ function Get-AssertionMessage {
     .DESCRIPTION
         The custom assertions report a failure by throwing with a message that names what Intune
         would report. The suites check that message, so this runs the assertion and returns the
-        message of what it threw. An assertion that does not fail throws 'the assertion did not
-        fail', whose message is returned the same way and fails the comparison in the test.
+        message of what it threw. For an assertion that does not fail it returns 'the assertion
+        did not fail', which fails the comparison in the test.
 
     .PARAMETER Assertion
         A script block that runs one assertion.
@@ -158,12 +158,13 @@ function Get-AssertionMessage {
     )
 
     try {
-        & $Assertion
-        throw 'the assertion did not fail'
+        $null = & $Assertion
     } catch [Exception] {
         # The failure is the result here: its message is what the test compares
-        $_.Exception.Message
+        return $_.Exception.Message
     }
+
+    'the assertion did not fail'
 }
 
 
@@ -307,10 +308,12 @@ function ConvertTo-FakeRunResult {
         None.
 
     .OUTPUTS
-        IntuneScriptLab.RunResult. The fake run result, or the type that -TypeName names.
+        IntuneScriptLab.RunResult. The fake run result, the default.
+
+        IntuneScriptLab.ProcessResult. The fake process result, with -TypeName.
     #>
     [CmdletBinding()]
-    [OutputType('IntuneScriptLab.RunResult')]
+    [OutputType('IntuneScriptLab.RunResult', 'IntuneScriptLab.ProcessResult')]
     param(
         [Parameter(Mandatory, Position = 0)]
         [hashtable]$Member,
