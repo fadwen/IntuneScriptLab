@@ -22,6 +22,7 @@ Describe 'Get-IslVersionPart' -Tag 'Unit', 'Private' {
         @{ Text = '10'; Expected = @(10, 0, 0, 0) }
         @{ Text = '10.0.26100'; Expected = @(10, 0, 26100, 0) }
         @{ Text = '10.0.26100.4202'; Expected = @(10, 0, 26100, 4202) }
+        @{ Text = '9223372036854775807'; Expected = @([long]::MaxValue, 0, 0, 0) }
         @{ Text = ' 6.3 '; Expected = @(6, 3, 0, 0) }
     ) {
         $parts = Get-Part -Text $Text
@@ -38,6 +39,7 @@ Describe 'Get-IslVersionPart' -Tag 'Unit', 'Private' {
         @{ Text = '1.2.3.4.5' }
         @{ Text = '10.0.' }
         @{ Text = '-1.0' }
+        @{ Text = '10.0.99999999999999999999' }
     ) {
         Get-Part -Text $Text | Should-BeCollection @()
     }

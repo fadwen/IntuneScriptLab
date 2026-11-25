@@ -153,6 +153,10 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- A version in an assignment filter with a part too large for a 64-bit number, such as
+  `10.0.99999999999999999999`, is not a version that `Test-IntuneAssignmentFilter` can order, so
+  `-gt`, `-ge`, `-lt` and `-le` on it do not match. It ended the command with a conversion
+  error (#106).
 - A `Severity` setting that is not a hashtable, such as `Severity = 'Error'` in a settings file
   or in `-Settings`, ends `Test-IntuneScript` with `SettingsInvalid` and a message that names the
   source. It ended with a strict-mode error, `PropertyNotFoundStrict`, that named neither the
