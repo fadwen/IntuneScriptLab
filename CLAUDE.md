@@ -261,6 +261,7 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
 ./Build/Build-Help.ps1                             # rebuild MAML after editing docs/
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule
+./Build/Test-MarkdownLink.ps1                      # the anchors and relative links of the Markdown, as the help job checks them
 ./Build/Publish-Module.ps1 -WhatIf                 # full release rehearsal, publishes nothing
 ```
 

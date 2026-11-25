@@ -45,6 +45,7 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
 Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 -Severity Error, Warning
 ./Build/Build-Help.ps1                                  # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule
+./Build/Test-MarkdownLink.ps1                           # after editing Markdown
 ./Build/Publish-Module.ps1 -WhatIf                      # the full release rehearsal
 ```
 
