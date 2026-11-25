@@ -211,6 +211,7 @@ $shipFiles = @(
     'CHANGELOG.md'
 )
 $shipFolders = @(
+    'Data'
     'Private'
     'Public'
     'PSScriptAnalyzer'

@@ -25,7 +25,9 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
-    $script:Table = @(InModuleScope IntuneScriptLab { Get-IslInboxModule })
+    # The table as it ships, Data\InboxModules.psd1, so that the file is what the device checks hold
+    $dataFile = Join-Path (Join-Path $script:ModuleRoot 'Data') 'InboxModules.psd1'
+    $script:Table = @((Import-PowerShellDataFile -LiteralPath $dataFile).Modules)
 
     # Listed, and rightly, but not a folder Get-Module -ListAvailable finds: the engine's own module
     $script:EngineModule = 'Microsoft.PowerShell.Core'
@@ -86,6 +88,12 @@ Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {
         $script:Table | Should-ContainCollection 'Microsoft.PowerShell.Utility'
         $script:Table | Should-ContainCollection 'ScheduledTasks'
         $script:Table | Should-NotContainCollection 'ActiveDirectory'
+    }
+
+    It 'returns the data file''s table, in its order' {
+        $returned = @(InModuleScope IntuneScriptLab { Get-IslInboxModule })
+        $returned.Count | Should-Be $script:Table.Count
+        ($returned -join ',') | Should-Be ($script:Table -join ',')
     }
 
     Context 'Against this Windows client' -Skip:(-not $script:ClientHost) {

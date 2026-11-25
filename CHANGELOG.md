@@ -42,6 +42,10 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- The rule order, the table of in-box modules, the Windows release builds and the events of the
+  agent logs are data files under `Data`, read when the module is imported, and ship in the
+  package. A data file that is missing or does not parse fails the import, as a function file
+  does (#134).
 - `Build/Invoke-Build.ps1` is the one local build: it rebuilds the help and `docs/Rules.md`,
   checks the Markdown links, runs PSScriptAnalyzer through `Build/Invoke-Analysis.ps1`, which the
   tests job now runs too, and runs the unit suites in PowerShell 7 and Windows PowerShell 5.1
