@@ -24,11 +24,11 @@ Asserts a requirement result meets its rule (alias Should-BeIntuneApplicable).
 
 ### [Assert-BeIntuneDetected](Assert-BeIntuneDetected.md)
 
-Asserts a Win32 detection result counts as installed (alias Should-BeIntuneDetected).
+Asserts a detection result counts as installed (Should-BeIntuneDetected).
 
 ### [Assert-HaveIntuneRunState](Assert-HaveIntuneRunState.md)
 
-Asserts the RunState of a platform script result (alias Should-HaveIntuneRunState).
+Asserts a platform script result's RunState (Should-HaveIntuneRunState).
 
 ### [Assert-HaveIntuneStatus](Assert-HaveIntuneStatus.md)
 
@@ -36,23 +36,23 @@ Asserts a remediation or Win32 result Status (alias Should-HaveIntuneStatus).
 
 ### [Assert-NotBeIntuneApplicable](Assert-NotBeIntuneApplicable.md)
 
-Asserts a requirement result fails its rule (alias Should-NotBeIntuneApplicable).
+Asserts a requirement result fails its rule (Should-NotBeIntuneApplicable).
 
 ### [Assert-NotBeIntuneDetected](Assert-NotBeIntuneDetected.md)
 
-Asserts a Win32 detection result counts as not installed (alias Should-NotBeIntuneDetected).
+Asserts a detection result counts as not installed (Should-NotBeIntuneDetected).
 
 ### [Assert-PassIntuneAnalysis](Assert-PassIntuneAnalysis.md)
 
-Asserts Test-IntuneScript finds nothing at Warning or above (alias Should-PassIntuneAnalysis).
+Asserts no finding at Warning or above (Should-PassIntuneAnalysis).
 
 ### [Compare-IntuneDeployedScript](Compare-IntuneDeployedScript.md)
 
-Reports where a tenant's deployed scripts differ from the copies in a folder or repository.
+Reports where a tenant's deployed scripts differ from copies in a folder.
 
 ### [Export-IntuneAgentDiagnostic](Export-IntuneAgentDiagnostic.md)
 
-Packs the agent's logs, its registry state and the parsed timelines into one zip for a ticket.
+Packs the agent's logs, registry state and timelines into one zip for a ticket.
 
 ### [Export-IntuneFindingSarif](Export-IntuneFindingSarif.md)
 
@@ -60,11 +60,11 @@ Writes IntuneScriptLab findings as a SARIF 2.1.0 log for code scanning.
 
 ### [Get-IntuneAgentLog](Get-IntuneAgentLog.md)
 
-Reads the Intune Management Extension logs as objects, with the events the agent's lines record.
+Reads the Intune Management Extension logs as objects, with their events.
 
 ### [Get-IntuneAgentTimeline](Get-IntuneAgentTimeline.md)
 
-One timeline per policy or app from the agent's logs: the steps it went through and how they ended.
+Gets one timeline per policy or app from the agent's logs, step by step.
 
 ### [Get-IntuneAnalyzerRulePath](Get-IntuneAnalyzerRulePath.md)
 
@@ -72,7 +72,7 @@ Returns IntuneScriptLab's PSScriptAnalyzer rule module, for -CustomRulePath.
 
 ### [Get-IntuneScriptHealth](Get-IntuneScriptHealth.md)
 
-One line per deployed script policy: findings, drift, assignment and what the devices report.
+Gets one line per deployed script policy: findings, drift and device status.
 
 ### [Invoke-IntuneDetectionTest](Invoke-IntuneDetectionTest.md)
 
@@ -92,19 +92,19 @@ Runs a Win32 requirement script like Intune and applies the rule to its output.
 
 ### [Invoke-IntuneWin32AppTest](Invoke-IntuneWin32AppTest.md)
 
-Runs a Win32 app's detect → install → detect flow the way the Intune agent does.
+Runs a Win32 app's detect, install or uninstall, detect flow like the agent.
 
 ### [Repair-IntuneScript](Repair-IntuneScript.md)
 
-Applies the mechanical fixes for findings that have one, and reports what is left.
+Applies the mechanical fixes for findings that have one and reports the rest.
 
 ### [Test-IntuneAssignmentFilter](Test-IntuneAssignmentFilter.md)
 
-Evaluates an assignment filter rule against a device the way the Intune service does.
+Evaluates an assignment filter rule against a device like the Intune service.
 
 ### [Test-IntuneDeployedScript](Test-IntuneDeployedScript.md)
 
-Analyzes the scripts a tenant has deployed, with the settings each policy actually carries.
+Analyzes a tenant's deployed scripts with the settings each policy carries.
 
 ### [Test-IntuneScript](Test-IntuneScript.md)
 
@@ -112,9 +112,9 @@ Checks a PowerShell script for the mistakes Intune turns into silent failures.
 
 ### [Test-IntuneWin32Requirement](Test-IntuneWin32Requirement.md)
 
-Checks a Win32 app's base requirements against this device the way the Intune agent reports them.
+Checks a Win32 app's base requirements against this device like the agent.
 
 ### [Test-IntuneWin32Rule](Test-IntuneWin32Rule.md)
 
-Applies a Win32 app file, registry or MSI rule to this device the way the Intune agent does.
+Applies a Win32 app file, registry or MSI rule to this device like the agent.
 

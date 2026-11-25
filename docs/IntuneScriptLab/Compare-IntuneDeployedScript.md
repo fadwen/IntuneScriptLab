@@ -13,7 +13,7 @@ title: Compare-IntuneDeployedScript
 
 ## SYNOPSIS
 
-Reports where a tenant's deployed scripts differ from the copies in a folder or repository.
+Reports where a tenant's deployed scripts differ from copies in a folder.
 
 ## SYNTAX
 

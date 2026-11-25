@@ -20,7 +20,7 @@ Runs a platform (device) script the way Intune does and reports its run state.
 ### __AllParameterSets
 
 ```
-Invoke-IntunePlatformScriptTest [-Path] <string> [-Architecture <string>] [-Context <string>]
+Invoke-IntunePlatformScriptTest [-Path] <string[]> [-Architecture <string>] [-Context <string>]
  [-Credential <pscredential>] [-TimeoutSeconds <int>] [-WhatIf] [-Confirm]
 ```
 
@@ -160,10 +160,10 @@ HelpMessage: ''
 
 ### -Path
 
-The script.
+One or more scripts, each run in turn with one result for each.
 
 ```yaml
-Type: System.String
+Type: System.String[]
 DefaultValue: ''
 SupportsWildcards: false
 Aliases:

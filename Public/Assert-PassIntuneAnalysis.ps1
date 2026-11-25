@@ -2,7 +2,7 @@ function Assert-PassIntuneAnalysis {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Asserts Test-IntuneScript finds nothing at Warning or above (alias Should-PassIntuneAnalysis).
+        Asserts no finding at Warning or above (Should-PassIntuneAnalysis).
     #>
     [CmdletBinding()]
     [OutputType([void])]
@@ -11,7 +11,7 @@ function Assert-PassIntuneAnalysis {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [ValidateSet('Information', 'Warning', 'Error')]
         [string]$MinimumSeverity = 'Warning',

@@ -13,7 +13,7 @@ title: Assert-HaveIntuneRunState
 
 ## SYNOPSIS
 
-Asserts the RunState of a platform script result (alias Should-HaveIntuneRunState).
+Asserts a platform script result's RunState (Should-HaveIntuneRunState).
 
 ## SYNTAX
 

@@ -28,6 +28,20 @@ Describe 'Invoke-IntunePlatformScriptTest' -Tag 'Unit', 'Public' {
             Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 2 -Exactly
         }
 
+        It 'takes several script paths as an array, one result each, as from the pipeline' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = '' }
+            }
+            $results = @(Invoke-IntunePlatformScriptTest -Path 'C:\lab\a.ps1', 'C:\lab\b.ps1')
+            $results.Count | Should-Be 2
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 1 -Exactly -ParameterFilter {
+                $Path -eq 'C:\lab\a.ps1'
+            }
+            Should-Invoke Invoke-IslScriptRun -ModuleName IntuneScriptLab -Times 1 -Exactly -ParameterFilter {
+                $Path -eq 'C:\lab\b.ps1'
+            }
+        }
+
         It 'defaults to the 32-bit host and the current user, as the portal does' {
             Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
                 ConvertTo-FakeRunResult @{ ExitCode = 0; TimedOut = $false; StdOut = ''; StdErr = '' }

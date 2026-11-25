@@ -13,7 +13,7 @@ title: Test-IntuneWin32Requirement
 
 ## SYNOPSIS
 
-Checks a Win32 app's base requirements against this device the way the Intune agent reports them.
+Checks a Win32 app's base requirements against this device like the agent.
 
 ## SYNTAX
 

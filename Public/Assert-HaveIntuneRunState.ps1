@@ -2,7 +2,7 @@ function Assert-HaveIntuneRunState {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Asserts the RunState of a platform script result (alias Should-HaveIntuneRunState).
+        Asserts a platform script result's RunState (Should-HaveIntuneRunState).
     #>
     [CmdletBinding()]
     [OutputType([void])]
@@ -14,7 +14,7 @@ function Assert-HaveIntuneRunState {
         [string]$Expected,
 
         [Parameter(Position = 1, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [string]$Because
     )

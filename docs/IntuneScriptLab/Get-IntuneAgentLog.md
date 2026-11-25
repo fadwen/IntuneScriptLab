@@ -13,7 +13,7 @@ title: Get-IntuneAgentLog
 
 ## SYNOPSIS
 
-Reads the Intune Management Extension logs as objects, with the events the agent's lines record.
+Reads the Intune Management Extension logs as objects, with their events.
 
 ## SYNTAX
 

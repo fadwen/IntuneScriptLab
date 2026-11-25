@@ -13,7 +13,7 @@ title: Assert-BeIntuneDetected
 
 ## SYNOPSIS
 
-Asserts a Win32 detection result counts as installed (alias Should-BeIntuneDetected).
+Asserts a detection result counts as installed (Should-BeIntuneDetected).
 
 ## SYNTAX
 

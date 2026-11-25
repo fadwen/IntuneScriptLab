@@ -2,7 +2,7 @@ function Repair-IntuneScript {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Applies the mechanical fixes for findings that have one, and reports what is left.
+        Applies the mechanical fixes for findings that have one and reports the rest.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.Repair')]
@@ -27,7 +27,7 @@ function Repair-IntuneScript {
 
         [switch]$EnforceSignatureCheck,
 
-        $Settings
+        [object]$Settings
     )
 
     process {

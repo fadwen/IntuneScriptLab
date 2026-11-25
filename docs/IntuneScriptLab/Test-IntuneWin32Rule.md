@@ -13,7 +13,7 @@ title: Test-IntuneWin32Rule
 
 ## SYNOPSIS
 
-Applies a Win32 app file, registry or MSI rule to this device the way the Intune agent does.
+Applies a Win32 app file, registry or MSI rule to this device like the agent.
 
 ## SYNTAX
 

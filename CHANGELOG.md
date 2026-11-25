@@ -56,6 +56,14 @@ entries are carried over from the manifest's release notes.
   and `Compare-IslRequirementOutput -TimedOut`. `Get-IslDsregStatus`, `Get-IslInboxModule` and
   `Select-IslRuleCandidate` write their strings and candidates one at a time, as their output
   types say, where they returned an array (#66).
+- `-Path` of `Invoke-IntuneDetectionTest`, `Invoke-IntunePlatformScriptTest` and
+  `Invoke-IntuneRequirementTest`, and `-Rule` of `Test-IntuneAssignmentFilter`, take an array:
+  several scripts or rules passed directly give one result each, as they do from the pipeline,
+  where a list passed directly failed to bind. A single value still binds as before. `-Rule`
+  refuses a rule that is only whitespace as well as an empty one. `-Settings`, `-Actual` and
+  `-Device` are typed `[object]`, which they took already. The synopses of 16 commands are at
+  most 80 characters, and a contract test holds every command's synopsis to that and to the one
+  in its source (#67).
 - The helper functions nested in `Test-IntuneScript`, `Test-IntuneWin32Requirement`,
   `Invoke-IntuneWin32AppTest`, `Test-IntuneAssignmentFilter`, `Export-IntuneFindingSarif`,
   `Export-IntuneAgentDiagnostic`, `Get-IntuneScriptHealth`, `Test-IntuneDeployedScript`,

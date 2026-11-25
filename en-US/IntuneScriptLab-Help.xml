@@ -145,7 +145,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Assert-BeIntuneDetected</command:name>
       <maml:description>
-        <maml:para>Asserts a Win32 detection result counts as installed (alias Should-BeIntuneDetected).</maml:para>
+        <maml:para>Asserts a detection result counts as installed (Should-BeIntuneDetected).</maml:para>
       </maml:description>
       <command:verb>Assert</command:verb>
       <command:noun>BeIntuneDetected</command:noun>
@@ -285,7 +285,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Assert-HaveIntuneRunState</command:name>
       <maml:description>
-        <maml:para>Asserts the RunState of a platform script result (alias Should-HaveIntuneRunState).</maml:para>
+        <maml:para>Asserts a platform script result's RunState (Should-HaveIntuneRunState).</maml:para>
       </maml:description>
       <command:verb>Assert</command:verb>
       <command:noun>HaveIntuneRunState</command:noun>
@@ -612,7 +612,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Assert-NotBeIntuneApplicable</command:name>
       <maml:description>
-        <maml:para>Asserts a requirement result fails its rule (alias Should-NotBeIntuneApplicable).</maml:para>
+        <maml:para>Asserts a requirement result fails its rule (Should-NotBeIntuneApplicable).</maml:para>
       </maml:description>
       <command:verb>Assert</command:verb>
       <command:noun>NotBeIntuneApplicable</command:noun>
@@ -752,7 +752,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Assert-NotBeIntuneDetected</command:name>
       <maml:description>
-        <maml:para>Asserts a Win32 detection result counts as not installed (alias Should-NotBeIntuneDetected).</maml:para>
+        <maml:para>Asserts a detection result counts as not installed (Should-NotBeIntuneDetected).</maml:para>
       </maml:description>
       <command:verb>Assert</command:verb>
       <command:noun>NotBeIntuneDetected</command:noun>
@@ -891,7 +891,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Assert-PassIntuneAnalysis</command:name>
       <maml:description>
-        <maml:para>Asserts Test-IntuneScript finds nothing at Warning or above (alias Should-PassIntuneAnalysis).</maml:para>
+        <maml:para>Asserts no finding at Warning or above (Should-PassIntuneAnalysis).</maml:para>
       </maml:description>
       <command:verb>Assert</command:verb>
       <command:noun>PassIntuneAnalysis</command:noun>
@@ -1076,7 +1076,7 @@ Validation\Findings.md (documented vs observed Intune behaviour).</maml:para>
     <command:details>
       <command:name>Compare-IntuneDeployedScript</command:name>
       <maml:description>
-        <maml:para>Reports where a tenant's deployed scripts differ from the copies in a folder or repository.</maml:para>
+        <maml:para>Reports where a tenant's deployed scripts differ from copies in a folder.</maml:para>
       </maml:description>
       <command:verb>Compare</command:verb>
       <command:noun>IntuneDeployedScript</command:noun>
@@ -1359,7 +1359,7 @@ how Windows PowerShell 5.1 reads a non-ASCII character.</maml:para>
     <command:details>
       <command:name>Export-IntuneAgentDiagnostic</command:name>
       <maml:description>
-        <maml:para>Packs the agent's logs, its registry state and the parsed timelines into one zip for a ticket.</maml:para>
+        <maml:para>Packs the agent's logs, registry state and timelines into one zip for a ticket.</maml:para>
       </maml:description>
       <command:verb>Export</command:verb>
       <command:noun>IntuneAgentDiagnostic</command:noun>
@@ -1805,7 +1805,7 @@ Export-IntuneFindingSarif -Finding $findings -Path $env:RUNNER_TEMP\isl.sarif -R
     <command:details>
       <command:name>Get-IntuneAgentLog</command:name>
       <maml:description>
-        <maml:para>Reads the Intune Management Extension logs as objects, with the events the agent's lines record.</maml:para>
+        <maml:para>Reads the Intune Management Extension logs as objects, with their events.</maml:para>
       </maml:description>
       <command:verb>Get</command:verb>
       <command:noun>IntuneAgentLog</command:noun>
@@ -2111,7 +2111,7 @@ carries no app id, so read those with -EventName AppInstallExit on their own.</m
     <command:details>
       <command:name>Get-IntuneAgentTimeline</command:name>
       <maml:description>
-        <maml:para>One timeline per policy or app from the agent's logs: the steps it went through and how they ended.</maml:para>
+        <maml:para>Gets one timeline per policy or app from the agent's logs, step by step.</maml:para>
       </maml:description>
       <command:verb>Get</command:verb>
       <command:noun>IntuneAgentTimeline</command:noun>
@@ -2428,7 +2428,7 @@ returns none of them and -Severity Warning returns all of them, whatever each re
     <command:details>
       <command:name>Get-IntuneScriptHealth</command:name>
       <maml:description>
-        <maml:para>One line per deployed script policy: findings, drift, assignment and what the devices report.</maml:para>
+        <maml:para>Gets one line per deployed script policy: findings, drift and device status.</maml:para>
       </maml:description>
       <command:verb>Get</command:verb>
       <command:noun>IntuneScriptHealth</command:noun>
@@ -2826,9 +2826,9 @@ pipeline still runs.
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
-          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
-            <maml:name>System.String</maml:name>
+            <maml:name>System.String[]</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
@@ -2947,11 +2947,11 @@ in the reason, which is what AgentExecutor returned for an unsigned script (W32-
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>The detection script.</maml:para>
+          <maml:para>One or more detection scripts, each run in turn with one result for each.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
-          <maml:name>System.String</maml:name>
+          <maml:name>System.String[]</maml:name>
         </dev:type>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
@@ -3094,9 +3094,9 @@ pipeline still runs.
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
-          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
-            <maml:name>System.String</maml:name>
+            <maml:name>System.String[]</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
@@ -3195,11 +3195,11 @@ hybrid-joined devices run them.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>The script.</maml:para>
+          <maml:para>One or more scripts, each run in turn with one result for each.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
-          <maml:name>System.String</maml:name>
+          <maml:name>System.String[]</maml:name>
         </dev:type>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
@@ -3639,9 +3639,9 @@ pipeline still runs.
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="FullName, PSPath">
           <maml:name>Path</maml:name>
           <maml:description />
-          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
-            <maml:name>System.String</maml:name>
+            <maml:name>System.String[]</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
@@ -3788,11 +3788,11 @@ Version or Boolean.</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="FullName, PSPath">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>The requirement script.</maml:para>
+          <maml:para>One or more requirement scripts, each run in turn with one result for each.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
-          <maml:name>System.String</maml:name>
+          <maml:name>System.String[]</maml:name>
         </dev:type>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
@@ -3917,7 +3917,7 @@ why not if it would not.</maml:para>
     <command:details>
       <command:name>Invoke-IntuneWin32AppTest</command:name>
       <maml:description>
-        <maml:para>Runs a Win32 app's detect → install → detect flow the way the Intune agent does.</maml:para>
+        <maml:para>Runs a Win32 app's detect, install or uninstall, detect flow like the agent.</maml:para>
       </maml:description>
       <command:verb>Invoke</command:verb>
       <command:noun>IntuneWin32AppTest</command:noun>
@@ -4468,7 +4468,7 @@ package is uninstalled if it is present, then the app installs.</maml:para>
     <command:details>
       <command:name>Repair-IntuneScript</command:name>
       <maml:description>
-        <maml:para>Applies the mechanical fixes for findings that have one, and reports what is left.</maml:para>
+        <maml:para>Applies the mechanical fixes for findings that have one and reports the rest.</maml:para>
       </maml:description>
       <command:verb>Repair</command:verb>
       <command:noun>IntuneScript</command:noun>
@@ -4797,7 +4797,7 @@ on either, and the Remaining count, match Test-IntuneScript run with the same op
     <command:details>
       <command:name>Test-IntuneAssignmentFilter</command:name>
       <maml:description>
-        <maml:para>Evaluates an assignment filter rule against a device the way the Intune service does.</maml:para>
+        <maml:para>Evaluates an assignment filter rule against a device like the Intune service.</maml:para>
       </maml:description>
       <command:verb>Test</command:verb>
       <command:noun>IntuneAssignmentFilter</command:noun>
@@ -4840,9 +4840,9 @@ evaluate as empty; pass them in -Device when a rule depends on them.</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
           <maml:name>Rule</maml:name>
           <maml:description />
-          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
           <dev:type>
-            <maml:name>System.String</maml:name>
+            <maml:name>System.String[]</maml:name>
           </dev:type>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
@@ -4908,11 +4908,12 @@ the assignment reaches nobody.</maml:para>
           <maml:para>The rule as the portal's rule syntax editor or the Graph assignmentFilter.rule holds it,
 for the Windows 10 and later platform.
 Accepts pipeline input, and binds by property name
-so assignment filters read from Graph can be piped in.</maml:para>
+so assignment filters read from Graph can be piped in. Several rules give one result each,
+piped or passed as an array. A rule that is empty or only whitespace is refused.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
         <dev:type>
-          <maml:name>System.String</maml:name>
+          <maml:name>System.String[]</maml:name>
         </dev:type>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="Named" aliases="none">
@@ -5064,7 +5065,7 @@ that clause matched.</maml:para>
     <command:details>
       <command:name>Test-IntuneDeployedScript</command:name>
       <maml:description>
-        <maml:para>Analyzes the scripts a tenant has deployed, with the settings each policy actually carries.</maml:para>
+        <maml:para>Analyzes a tenant's deployed scripts with the settings each policy carries.</maml:para>
       </maml:description>
       <command:verb>Test</command:verb>
       <command:noun>IntuneDeployedScript</command:noun>
@@ -5759,7 +5760,7 @@ default 32-bit host on the former and someone wants to know what changes on the 
     <command:details>
       <command:name>Test-IntuneWin32Requirement</command:name>
       <maml:description>
-        <maml:para>Checks a Win32 app's base requirements against this device the way the Intune agent reports them.</maml:para>
+        <maml:para>Checks a Win32 app's base requirements against this device like the agent.</maml:para>
       </maml:description>
       <command:verb>Test</command:verb>
       <command:noun>IntuneWin32Requirement</command:noun>
@@ -5991,7 +5992,7 @@ as the agent reports one reason.</maml:para>
     <command:details>
       <command:name>Test-IntuneWin32Rule</command:name>
       <maml:description>
-        <maml:para>Applies a Win32 app file, registry or MSI rule to this device the way the Intune agent does.</maml:para>
+        <maml:para>Applies a Win32 app file, registry or MSI rule to this device like the agent.</maml:para>
       </maml:description>
       <command:verb>Test</command:verb>
       <command:noun>IntuneWin32Rule</command:noun>

@@ -32,7 +32,7 @@ function Test-IntuneScript {
 
         # A settings file path or hashtable; omitted, the nearest IntuneScriptLab.settings.psd1
         # above each script applies, and @{} means none
-        $Settings,
+        [object]$Settings,
 
         [switch]$IncludeSuppressed
     )

@@ -2,7 +2,7 @@ function Assert-NotBeIntuneApplicable {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Asserts a requirement result fails its rule (alias Should-NotBeIntuneApplicable).
+        Asserts a requirement result fails its rule (Should-NotBeIntuneApplicable).
     #>
     [CmdletBinding()]
     [OutputType([void])]
@@ -11,7 +11,7 @@ function Assert-NotBeIntuneApplicable {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [string]$Because
     )

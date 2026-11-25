@@ -2,7 +2,7 @@ function Invoke-IntuneWin32AppTest {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        Runs a Win32 app's detect, install or uninstall, detect flow the way the Intune agent does.
+        Runs a Win32 app's detect, install or uninstall, detect flow like the agent.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     [OutputType('IntuneScriptLab.Win32AppResult')]

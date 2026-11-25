@@ -13,7 +13,7 @@ title: Invoke-IntuneWin32AppTest
 
 ## SYNOPSIS
 
-Runs a Win32 app's detect → install → detect flow the way the Intune agent does.
+Runs a Win32 app's detect, install or uninstall, detect flow like the agent.
 
 ## SYNTAX
 

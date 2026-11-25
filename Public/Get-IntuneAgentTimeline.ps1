@@ -2,7 +2,7 @@ function Get-IntuneAgentTimeline {
     <#
     .EXTERNALHELP IntuneScriptLab-Help.xml
     .SYNOPSIS
-        One timeline per policy or app from the agent's logs: the steps it went through and how they ended.
+        Gets one timeline per policy or app from the agent's logs, step by step.
     #>
     [CmdletBinding()]
     [OutputType('IntuneScriptLab.AgentTimeline')]

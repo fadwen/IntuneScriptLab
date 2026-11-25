@@ -45,6 +45,19 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
             @('a.ps1', 'b.ps1' | Invoke-IntuneDetectionTest).Count | Should-Be 2
         }
 
+        It 'takes several script paths as an array, one result each, as from the pipeline' {
+            Mock Invoke-IslScriptRun -ModuleName IntuneScriptLab {
+                ConvertTo-FakeRunResult @{
+                    ExitCode = 0; TimedOut = $false; StdOut = 'ok'; StdErr = ''; ScriptPath = $Path
+                }
+            }
+            $results = @(Invoke-IntuneDetectionTest -Path 'C:\lab\a.ps1', 'C:\lab\b.ps1')
+            $results.Count | Should-Be 2
+            $results[0].ScriptPath | Should-Be 'C:\lab\a.ps1'
+            $results[1].ScriptPath | Should-Be 'C:\lab\b.ps1'
+            $results.Detected | Should-All { $_ }
+        }
+
         It 'rejects a timeout outside 1..86400' {
             { Invoke-IntuneDetectionTest -Path $script:Detect -TimeoutSeconds 0 } | Should-Throw
         }

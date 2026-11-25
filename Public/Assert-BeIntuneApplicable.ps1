@@ -11,7 +11,7 @@ function Assert-BeIntuneApplicable {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param(
         [Parameter(Position = 0, ValueFromPipeline)]
-        $Actual,
+        [object]$Actual,
 
         [string]$Because
     )

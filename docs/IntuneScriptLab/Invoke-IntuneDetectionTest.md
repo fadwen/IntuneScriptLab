@@ -20,7 +20,7 @@ Runs a Win32 custom detection script like Intune and returns the verdict.
 ### __AllParameterSets
 
 ```
-Invoke-IntuneDetectionTest [-Path] <string> [-Architecture <string>] [-Context <string>]
+Invoke-IntuneDetectionTest [-Path] <string[]> [-Architecture <string>] [-Context <string>]
  [-Credential <pscredential>] [-TimeoutSeconds <int>] [-EnforceSignatureCheck] [-WhatIf] [-Confirm]
 ```
 
@@ -187,10 +187,10 @@ HelpMessage: ''
 
 ### -Path
 
-The detection script.
+One or more detection scripts, each run in turn with one result for each.
 
 ```yaml
-Type: System.String
+Type: System.String[]
 DefaultValue: ''
 SupportsWildcards: false
 Aliases:
