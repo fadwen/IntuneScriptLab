@@ -105,7 +105,7 @@ IME log evidence (registered device): `IsDeviceWPJ()` throws from `NetGetAadJoin
 | Timeout | 30 minutes (PS) | `1800` seconds passed to AgentExecutor | ✅ |
 | `runAs32Bit=true` host | 32-bit host (PS) | `C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe`, `Is64BitProcess=False` | ✅ |
 | `runAs32Bit=false` host | 64-bit host (PS) | `C:\Windows\System32\...`, last AgentExecutor arg `1` | ✅ |
-| SYSTEM environment | Not documented | Session 0, `UserInteractive=False`, cwd `C:\WINDOWS\system32`, `TEMP=C:\WINDOWS\TEMP`, profile `systemprofile` | ⚠️ |
+| SYSTEM environment | Not documented | Session 0, `UserInteractive=False`, cwd `C:\WINDOWS\system32`, `TEMP=C:\WINDOWS\TEMP`, profile `systemprofile`. A SYSTEM remediation does not always get this cwd: round 12 saw the agent's own folder before an agent restart ("The validation kit after the standards changes") | ⚠️ |
 | Script file on disk | Not documented | `C:\Program Files (x86)\Microsoft Intune Management Extension\Policies\Scripts\<userId>_<policyId>.ps1`, bytes identical to upload (no BOM added or stripped) | ⚠️ |
 | Encoding | "less than 200 KB (ASCII)" (PS) | UTF-8 without BOM is decoded as ANSI: `Grüße — ✓` became `GrÃ¼ÃŸe â€" âœ“` | ❌ trap |
 | Time to first run after assignment | Not documented | Assigned 13:42; policy received 13:55:58 after IME restarts; ran 13:56 | ⚠️ |
@@ -637,3 +637,27 @@ record), each with a different custom detection script, assigned as *required* t
 | Processing order | Not documented | Per app: detect → applicability → download → **detect again** → install → detect again; content cache cleaned ~20 s after install | ⚠️ |
 | Install status via Graph | `mobileApps/{id}/deviceStatuses` (older docs) | **Gone from beta** (`Resource not found`), as is `reports/getDeviceInstallStatusReport`. Working path: `POST /beta/deviceManagement/reports/exportJobs` with `reportName: DeviceInstallStatusByApp`, then download the CSV (`AppInstallState_loc`, `HexErrorCode`) | ❌ |
 | Device-side state | Not documented | `HKLM\SOFTWARE\Microsoft\IntuneManagementExtension\Win32Apps\<userId>\<appId>_<ver>\` with `ComplianceStateMessage` and `EnforcementStateMessage` JSON (`EnforcementState: 5000`, `ErrorCode: -2016345060` for installed-but-not-detected) | ⚠️ |
+
+## The validation kit after the standards changes
+
+Round 12, 2026-11-25, VM 125 (`KRBETYP-AIEPVQ5`, Windows PowerShell 5.1.26100.9818, agent
+1.106.106.0), against the lab tenant. The kit's scripts had been brought in line with the
+repository's script conventions (#71): strict mode, terminating errors, accessors for the members
+of a Graph or guest agent reply that can be missing, and `-MaximumRedirection 0` on the uploads.
+The round checked that the changed kit reads, writes and reports what the kit before it did. It
+added no experiment and changed no rule.
+
+| Step | What was compared | Result |
+|---|---|---|
+| `Collect -AppName 'W32-DET-*' -Since 2026-11-22` | The kit as it was, then the changed kit, against the same device and tenant | The same results: the run states of 50 remediations, 11 platform scripts and 10 Win32 apps, 4,468 probe records, 120 remediation, 13 platform-script and 540 Win32 registry entries, and the log excerpts. Graph returns the keys of an object, and the rows of the install-status report, in an order that changes from call to call, so both were sorted before the comparison |
+| `Prepare` | The fixtures against the list in `Fixtures.ps1` | As listed: `present.txt` modified 2024-06-15T12:00:00Z, `versioned.exe` 10.0.26100.9818, `big.bin` 2,097,152 bytes, the registry views report 64 and 32 |
+| `Deploy` of a temporary Win32 app, unassigned | Packaging, the upload to the signed storage address and the commit | Created, uploaded with redirects refused, the file committed (`commitFileSuccess`), the app published. `Deploy -WhatIf` had ended before it previewed anything on a checkout without `IntuneWinAppUtil.exe`, in the kit before the change as well: the folders of the tool and the package are now made under `-WhatIf` too |
+| `Remove -WhatIf` | The objects each kit would delete | The same 154 objects |
+| `Trigger`, then `Collect` 25 minutes later | The launch context of each run after the restart against the same experiment's previous record | The agent's start time moved from 2026-11-11 03:38 to 2026-11-25 17:47 UTC. 44 probe records from 39 experiment phases, the first 8.5 minutes after the restart (start-up and the 5-minute queue in the timing notes). Account, host, version, command line, parent process, session, execution policy, language mode, encodings and the first bytes of the script matched; the agent's registry verdicts for every policy were unchanged. The working directory did not: every run after the restart had `C:\WINDOWS\system32`, where the 4,328 SYSTEM remediation records of the three days before had the agent's own folder |
+
+**For the tool:** `IslRelativePath` warns that a relative path resolves against a working
+directory that a script cannot predict. One device gave a SYSTEM remediation two different ones
+in the same week, so the warning stands as written.
+
+The round-11 experiments (`REM-STDERR-*`) were not run again: they need the licensed ESP user
+signed in on VM 126, and nobody was.
