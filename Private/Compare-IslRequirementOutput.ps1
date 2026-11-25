@@ -56,7 +56,7 @@ function Compare-IslRequirementOutput {
         [AllowNull()]
         [nullable[int]]$ExitCode,
 
-        [bool]$TimedOut,
+        [switch]$TimedOut,
 
         [Parameter(Mandatory)]
         [ValidateSet('String', 'DateTime', 'Integer', 'Float', 'Version', 'Boolean')]

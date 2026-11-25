@@ -47,6 +47,6 @@ function Select-IslRuleCandidate {
     if ($candidates.Count -eq $RuleCount) {
         $candidates[$Index]
     } elseif ($Index -eq 0) {
-        $candidates
+        foreach ($file in $candidates) { $file }
     }
 }

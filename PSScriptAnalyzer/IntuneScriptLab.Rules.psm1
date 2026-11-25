@@ -23,9 +23,32 @@ $script:AnalysisCache = [hashtable]::Synchronized(@{})
 function Get-IslAnalysis {
     <#
     .SYNOPSIS
-        Runs Test-IntuneScript once per file (or script definition) and caches the findings.
+        Runs Test-IntuneScript once for each file or definition and keeps the findings.
+
+    .DESCRIPTION
+        PSScriptAnalyzer calls every rule once for every script block of a file, so the analysis
+        is kept in a cache that the rules share. A file is keyed on its full path, its last write
+        time and its length, so an edited file is analyzed again. A -ScriptDefinition has no
+        file: its text is written to a temporary .ps1 with a byte order mark, so the script type
+        can still come from a '# IntuneScriptLab: ScriptType=...' directive, analyzed, and
+        removed; it is keyed on the SHA-256 hash of its text.
+
+    .PARAMETER ScriptBlockAst
+        The root script block of the file or definition.
+
+    .EXAMPLE
+        Get-IslAnalysis -ScriptBlockAst $ScriptBlockAst
+
+        The findings of Test-IntuneScript for the file the block belongs to.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        IntuneScriptLab.Finding.
     #>
     [CmdletBinding()]
+    [OutputType('IntuneScriptLab.Finding')]
     param(
         [Parameter(Mandatory)]
         [System.Management.Automation.Language.ScriptBlockAst]$ScriptBlockAst
@@ -66,9 +89,33 @@ function Get-IslAnalysis {
 function Get-IslRuleRecord {
     <#
     .SYNOPSIS
-        The PSScriptAnalyzer records for one IntuneScriptLab rule on one script block.
+        Gets the PSScriptAnalyzer records of one IntuneScriptLab rule on a script block.
+
+    .DESCRIPTION
+        Only the root script block of a file gives records; the nested ones are part of the same
+        file. Each finding of the rule, from Get-IslAnalysis, becomes one DiagnosticRecord named
+        Measure-<rule>, with the finding's severity and the evidence after its message. A finding
+        with a line spans the lines of its text; one without a line spans the whole script.
+
+    .PARAMETER Rule
+        The IntuneScriptLab rule name, such as IslLongSleep.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes.
+
+    .EXAMPLE
+        Get-IslRuleRecord -Rule 'IslLongSleep' -ScriptBlockAst $ScriptBlockAst
+
+        A record named Measure-IslLongSleep for each long wait in the file.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord.
     #>
     [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param(
         [Parameter(Mandatory)]
         [string]$Rule,
@@ -105,6 +152,31 @@ function Get-IslRuleRecord {
 }
 
 function Measure-IslPowerShell7Syntax {
+    <#
+    .SYNOPSIS
+        Reports the IslPowerShell7Syntax findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslPowerShell7Syntax. Its rule,
+        Find-IslPowerShell7Syntax: flags syntax, cmdlets, parameters and values that only PowerShell 7
+        has. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslPowerShell7Syntax'
+
+        The IslPowerShell7Syntax findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -116,6 +188,31 @@ function Measure-IslPowerShell7Syntax {
 }
 
 function Measure-IslEncodingIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslEncodingIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslEncodingIssue. Its rule,
+        Find-IslEncodingIssue: flags files Windows PowerShell 5.1 decodes as something other than UTF-8.
+        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
+        records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslEncodingIssue'
+
+        The IslEncodingIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -127,6 +224,31 @@ function Measure-IslEncodingIssue {
 }
 
 function Measure-IslInteractiveCall {
+    <#
+    .SYNOPSIS
+        Reports the IslInteractiveCall findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslInteractiveCall. Its rule,
+        Find-IslInteractiveCall: flags anything that waits for a person. Get-IslRuleRecord analyzes each
+        file once and turns its findings of this rule into diagnostic records; only the root script
+        block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslInteractiveCall'
+
+        The IslInteractiveCall findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -138,6 +260,31 @@ function Measure-IslInteractiveCall {
 }
 
 function Measure-IslExitCodeIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslExitCodeIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslExitCodeIssue. Its rule,
+        Find-IslExitCodeIssue: flags exit-code mistakes in detection and remediation scripts.
+        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
+        records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslExitCodeIssue'
+
+        The IslExitCodeIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -149,6 +296,31 @@ function Measure-IslExitCodeIssue {
 }
 
 function Measure-IslOutputIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslOutputIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslOutputIssue. Its rule,
+        Find-IslOutputIssue: flags output that Intune will drop, truncate or misread. Get-IslRuleRecord
+        analyzes each file once and turns its findings of this rule into diagnostic records; only the
+        root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslOutputIssue'
+
+        The IslOutputIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -160,6 +332,31 @@ function Measure-IslOutputIssue {
 }
 
 function Measure-IslContextIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslContextIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslContextIssue. Its rule,
+        Find-IslContextIssue: flags per-user places in SYSTEM scripts and privileged writes in user
+        scripts. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslContextIssue'
+
+        The IslContextIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -171,6 +368,31 @@ function Measure-IslContextIssue {
 }
 
 function Measure-IslArchitectureIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslArchitectureIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslArchitectureIssue. Its rule,
+        Find-IslArchitectureIssue: flags paths that WOW64 redirects when the script runs in the 32-bit
+        host. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslArchitectureIssue'
+
+        The IslArchitectureIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -182,6 +404,31 @@ function Measure-IslArchitectureIssue {
 }
 
 function Measure-IslArm64Assumption {
+    <#
+    .SYNOPSIS
+        Reports the IslArm64Assumption findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslArm64Assumption. Its rule,
+        Find-IslArm64Assumption: flags code that equates "64-bit" with x64, which breaks on Windows on
+        ARM. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslArm64Assumption'
+
+        The IslArm64Assumption findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -193,6 +440,31 @@ function Measure-IslArm64Assumption {
 }
 
 function Measure-IslRebootCommand {
+    <#
+    .SYNOPSIS
+        Reports the IslRebootCommand findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslRebootCommand. Its rule,
+        Find-IslRebootCommand: flags restarts and shutdowns issued from inside a script.
+        Get-IslRuleRecord analyzes each file once and turns its findings of this rule into diagnostic
+        records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslRebootCommand'
+
+        The IslRebootCommand findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -204,6 +476,31 @@ function Measure-IslRebootCommand {
 }
 
 function Measure-IslRelativePath {
+    <#
+    .SYNOPSIS
+        Reports the IslRelativePath findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslRelativePath. Its rule,
+        Find-IslRelativePath: flags paths that depend on the working directory. Get-IslRuleRecord
+        analyzes each file once and turns its findings of this rule into diagnostic records; only the
+        root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslRelativePath'
+
+        The IslRelativePath findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -215,6 +512,31 @@ function Measure-IslRelativePath {
 }
 
 function Measure-IslLongSleep {
+    <#
+    .SYNOPSIS
+        Reports the IslLongSleep findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslLongSleep. Its rule, Find-IslLongSleep:
+        flags waits that hit the agent's timeout or hold up other remediations. Get-IslRuleRecord
+        analyzes each file once and turns its findings of this rule into diagnostic records; only the
+        root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslLongSleep'
+
+        The IslLongSleep findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -226,6 +548,31 @@ function Measure-IslLongSleep {
 }
 
 function Measure-IslSignatureIssue {
+    <#
+    .SYNOPSIS
+        Reports the IslSignatureIssue findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslSignatureIssue. Its rule,
+        Find-IslSignatureIssue: flags a Win32 detection script the agent refuses to run under a
+        signature check. Get-IslRuleRecord analyzes each file once and turns its findings of this rule
+        into diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslSignatureIssue'
+
+        The IslSignatureIssue findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -237,6 +584,31 @@ function Measure-IslSignatureIssue {
 }
 
 function Measure-IslAssumedContext {
+    <#
+    .SYNOPSIS
+        Reports the IslAssumedContext findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslAssumedContext. The rule is the note
+        Test-IntuneScript adds when it inferred the script type, context or architecture instead of
+        being told them. Get-IslRuleRecord analyzes each file once and turns its findings of this rule
+        into diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslAssumedContext'
+
+        The IslAssumedContext findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -247,6 +619,31 @@ function Measure-IslAssumedContext {
     Get-IslRuleRecord -Rule 'IslAssumedContext' -ScriptBlockAst $ScriptBlockAst
 }
 function Measure-IslExecutionPolicyCall {
+    <#
+    .SYNOPSIS
+        Reports the IslExecutionPolicyCall findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslExecutionPolicyCall. Its rule,
+        Find-IslExecutionPolicyCall: flags Set-ExecutionPolicy, which the agent's launch makes redundant
+        or harmful. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslExecutionPolicyCall'
+
+        The IslExecutionPolicyCall findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -258,6 +655,31 @@ function Measure-IslExecutionPolicyCall {
 }
 
 function Measure-IslModuleDependency {
+    <#
+    .SYNOPSIS
+        Reports the IslModuleDependency findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslModuleDependency. Its rule,
+        Find-IslModuleDependency: flags modules a script needs that the agent's SYSTEM session will not
+        have. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslModuleDependency'
+
+        The IslModuleDependency findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(
@@ -269,6 +691,31 @@ function Measure-IslModuleDependency {
 }
 
 function Measure-IslScriptSize {
+    <#
+    .SYNOPSIS
+        Reports the IslScriptSize findings as PSScriptAnalyzer records.
+
+    .DESCRIPTION
+        A PSScriptAnalyzer custom rule for IntuneScriptLab's IslScriptSize. Its rule,
+        Find-IslScriptSize: flags scripts over the documented 200 KB and over the size the service
+        refuses. Get-IslRuleRecord analyzes each file once and turns its findings of this rule into
+        diagnostic records; only the root script block gives records.
+
+    .PARAMETER ScriptBlockAst
+        The script block PSScriptAnalyzer passes, once for each block of a file.
+
+    .EXAMPLE
+        $rules = Get-IntuneAnalyzerRulePath
+        Invoke-ScriptAnalyzer -Path Detect.ps1 -CustomRulePath $rules -IncludeRule 'Measure-IslScriptSize'
+
+        The IslScriptSize findings for Detect.ps1, as DiagnosticRecord objects.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]
+    #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param(

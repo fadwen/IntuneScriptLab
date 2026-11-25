@@ -104,7 +104,7 @@ function Test-IntuneWin32Rule {
 
     switch ($kind) {
         'File' {
-            $folder = Resolve-IslRulePath -Path $Path -Check32BitOn64System $Check32BitOn64System
+            $folder = Resolve-IslRulePath -Path $Path -Check32BitOn64System:$Check32BitOn64System
             $target = Join-Path -Path $folder -ChildPath $FileOrFolderName
             $result.Target = $target
             $exists = Test-Path -LiteralPath $target
