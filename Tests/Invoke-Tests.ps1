@@ -21,7 +21,12 @@ script needs neither elevation nor a tenant. It runs on PowerShell 7 and on Wind
 .PARAMETER TestType
 Which suites to run. Unit is Tests/Unit and Validation/Tests/Unit. Integration is
 Tests/Integration, the suites that start real Windows PowerShell processes. All, the default,
-is both.
+is both. Performance is Tests/Performance, which measures the log readers on a generated log; it
+is not part of All, and its files keep their declared order (#pester:no-shuffle).
+
+.PARAMETER Tag
+Tags of the tests to run, for example Security for the tests of credential handling and input
+validation. Left out, every test of the suites runs.
 
 .PARAMETER ExcludeTag
 Tags of tests to leave out, for example Elevated for the tests that run as SYSTEM. Those tests
@@ -63,6 +68,16 @@ Runs every suite in a new shuffled order.
 Runs the unit suites in the order that seed gives, to repeat a failure.
 
 .EXAMPLE
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security
+
+Runs the security tests: where a -Credential password goes, and the checks on input.
+
+.EXAMPLE
+./Tests/Invoke-Tests.ps1 -TestType Performance -Output Detailed
+
+Runs the performance tests and prints each MEASURE line they write.
+
+.EXAMPLE
 ./Tests/Invoke-Tests.ps1 -ExcludeTag Elevated
 
 Runs every suite except the tests that run as SYSTEM.
@@ -82,8 +97,12 @@ None, or with -PassThru the Pester.Run object of the run.
 [OutputType([object])]
 param(
     [Parameter()]
-    [ValidateSet('Unit', 'Integration', 'All')]
+    [ValidateSet('Unit', 'Integration', 'Performance', 'All')]
     [string]$TestType = 'All',
+
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
+    [string[]]$Tag,
 
     [Parameter()]
     [ValidateNotNullOrEmpty()]
@@ -130,6 +149,9 @@ $suites = @{
     Integration = @(
         (Join-Path -Path $PSScriptRoot -ChildPath 'Integration')
     )
+    Performance = @(
+        (Join-Path -Path $PSScriptRoot -ChildPath 'Performance')
+    )
 }
 $testPaths = if ($TestType -eq 'All') { $suites['Unit'] + $suites['Integration'] } else { $suites[$TestType] }
 
@@ -141,6 +163,9 @@ $configuration.Run.ShuffleSeed = $ShuffleSeed
 $configuration.Output.Verbosity = $Output
 # Every test file uses the Pester 6 assertions, so the Pester 5 form can stay off
 $configuration.Should.DisableV5 = $true
+if ($Tag) {
+    $configuration.Filter.Tag = $Tag
+}
 if ($ExcludeTag) {
     $configuration.Filter.ExcludeTag = $ExcludeTag
 }

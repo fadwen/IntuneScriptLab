@@ -163,7 +163,7 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
             { Test-Script } | Should-Throw -ExceptionMessage 'The script could not be read'
         }
 
-        It 'refuses an id that cannot name a folder, and writes nothing' {
+        It 'refuses an id that cannot name a folder, and writes nothing' -Tag 'Security' {
             $work = Join-Path $TestDrive 'bad-id'
             $policy = @{ id = '..\..\outside'; displayName = 'Detect Printer' }
 
@@ -172,7 +172,7 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
             Test-Path -LiteralPath $work | Should-BeFalse
         }
 
-        It 'refuses an id that ends in a line feed' {
+        It 'refuses an id that ends in a line feed' -Tag 'Security' {
             $work = Join-Path $TestDrive 'line-feed-id'
             $policy = @{ id = "p1`n"; displayName = 'Detect Printer' }
 
@@ -181,7 +181,7 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
             Test-Path -LiteralPath $work | Should-BeFalse
         }
 
-        It 'keeps a display name with path characters inside the policy''s folder' {
+        It 'keeps a display name with path characters inside the policy''s folder' -Tag 'Security' {
             $work = Join-Path $TestDrive 'dotted-name'
             $policy = @{ id = 'p1'; displayName = '..\..\Detect' }
             $content = ConvertTo-Content -Text 'exit 0'
@@ -190,7 +190,7 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
             Test-Path -LiteralPath (Join-Path $work 'Remediation\.._.._Detect-p1\detection.ps1') | Should-BeTrue
         }
 
-        It 'refuses a path that would leave the work folder, and writes nothing' {
+        It 'refuses a path that would leave the work folder, and writes nothing' -Tag 'Security' {
             $work = Join-Path $TestDrive 'escape'
 
             { Test-Script -Extra @{ WorkFolder = $work; Role = '..\..\..\escaped' } } |

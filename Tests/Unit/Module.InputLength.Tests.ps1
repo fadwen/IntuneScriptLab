@@ -36,7 +36,7 @@ BeforeAll {
     }
 }
 
-Describe 'Length of text parameters' -Tag 'Unit', 'Contract' {
+Describe 'Length of text parameters' -Tag 'Unit', 'Contract', 'Security' {
 
     Context 'Optional names, ids and rule names' {
         It '<Command> -<Parameter> refuses 1,001 characters before it does anything' -ForEach $script:Limited {

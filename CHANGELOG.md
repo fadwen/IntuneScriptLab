@@ -11,6 +11,10 @@ entries are carried over from the manifest's release notes.
 
 ### Added
 
+- Performance tests for `Get-IntuneAgentLog` and `Get-IntuneAgentTimeline` on a generated log of
+  10,000 lines, run with `Tests/Invoke-Tests.ps1 -TestType Performance` and in CI, and security
+  tests, tagged `Security` and run with `-Tag Security`, that a `-Credential` password reaches the
+  Task Scheduler and no stream, error, result or file (#135).
 - `-WhatIf` and `-Confirm` on the commands that start a script or write a report. The five
   `Invoke-Intune*Test` commands say which script or command line they would run, in which context
   and architecture, run nothing and return nothing. `Export-IntuneAgentDiagnostic` and
