@@ -153,6 +153,10 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- A `Severity` setting that is not a hashtable, such as `Severity = 'Error'` in a settings file
+  or in `-Settings`, ends `Test-IntuneScript` with `SettingsInvalid` and a message that names the
+  source. It ended with a strict-mode error, `PropertyNotFoundStrict`, that named neither the
+  source nor the setting (#105).
 - A test of `New-IslFinding` left out a mandatory parameter and expected an error. A host that can
   prompt asks for the value instead, so the suites waited for an answer at a console and wherever
   the standard input stayed open. The test reads the parameters from the command now, and a new

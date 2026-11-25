@@ -89,6 +89,14 @@ Describe 'ConvertTo-IslSettingsObject' -Tag 'Unit', 'Private' {
                 Case = 'a severity override outside the set'; Table = @{ Severity = @{ IslLongSleep = 'Loud' } }
                 Text = '*Severity for IslLongSleep*'
             }
+            @{
+                Case = 'a severity that is not a hashtable'; Table = @{ Severity = 'Error' }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
+            @{
+                Case = 'a severity that is a list'; Table = @{ Severity = @('IslLongSleep', 'Error') }
+                Text = '*Severity must be a hashtable of rule names*'
+            }
         ) {
             $failure = { ConvertTo-SettingsTable -Table $Table -Source 'C:\repo\IntuneScriptLab.settings.psd1' } |
                 Should-Throw -ExceptionMessage $Text
