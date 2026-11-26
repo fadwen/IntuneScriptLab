@@ -127,11 +127,14 @@ Describe 'Test-IslPolicyScript' -Tag 'Unit', 'Private' {
 
     Context 'The run settings' {
         BeforeAll {
+            # An argument the call left out is no variable in the mock; $PesterBoundParameters gives $null
             Mock Test-IntuneScript -ModuleName IntuneScriptLab {
                 $script:Analyzed = @{
-                    Context = $Context; Architecture = $Architecture; Signature = [bool]$EnforceSignatureCheck
+                    Context = $PesterBoundParameters['Context']
+                    Architecture = $PesterBoundParameters['Architecture']
+                    Signature = [bool]$PesterBoundParameters['EnforceSignatureCheck']
                 }
-                $script:AnalyzedSettings = $null -ne $Settings
+                $script:AnalyzedSettings = $null -ne $PesterBoundParameters['Settings']
             }
         }
 

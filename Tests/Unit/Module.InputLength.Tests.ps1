@@ -34,6 +34,8 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module -Name (Join-Path -Path $script:ModuleRoot -ChildPath 'IntuneScriptLab.psd1') -Force
     }
+    $helpers = Join-Path -Path (Join-Path -Path $script:ModuleRoot -ChildPath 'Tests') -ChildPath 'TestHelpers'
+    . (Join-Path -Path $helpers -ChildPath 'TestHelpers.ps1')
 }
 
 Describe 'Length of text parameters' -Tag 'Unit', 'Contract', 'Security' {
@@ -42,7 +44,9 @@ Describe 'Length of text parameters' -Tag 'Unit', 'Contract', 'Security' {
         It '<Command> -<Parameter> refuses 1,001 characters before it does anything' -ForEach $script:Limited {
             $splat = @{ $Parameter = 'a' * 1001 }
             # A mandatory -Path is given, so that the check, not the binding, answers
-            if ((Get-Command -Name $Command).Parameters['Path'].Attributes.Mandatory -contains $true) {
+            $commandInfo = Get-Command -Name $Command
+            if ($commandInfo.Parameters.ContainsKey('Path') -and
+                (Test-ParameterMandatory -Command $commandInfo -Name 'Path')) {
                 $splat['Path'] = $TestDrive
             }
 

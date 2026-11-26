@@ -274,7 +274,8 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
             Set-Content $withDirective "# IntuneScriptLab: ScriptType=PlatformScript`nRead-Host 'x'`nexit 0"
             @(Test-IntuneScript -Path $withDirective -IncludeSuppressed).ScriptType |
                 Should-All { $_ -eq 'PlatformScript' }
-            @(Test-IntuneScript -Path $script:Slow -MinimumSeverity Warning).RuleName |
+            # Each finding's rule: the call can return none, and an empty array has no RuleName
+            @(Test-IntuneScript -Path $script:Slow -MinimumSeverity Warning | ForEach-Object { $_.RuleName }) |
                 Should-NotContainCollection 'IslLongSleep'
         }
 

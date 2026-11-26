@@ -73,7 +73,7 @@ Describe 'Get-IslExportReport' -Tag 'Unit', 'Private' {
     It 'posts the job, polls it and returns the CSV rows of the download' {
         $script:Polls = 0
         Mock Invoke-IslGraphRequest -ModuleName IntuneScriptLab {
-            if ($Method -eq 'POST') { return @{ id = 'job-1'; status = 'notStarted' } }
+            if ($PesterBoundParameters['Method'] -eq 'POST') { return @{ id = 'job-1'; status = 'notStarted' } }
             $script:Polls++
             if ($script:Polls -lt 2) { return @{ id = 'job-1'; status = 'inProgress' } }
             @{ id = 'job-1'; status = 'completed'; url = 'https://download.example/job-1.zip' }

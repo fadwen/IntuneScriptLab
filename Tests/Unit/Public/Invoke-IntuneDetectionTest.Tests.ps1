@@ -25,10 +25,10 @@ Describe 'Invoke-IntuneDetectionTest' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'declares Path as mandatory and limits the architecture and context' {
             $command = Get-Command Invoke-IntuneDetectionTest
-            $command.Parameters['Path'].Attributes.Mandatory | Should-ContainCollection $true
-            $command.Parameters['Architecture'].Attributes.ValidValues |
+            Test-ParameterMandatory -Command $command -Name 'Path' | Should-BeTrue
+            Get-ParameterValidValue -Command $command -Name 'Architecture' |
                 Should-BeCollection @('x86', 'x64', 'arm64')
-            $command.Parameters['Context'].Attributes.ValidValues | Should-BeCollection @('User', 'System')
+            Get-ParameterValidValue -Command $command -Name 'Context' | Should-BeCollection @('User', 'System')
         }
 
         It 'takes script paths from the pipeline, as Get-ChildItem gives them' {

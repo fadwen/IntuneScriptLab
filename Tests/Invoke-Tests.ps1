@@ -212,16 +212,10 @@ if ($CodeCoverage) {
 $manifestPath = Join-Path -Path $repositoryRoot -ChildPath 'IntuneScriptLab.psd1'
 Import-Module -Name $manifestPath -Force -Global
 
-# Pester runs the test files in scopes below this one, so they would inherit this script's strict
-# mode. The module sets its own in its root module and does not depend on this one, but the
-# suites and the validation kit are not yet written for strict mode (#70, #71), so it is off for
-# the run and on again after it.
-Set-StrictMode -Off
-try {
-    $result = Invoke-Pester -Configuration $configuration
-} finally {
-    Set-StrictMode -Version Latest
-}
+# Pester runs the test files in scopes below this one, so they run under this script's strict mode
+# (ERR-03), as the module runs under its own: a test that reads a variable it never set, or a
+# property an object does not have, fails instead of comparing against $null.
+$result = Invoke-Pester -Configuration $configuration
 
 if ($null -eq $result) {
     throw "Pester returned no result for '$TestType': it found no test files."
