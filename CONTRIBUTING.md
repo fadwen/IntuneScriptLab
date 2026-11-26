@@ -45,6 +45,7 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
                                                         # a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -TestType Performance          # the log readers on a generated log, with the limits CI holds
 ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security   # where a -Credential password goes, and the checks on input
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration  # the tests of the unit folders that start processes
 ./Build/Invoke-Analysis.ps1                             # PSScriptAnalyzer, as CI runs it
 ./Build/Build-Help.ps1 -SkipUpdate                      # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule
@@ -58,10 +59,12 @@ file out that way. `Invoke-Analysis.ps1` checks `Validation/Probe.ps1`,
 `Validation/Win32Install.ps1` and `Validation/Fixtures.ps1` with the default rules only: they keep
 the layout they ran with in the experiments.
 
-`Invoke-Build.ps1` also runs the unit suites under Windows PowerShell 5.1. To run them by hand:
+`Invoke-Build.ps1` also runs the unit suites, and the tests of the unit folders that start
+processes, under Windows PowerShell 5.1. To run them by hand:
 
 ```powershell
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration
 ```
 
 A failure message of `Invoke-Tests.ps1` carries the shuffle seed; `-ShuffleSeed <seed>` runs the

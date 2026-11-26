@@ -66,7 +66,7 @@ BeforeAll {
 Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
 
     Context 'The fixture' {
-        It 'leaves its marker when the script does run' {
+        It 'leaves its marker when the script does run' -Tag 'Integration' {
             $probe = New-MarkerScript -Name 'Sanity'
             $result = Invoke-IntuneDetectionTest -Path $probe.Script -TimeoutSeconds 60
 
@@ -164,7 +164,7 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
     }
 
     Context 'A WhatIf preference in the caller''s session' {
-        It 'previews the run as -WhatIf does, and does not start the host on a missing copy' {
+        It 'previews the run as -WhatIf does, and does not start the host on a missing copy' -Tag 'Integration' {
             $probe = New-MarkerScript -Name 'Preference'
             $run = Invoke-CallerScript -Statement @(
                 "`$WhatIfPreference = `$true"
@@ -217,8 +217,15 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
                 })
             $commandType = [System.Management.Automation.Language.CommandAst]
             # Whether a command has -WhatIf, looked up once for each name: the trees hold thousands
-            # of calls to a few hundred commands, and Get-Command for each call took most of a minute
+            # of calls to a few hundred commands, and Get-Command for each call took most of a minute.
+            # The module's own functions are read from inside it: from here Get-Command cannot see a
+            # private one, and looking for it searched every module on the path, 9 of the test's 10
+            # seconds
             $hasWhatIf = @{}
+            $moduleCommands = InModuleScope IntuneScriptLab { Get-Command -Module IntuneScriptLab -All }
+            foreach ($moduleCommand in $moduleCommands) {
+                $hasWhatIf[$moduleCommand.Name] = $moduleCommand.Parameters.ContainsKey('WhatIf')
+            }
             $calls = foreach ($tree in $trees) {
                 foreach ($command in $tree.FindAll({ param($node) $node -is $commandType }, $true)) {
                     $name = $command.GetCommandName()
@@ -254,7 +261,7 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
             @($calls | Where-Object { -not $_.Pinned } | ForEach-Object { $_.Call }) | Should-BeCollection @()
         }
 
-        It 'does not ask again inside a run the caller agreed to, in a session that cannot answer' {
+        It 'does not ask again in a run the caller agreed to, in a session that cannot answer' -Tag 'Integration' {
             # After a Yes to -Confirm the preference is still Low in the command's scope, and the
             # functions it calls see it. With only -WhatIf pinned, the run folder and the copy each
             # asked again; here, where nobody can answer, they failed, and the host was started on
@@ -278,7 +285,7 @@ Describe 'What -WhatIf does across the module' -Tag 'Unit', 'Contract' {
             @($run.ErrorId | Where-Object { $_ -like '*ItemCommand' }) | Should-BeCollection @()
         }
 
-        It 'runs when the caller declines to be asked, whatever its confirm preference' {
+        It 'runs when the caller declines to be asked, whatever its confirm preference' -Tag 'Integration' {
             $probe = New-MarkerScript -Name 'ConfirmFalse'
             $run = Invoke-CallerScript -Statement @(
                 "`$ConfirmPreference = 'Low'"

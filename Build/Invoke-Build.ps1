@@ -13,9 +13,9 @@
     3. Build/Test-MarkdownLink.ps1: the anchors and relative links of the Markdown.
     4. Build/Invoke-Analysis.ps1: PSScriptAnalyzer with the repository's settings, in a new
        process.
-    5. Tests/Invoke-Tests.ps1 with -TestType in this host.
-    6. Tests/Invoke-Tests.ps1 -TestType Unit under Windows PowerShell 5.1, on Windows, unless
-       -SkipWindowsPowerShell.
+    5. Tests/Invoke-Tests.ps1 with -TestType in this host. With Unit, the default, the tests of the
+       unit folders tagged Integration, which start processes, run after the unit tests.
+    6. The same under Windows PowerShell 5.1, on Windows, unless -SkipWindowsPowerShell.
 
     Steps 1 and 2 rewrite en-US/IntuneScriptLab-Help.xml and docs/Rules.md. A change to either
     belongs in the same commit as its cause. The script ends with the list of the two files whose
@@ -172,16 +172,28 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if (-not $SkipTests) {
-    Write-BuildStep -Text "Tests ($TestType) in PowerShell $($PSVersionTable.PSVersion)"
-    & $runner -TestType $TestType
+    # The unit run leaves out the tests of the unit folders that start processes (TST-47); the
+    # build runs them after it, so it checks what it checked before they were tagged
+    $runs = @(@{ TestType = $TestType })
+    if ($TestType -eq 'Unit') {
+        $runs += @{ TestType = 'Unit'; Tag = 'Integration' }
+    }
+    foreach ($run in $runs) {
+        Write-BuildStep -Text "Tests ($($run.TestType) $($run['Tag'])) in PowerShell $($PSVersionTable.PSVersion)"
+        & $runner @run
+    }
 
     $onWindows = $PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows
     $inDesktop = $PSVersionTable.PSEdition -eq 'Desktop'
     if ($onWindows -and -not $inDesktop -and -not $SkipWindowsPowerShell) {
-        Write-BuildStep -Text 'Unit tests under Windows PowerShell 5.1'
-        & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $runner -TestType Unit
-        if ($LASTEXITCODE -ne 0) {
-            throw "The unit tests failed under Windows PowerShell 5.1 (exit code $LASTEXITCODE)."
+        $desktopRuns = @(, @('-TestType', 'Unit')) + @(, @('-TestType', 'Unit', '-Tag', 'Integration'))
+        foreach ($desktopArguments in $desktopRuns) {
+            $described = @($desktopArguments | Select-Object -Skip 1) -join ' '
+            Write-BuildStep -Text "Tests ($described) under Windows PowerShell 5.1"
+            & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $runner @desktopArguments
+            if ($LASTEXITCODE -ne 0) {
+                throw "The tests failed under Windows PowerShell 5.1 (exit code $LASTEXITCODE)."
+            }
         }
     }
 }

@@ -373,7 +373,7 @@ Describe 'Get-IntuneScriptHealth' -Tag 'Unit', 'Public' {
             { Get-IntuneScriptHealth @healthSplat -ErrorAction Stop } | Should-Throw
         }
 
-        It 'leaves a calling script one error and no report when Graph cannot be reached' {
+        It 'leaves a calling script one error and no report when Graph cannot be reached' -Tag 'Integration' {
             $run = Invoke-CallerScript -Statement @(
                 $script:GraphDown
                 "`$reports = @(Get-IntuneScriptHealth -Kind Remediation -SkipRunState)"

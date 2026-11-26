@@ -33,7 +33,8 @@
 #   arm64     Windows on ARM. The runtime harness picks a PowerShell host per architecture, and
 #             on an ARM64 device the answers differ from x64: the System32 host is native ARM64,
 #             the SysWOW64 host is emulated x86, and there is no x64 host at all. The x64 runner
-#             cannot exercise those branches, so the unit suites run again on GitHub's ARM64 image.
+#             cannot exercise those branches, so the unit suites run again on GitHub's ARM64 image,
+#             with the tests of the unit folders that start processes in a second run.
 #
 #   help      Ubuntu. The command help gate: the PlatyPS Markdown under docs/ is valid and
 #             complete, the committed MAML in en-US/ was built from it, the generated rule
@@ -222,6 +223,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           ./Tests/Invoke-Tests.ps1 -TestType Unit -OutputPath ./reports -SummaryPath $env:GITHUB_STEP_SUMMARY
+          # The tests of the unit folders that start processes: the arm64 host and the x86 one that
+          # Windows on ARM emulates are what they cover here
+          ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration -OutputPath ./reports/process -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()

@@ -46,38 +46,6 @@ BeforeAll {
     # On a build after the table's 24H2: a Windows Insider Beta-channel build of 26H2 (26320) has it,
     # and 24H2 devices at build 26100.9974 with current updates do not (Validation/Findings.md)
     $script:LaterReleaseModules = 'UOPProviders'
-
-    # Discovery-time variables do not reach the run, so the lookup is repeated here
-    $script:ClientHost = $false
-    if (Get-Command powershell.exe -ErrorAction SilentlyContinue) {
-        $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
-        $script:ClientHost = [int]$os.ProductType -eq 1
-    }
-    if ($script:ClientHost) {
-        # What the host's Windows PowerShell has under the two system module paths, the ones a
-        # SYSTEM session under the agent reads (REM-PSMODULEPATH), kept apart: System32 is Windows'
-        # own, Program Files is where installed software and the Gallery's AllUsers scope land
-        $probe = {
-            $windows = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules"
-            $programs = "$env:ProgramFiles\WindowsPowerShell\Modules"
-            $available = Get-Module -ListAvailable
-            $under = {
-                param($Root)
-                @($available | Where-Object { $_.ModuleBase.StartsWith($Root, 'OrdinalIgnoreCase') } |
-                        Select-Object -ExpandProperty Name -Unique | Sort-Object -Unique)
-            }
-            # The engine module has no folder and Import-Module of it fails; its commands are there
-            $engine = (Get-Command -Name Get-Command).ModuleName
-            @{ Windows = & $under $windows; Programs = & $under $programs; Engine = $engine } |
-                ConvertTo-Json -Compress
-        }
-        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($probe.ToString()))
-        $raw = & powershell.exe -NoProfile -NonInteractive -EncodedCommand $encoded 2>&1
-        $answer = ($raw | Where-Object { "$_".StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
-        $script:WindowsModules = @($answer.Windows)
-        $script:HostModules = @($answer.Windows) + @($answer.Programs)
-        $script:HostEngineModule = "$($answer.Engine)"
-    }
 }
 
 Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {
@@ -96,7 +64,42 @@ Describe 'Get-IslInboxModule' -Tag 'Unit', 'Private' {
         ($returned -join ',') | Should-Be ($script:Table -join ',')
     }
 
-    Context 'Against this Windows client' -Skip:(-not $script:ClientHost) {
+    # A Windows PowerShell host of this machine, asked what it has: an integration test
+    Context 'Against this Windows client' -Tag 'Integration' -Skip:(-not $script:ClientHost) {
+        BeforeAll {
+            # Discovery-time variables do not reach the run, so the lookup is repeated here
+            $script:ClientHost = $false
+            if (Get-Command powershell.exe -ErrorAction SilentlyContinue) {
+                $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
+                $script:ClientHost = [int]$os.ProductType -eq 1
+            }
+            if ($script:ClientHost) {
+                # What the host's Windows PowerShell has under the two system module paths, the ones a
+                # SYSTEM session under the agent reads (REM-PSMODULEPATH), kept apart: System32 is Windows'
+                # own, Program Files is where installed software and the Gallery's AllUsers scope land
+                $probe = {
+                    $windows = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules"
+                    $programs = "$env:ProgramFiles\WindowsPowerShell\Modules"
+                    $available = Get-Module -ListAvailable
+                    $under = {
+                        param($Root)
+                        @($available | Where-Object { $_.ModuleBase.StartsWith($Root, 'OrdinalIgnoreCase') } |
+                                Select-Object -ExpandProperty Name -Unique | Sort-Object -Unique)
+                    }
+                    # The engine module has no folder and Import-Module of it fails; its commands are there
+                    $engine = (Get-Command -Name Get-Command).ModuleName
+                    @{ Windows = & $under $windows; Programs = & $under $programs; Engine = $engine } |
+                        ConvertTo-Json -Compress
+                }
+                $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($probe.ToString()))
+                $raw = & powershell.exe -NoProfile -NonInteractive -EncodedCommand $encoded 2>&1
+                $answer = ($raw | Where-Object { "$_".StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
+                $script:WindowsModules = @($answer.Windows)
+                $script:HostModules = @($answer.Windows) + @($answer.Programs)
+                $script:HostEngineModule = "$($answer.Engine)"
+            }
+        }
+
         It 'has every listed module under the system module paths, or is a Home edition without the feature' {
             $script:HostModules.Count | Should-BeGreaterThan 50
             $missing = @($script:Table | Where-Object {

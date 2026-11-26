@@ -60,7 +60,7 @@ BeforeAll {
 
 Describe 'Get-IslFilterDeviceFact' -Tag 'Unit', 'Private' -Skip:(-not $script:OnWindows) {
 
-    It 'reports every filter property, with the tenant-side ones empty' {
+    It 'reports every filter property, with the tenant-side ones empty' -Tag 'Integration' {
         $fact = InModuleScope IntuneScriptLab { Get-IslFilterDeviceFact }
         $expected = @('deviceName', 'manufacturer', 'model', 'osVersion', 'operatingSystemVersion',
             'operatingSystemSKU', 'cpuArchitecture', 'deviceTrustType', 'deviceOwnership',
@@ -72,18 +72,18 @@ Describe 'Get-IslFilterDeviceFact' -Tag 'Unit', 'Private' -Skip:(-not $script:On
         $fact.isTpmAttested | Should-BeNull
     }
 
-    It 'names the architecture the way the filter does (amd64, not x64)' {
+    It 'names the architecture the way the filter does (amd64, not x64)' -Tag 'Integration' {
         $fact = InModuleScope IntuneScriptLab { Get-IslFilterDeviceFact }
         @('amd64', 'x86', 'arm64') | Should-ContainCollection $fact.cpuArchitecture
     }
 
-    It 'reads a four-part version with the update build revision, the same for both version properties' {
+    It 'reads a four-part version with the update build revision for both properties' -Tag 'Integration' {
         $fact = InModuleScope IntuneScriptLab { Get-IslFilterDeviceFact }
         $fact.osVersion | Should-MatchString '^10\.0\.\d+\.\d+$'
         $fact.operatingSystemVersion | Should-Be $fact.osVersion
     }
 
-    It 'names the SKU from the filter reference table, or keeps the number where the table has no name' {
+    It 'names the SKU from the filter reference table, or keeps a number it has no name for' -Tag 'Integration' {
         $fact = InModuleScope IntuneScriptLab { Get-IslFilterDeviceFact }
         $fact.operatingSystemSKU | Should-NotBeWhiteSpaceString
         $operatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem

@@ -164,6 +164,12 @@ on `mobileApps/{id}` is refused (derived-type property) - fetch the app without 
 
 A `Mock` defined in `BeforeEach` is not active in a Context's `BeforeAll`; define mocks in the
 Describe's `BeforeAll`. `Should-Invoke` for a call made in `BeforeAll` needs `-Scope Context`.
+A test that starts a process, reads the real machine (CIM, the registry of the host, a logon
+session) or runs a script as a caller would, through `Invoke-CallerScript`, is tagged
+`Integration`, wherever its file is. `-TestType Unit` leaves those out, so that the unit run stays
+within seconds (TST-47); `-TestType Integration` runs them with `Tests/Integration`, and the build,
+the 5.1 job and the ARM job run them too. A unit test mocks the clock rather than waiting on it.
+
 `Tests/Invoke-Tests.ps1` shuffles every run, locally and in each CI job, and puts the seed in its
 failure message; a test that only passes in declaration order fails there first, and
 `-ShuffleSeed` runs that order again.
@@ -256,12 +262,13 @@ vault is searched, and the secret stays a `SecureString` until the publish call.
 ## Checks
 
 ```powershell
-./Build/Invoke-Build.ps1                           # all of it in order: help, rule reference, links, analysis, unit suites on 7 and 5.1
+./Build/Invoke-Build.ps1                           # all of it in order: help, rule reference, links, analysis, unit and process tests on 7 and 5.1
 ./Tests/Invoke-Tests.ps1                           # every suite, shuffled; suites that need elevation, a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -CodeCoverage             # the same with the 80% coverage gate, as the tests job runs it
 ./Tests/Invoke-Tests.ps1 -TestType Performance     # the log readers on a generated log, not part of the default run
 ./Build/Test-PerformanceBaseline.ps1 -ResultPath <file> -Record  # baselines from ISL_PERFORMANCE_RESULTS, see the tests job
 ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security  # where a -Credential password goes, and the checks on input
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration  # the tests of the unit folders that start processes
 ./Build/Invoke-Analysis.ps1                        # PSScriptAnalyzer with the settings file, as the tests job runs it
 ./Build/Build-Help.ps1 -SkipUpdate                 # rebuild MAML after editing docs/, the form CI compares
 ./Build/Build-RuleReference.ps1                    # rebuild docs/Rules.md after changing a rule
@@ -281,10 +288,13 @@ module's `Should-*` aliases and reports every Pester assertion as an alias.
 
 `Tests/Invoke-Tests.ps1` is the one way the suites are run: it fails when Pester's result is not
 `Passed` or when no tests ran, which a check of `FailedCount` alone does not. Run the unit suites
-under Windows PowerShell 5.1 as well before pushing:
+and the tagged tests of the unit folders under Windows PowerShell 5.1 as well before pushing, or
+`./Build/Invoke-Build.ps1`, which runs both in both hosts. The second run holds the 5.1 checks that
+matter most: the child imports, the module loading under 5.1, the host comparisons:
 
 ```powershell
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration
 ```
 
 The script sets strict mode, and the suites and the validation kit run under it, as the module

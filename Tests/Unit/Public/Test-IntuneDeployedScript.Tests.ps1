@@ -479,7 +479,7 @@ Describe 'Test-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             @(Get-ChildItem @listSplat).Count | Should-Be $before
         }
 
-        It 'leaves a calling script one error and no finding when Graph cannot be reached' {
+        It 'leaves a calling script one error and no finding when Graph cannot be reached' -Tag 'Integration' {
             $run = Invoke-CallerScript -Statement @(
                 $script:GraphDown
                 "`$findings = @(Test-IntuneDeployedScript -Kind Remediation)"

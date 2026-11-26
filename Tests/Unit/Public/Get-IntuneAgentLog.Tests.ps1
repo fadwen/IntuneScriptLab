@@ -355,7 +355,7 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
                 Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
         }
 
-        It 'ends on a bad argument and reports a bad log, for a script without try' {
+        It 'ends on a bad argument and reports a bad log, for a script without try' -Tag 'Integration' {
             # Should-Throw cannot show what such a caller sees: it calls inside a try, where every
             # error travels all the way up. The script here has none
             $logs = $script:Logs

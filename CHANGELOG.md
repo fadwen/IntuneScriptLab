@@ -49,6 +49,10 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- A test that starts a process, reads the real machine or runs a script as a caller would is
+  tagged `Integration`, and `Tests/Invoke-Tests.ps1 -TestType Unit` leaves it out: the unit run
+  takes 69 seconds instead of 157 on a Windows 11 laptop. `-TestType Integration` runs those tests
+  with the integration suites, and the build and the ARM job run them in a run of their own (#70).
 - The test suites run under strict mode, as the module does: `Tests/Invoke-Tests.ps1` no longer
   turns it off around the Pester run (ERR-03, #70).
 - `SECURITY.md` classifies the data the module handles and lists the threats to it by STRIDE

@@ -68,7 +68,7 @@ BeforeAll {
     }
     $json = $flat | ConvertTo-Json -Depth 5 -Compress
     $command = "& { $($probe.ToString()) } '$($json.Replace("'", "''"))'"
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+    $script:Encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
     function script:Get-HostAnswer {
         <#
         .SYNOPSIS
@@ -86,7 +86,7 @@ BeforeAll {
             The command to run, Base64 encoded from UTF-16 LE text as -EncodedCommand expects.
 
         .EXAMPLE
-            Get-HostAnswer 'pwsh.exe' $encoded
+            Get-HostAnswer 'pwsh.exe' $script:Encoded
 
             Runs the probe in PowerShell 7 and returns its answer.
 
@@ -110,10 +110,6 @@ BeforeAll {
     # Discovery-time variables do not reach the run, so the lookup is repeated here
     $script:BothHosts = [bool](Get-Command powershell.exe -ErrorAction SilentlyContinue) -and
     [bool](Get-Command pwsh.exe -ErrorAction SilentlyContinue)
-    if ($script:BothHosts) {
-        $script:Desktop = Get-HostAnswer 'powershell.exe' $encoded
-        $script:Core = Get-HostAnswer 'pwsh.exe' $encoded
-    }
 }
 
 Describe 'Get-IslCoreOnlyFeature' -Tag 'Unit', 'Private' {
@@ -125,7 +121,13 @@ Describe 'Get-IslCoreOnlyFeature' -Tag 'Unit', 'Private' {
         $script:Table.Values['Out-File'].Encoding | Should-ContainCollection 'utf8NoBOM'
     }
 
-    Context 'Against both hosts' -Skip:(-not $script:BothHosts) {
+    # Both hosts of this machine, started and asked: an integration test, and its setup with it
+    Context 'Against both hosts' -Tag 'Integration' -Skip:(-not $script:BothHosts) {
+        BeforeAll {
+            $script:Desktop = Get-HostAnswer 'powershell.exe' $script:Encoded
+            $script:Core = Get-HostAnswer 'pwsh.exe' $script:Encoded
+        }
+
         It 'every listed command is missing from Windows PowerShell 5.1 and present in PowerShell 7' {
             $wrong = @(foreach ($name in $script:Table.Commands) {
                     if ($script:Desktop.Commands.$name) { "$name exists in 5.1" }

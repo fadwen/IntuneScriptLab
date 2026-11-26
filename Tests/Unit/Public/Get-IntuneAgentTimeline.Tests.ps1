@@ -302,7 +302,7 @@ Describe 'Get-IntuneAgentTimeline' -Tag 'Unit', 'Public' {
                 Should-Throw -FullyQualifiedErrorId 'PathNotFound,*'
         }
 
-        It 'reports what it could not read and goes on, for a script without try' {
+        It 'reports what it could not read and goes on, for a script without try' -Tag 'Integration' {
             $mixed = $script:Mixed
             $run = Invoke-CallerScript -Statement @(
                 "`$missing = @(Get-IntuneAgentTimeline -Path '$TestDrive\nowhere')"
