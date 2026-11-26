@@ -14,7 +14,12 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
-    $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    # LOCAL SERVICE, an account on no folder of the tests, granted by its name in the system's own
+    # language. Not the account that runs them: on a hosted runner it owns its test folder, and a
+    # grant to it there also writes FullControl for it
+    $script:StrangerSid = 'S-1-5-19'
+    $script:Stranger = [System.Security.Principal.SecurityIdentifier]::new($script:StrangerSid).Translate(
+        [System.Security.Principal.NTAccount]).Value
 
     function Grant-Access {
         <#
@@ -36,9 +41,9 @@ BeforeAll {
             The error action preference in force inside the module, Continue by default.
 
         .EXAMPLE
-            Grant-Access -Path $script:Folder -Account $script:Me.Name
+            Grant-Access -Path $script:Folder -Account $script:Stranger
 
-            Grants the current user access to the test folder.
+            Grants LOCAL SERVICE access to the test folder.
 
         .INPUTS
             None.
@@ -63,6 +68,68 @@ BeforeAll {
             Grant-IslFolderAccess -Path $Path -Account $Account
         }
     }
+
+    function script:Assert-RunGrant {
+        <#
+        .SYNOPSIS
+            Asserts the two entries a run folder's grant gives an account.
+
+        .DESCRIPTION
+            Reads the entries set on the folder itself for the SID, and asserts that there are two:
+            Modify for what is in the folder only, inherited by files and folders, and on the folder
+            itself the rights to list it and add files and folders, without Delete or
+            DeleteSubdirectoriesAndFiles. Each failure lists the SID's entries.
+
+        .PARAMETER Path
+            The folder.
+
+        .PARAMETER Sid
+            The SID of the account the folder was granted to.
+
+        .EXAMPLE
+            Assert-RunGrant -Path $script:Folder -Sid 'S-1-5-19'
+
+            Asserts the grant of LOCAL SERVICE on the test folder.
+
+        .INPUTS
+            None.
+
+        .OUTPUTS
+            None.
+        #>
+        [CmdletBinding()]
+        [OutputType([void])]
+        param(
+            [Parameter(Mandatory)]
+            [string]$Path,
+
+            [Parameter(Mandatory)]
+            [string]$Sid
+        )
+
+        $sidType = [System.Security.Principal.SecurityIdentifier]
+        $rules = @((Get-Acl -LiteralPath $Path).Access | Where-Object {
+                -not $_.IsInherited -and $_.IdentityReference.Translate($sidType).Value -eq $Sid
+            })
+        $listed = ($rules | ForEach-Object {
+                '{0} {1}/{2}' -f $_.FileSystemRights, $_.InheritanceFlags, $_.PropagationFlags
+            }) -join '; '
+        $because = "the entries of $Sid are: $listed"
+
+        $rules | Should-BeCollection -Count 2 -Because $because
+        $below = @($rules | Where-Object { "$($_.PropagationFlags)" -eq 'InheritOnly' })
+        $below | Should-BeCollection -Count 1 -Because $because
+        "$($below[0].FileSystemRights)" | Should-BeLikeString '*Modify*' -Because $because
+        "$($below[0].InheritanceFlags)" | Should-Be 'ContainerInherit, ObjectInherit' -Because $because
+        $itself = @($rules | Where-Object { "$($_.InheritanceFlags)" -eq 'None' })
+        $itself | Should-BeCollection -Count 1 -Because $because
+        $rights = $itself[0].FileSystemRights
+        # Listing and adding, which the run needs; deleting or renaming the folder, which it must not
+        $wanted = [System.Security.AccessControl.FileSystemRights]'ListDirectory, CreateFiles, CreateDirectories'
+        ($rights -band $wanted) | Should-Be $wanted -Because $because
+        $deleting = [System.Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles'
+        [int]($rights -band $deleting) | Should-Be 0 -Because $because
+    }
 }
 
 Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
@@ -79,45 +146,21 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
         # S-1-5-32-545 is BUILTIN\Users, standing in for the account: the grant has to land on the
         # SID it was given, whatever the name passed in
         Grant-Access -Path $script:Folder -Account 'isl-verylongusername-test01@4nlnm3.onmicrosoft.com'
-        $sidType = [System.Security.Principal.SecurityIdentifier]
-        $rules = @((Get-Acl -Path $script:Folder).Access | Where-Object {
-                -not $_.IsInherited -and $_.IdentityReference.Translate($sidType).Value -eq 'S-1-5-32-545'
-            })
-        $rules | Should-BeCollection -Count 2
-        $below = @($rules | Where-Object { "$($_.PropagationFlags)" -eq 'InheritOnly' })
-        $below | Should-BeCollection -Count 1
-        "$($below[0].FileSystemRights)" | Should-BeLikeString '*Modify*'
-        "$($below[0].InheritanceFlags)" | Should-Be 'ContainerInherit, ObjectInherit'
-        $itself = @($rules | Where-Object { "$($_.InheritanceFlags)" -eq 'None' })
-        $itself | Should-BeCollection -Count 1
-        $rights = $itself[0].FileSystemRights
-        # Listing and adding, which the run needs; deleting or renaming the folder, which it must not
-        $wanted = [System.Security.AccessControl.FileSystemRights]'ListDirectory, CreateFiles, CreateDirectories'
-        ($rights -band $wanted) | Should-Be $wanted
-        $deleting = [System.Security.AccessControl.FileSystemRights]'Delete, DeleteSubdirectoriesAndFiles'
-        [int]($rights -band $deleting) | Should-Be 0
+        Assert-RunGrant -Path $script:Folder -Sid 'S-1-5-32-545'
     }
 
     It 'grants by the name as given when Windows does not resolve it' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        Grant-Access -Path $script:Folder -Account $script:Me.Name
-        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
-            -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
-        }
-        # One entry for the folder's contents and one for the folder itself
-        @($rule).Count | Should-Be 2
+        Grant-Access -Path $script:Folder -Account $script:Stranger
+        Assert-RunGrant -Path $script:Folder -Sid $script:StrangerSid
     }
 
     It 'grants on a folder path that ends in a backslash' {
         # Before, the backslash escaped the closing quote and icacls was handed a path with the rest
         # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        Grant-Access -Path "$($script:Folder)\" -Account $script:Me.Name
-        $rule = (Get-Acl -Path $script:Folder).Access | Where-Object {
-            -not $_.IsInherited -and "$($_.IdentityReference)" -eq $script:Me.Name
-        }
-        # One entry for the folder's contents and one for the folder itself
-        @($rule).Count | Should-Be 2
+        Grant-Access -Path "$($script:Folder)\" -Account $script:Stranger
+        Assert-RunGrant -Path $script:Folder -Sid $script:StrangerSid
     }
 
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
