@@ -44,7 +44,9 @@ Describe 'Length of text parameters' -Tag 'Unit', 'Contract', 'Security' {
         It '<Command> -<Parameter> refuses 1,001 characters before it does anything' -ForEach $script:Limited {
             $splat = @{ $Parameter = 'a' * 1001 }
             # A mandatory -Path is given, so that the check, not the binding, answers
-            if (Test-ParameterMandatory -Command (Get-Command -Name $Command) -Name 'Path') {
+            $commandInfo = Get-Command -Name $Command
+            if ($commandInfo.Parameters.ContainsKey('Path') -and
+                (Test-ParameterMandatory -Command $commandInfo -Name 'Path')) {
                 $splat['Path'] = $TestDrive
             }
 
