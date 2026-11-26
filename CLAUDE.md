@@ -288,10 +288,13 @@ module's `Should-*` aliases and reports every Pester assertion as an alias.
 
 `Tests/Invoke-Tests.ps1` is the one way the suites are run: it fails when Pester's result is not
 `Passed` or when no tests ran, which a check of `FailedCount` alone does not. Run the unit suites
-under Windows PowerShell 5.1 as well before pushing:
+and the tagged tests of the unit folders under Windows PowerShell 5.1 as well before pushing, or
+`./Build/Invoke-Build.ps1`, which runs both in both hosts. The second run holds the 5.1 checks that
+matter most: the child imports, the module loading under 5.1, the host comparisons:
 
 ```powershell
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration
 ```
 
 The script sets strict mode, and the suites and the validation kit run under it, as the module

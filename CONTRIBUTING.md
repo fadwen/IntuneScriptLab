@@ -59,10 +59,12 @@ file out that way. `Invoke-Analysis.ps1` checks `Validation/Probe.ps1`,
 `Validation/Win32Install.ps1` and `Validation/Fixtures.ps1` with the default rules only: they keep
 the layout they ran with in the experiments.
 
-`Invoke-Build.ps1` also runs the unit suites under Windows PowerShell 5.1. To run them by hand:
+`Invoke-Build.ps1` also runs the unit suites, and the tests of the unit folders that start
+processes, under Windows PowerShell 5.1. To run them by hand:
 
 ```powershell
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
+powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration
 ```
 
 A failure message of `Invoke-Tests.ps1` carries the shuffle seed; `-ShuffleSeed <seed>` runs the

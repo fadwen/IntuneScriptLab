@@ -24,7 +24,8 @@ caller would is tagged Integration, wherever its file is; the rest is a unit tes
 
 Unit is the tests of Tests/Unit and Validation/Tests/Unit without the Integration tag, the ones
 that run in seconds (TST-47). Integration is every test tagged Integration: the suites of
-Tests/Integration and the tagged tests of the unit folders. All, the default, is both.
+Tests/Integration and the tagged tests of the unit folders; with -Tag, only the tests of
+Tests/Integration that have one of those tags. All, the default, is both.
 Performance is Tests/Performance, which measures the log readers on a generated log; it is not
 part of All, and its files keep their declared order (#pester:no-shuffle).
 
@@ -165,12 +166,17 @@ $suites = @{
 }
 # The Integration tag decides what is a unit test, not the folder: a test in Tests/Unit that starts
 # a process belongs to the integration run
+$includeTags = @($Tag | Where-Object { $_ })
 $testPaths = switch ($TestType) {
     'All' { $suites['Unit'] + $suites['Integration'] }
-    'Integration' { $suites['Unit'] + $suites['Integration'] }
+    # Pester's tag filter takes a test with any one of the tags, so with tags of the caller's own
+    # the unit folders would bring their tests with those tags too: the run keeps to
+    # Tests/Integration then, as it did before the tag decided
+    'Integration' {
+        if ($includeTags.Count -eq 0) { $suites['Unit'] + $suites['Integration'] } else { $suites['Integration'] }
+    }
     default { $suites[$TestType] }
 }
-$includeTags = @($Tag | Where-Object { $_ })
 $excludeTags = @($ExcludeTag | Where-Object { $_ })
 if ($TestType -eq 'Unit' -and $includeTags -notcontains 'Integration') {
     $excludeTags += 'Integration'
@@ -259,7 +265,9 @@ if ($SummaryPath) {
     # Written before the checks below, so that a run which fails them still leaves its summary
     $summaryFile = $PSCmdlet.GetUnresolvedProviderPathFromPSPath($SummaryPath)
     $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-    $heading = "## Pester, $TestType tests, PowerShell $($PSVersionTable.PSVersion) on $architecture"
+    # The tags tell two runs of one type apart, such as the unit run and the run of its tagged tests
+    $tagged = if ($Tag) { " tagged $($Tag -join ', ')" } else { '' }
+    $heading = "## Pester, $TestType tests$tagged, PowerShell $($PSVersionTable.PSVersion) on $architecture"
     $markdown = "$heading`n`n$summary`n`n"
     [System.IO.File]::AppendAllText($summaryFile, $markdown, [System.Text.UTF8Encoding]::new($false))
 }
