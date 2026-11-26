@@ -127,7 +127,7 @@ jobs:
           $null = New-Item -ItemType Directory -Path ./reports/performance -Force
           $env:ISL_PERFORMANCE_RESULTS = Join-Path -Path (Resolve-Path ./reports/performance) -ChildPath 'measurements.jsonl'
           foreach ($run in 1..3) {
-            ./Tests/Invoke-Tests.ps1 -TestType Performance -Output Detailed
+            ./Tests/Invoke-Tests.ps1 -TestType Performance -Output Detailed -OutputPath "./reports/performance/run$run" -SummaryPath $env:GITHUB_STEP_SUMMARY
           }
           ./Build/Test-PerformanceBaseline.ps1 -ResultPath $env:ISL_PERFORMANCE_RESULTS
 

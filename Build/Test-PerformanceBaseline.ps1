@@ -19,7 +19,8 @@
     medians are printed in the form of a baseline entry, to be recorded with -Record.
 
 .PARAMETER ResultPath
-    The file of JSON lines that the performance tests wrote.
+    The file of JSON lines that the performance tests wrote. The tests append to it, so delete it
+    before a new recording; measurements from more than one PowerShell version are refused.
 
 .PARAMETER BaselinePath
     The baselines. Default: Tests/Performance/Baselines.psd1.
@@ -79,6 +80,48 @@ if (-not $Runner) {
     $Runner = '{0}/{1}/{2}' -f $machine, $architecture, $version
 }
 
+function Format-Invariant {
+    <#
+    .SYNOPSIS
+        Formats a string with its numbers written as the invariant culture writes them.
+
+    .DESCRIPTION
+        The -f operator writes a number in the current culture, 1,06 in German, which a baseline
+        entry pasted into Baselines.psd1 would then read as an array. This writes 1.06 whatever the
+        culture.
+
+    .PARAMETER Format
+        The format string, as for -f.
+
+    .PARAMETER Argument
+        The values to put into it.
+
+    .EXAMPLE
+        Format-Invariant -Format '{0} s' -Argument 1.06
+
+        Returns '1.06 s' in every culture.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. The formatted string.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Format,
+
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        [object[]]$Argument
+    )
+
+    [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, $Format, $Argument)
+}
+
+
 function Get-Median {
     <#
     .SYNOPSIS
@@ -125,6 +168,14 @@ if ($lines.Count -eq 0) {
     throw "No measurements in '$ResultPath': the performance tests wrote nothing."
 }
 $results = @($lines | ForEach-Object { $_ | ConvertFrom-Json })
+# One recording per file: medians over two PowerShell versions, or two versions of the code, would
+# describe neither
+$versions = @($results | ForEach-Object { $_.PSObject.Properties['PowerShell'] } | Where-Object { $_ } |
+        ForEach-Object { "$($_.Value)" } | Sort-Object -Unique)
+if ($versions.Count -gt 1) {
+    throw ("The measurements in '$ResultPath' come from more than one PowerShell version " +
+        "($($versions -join ', ')). Delete the file and record again.")
+}
 $medians = @(
     foreach ($group in @($results | Group-Object -Property Name, Lines | Sort-Object -Property Name)) {
         $first = $group.Group[0]
@@ -139,7 +190,8 @@ $medians = @(
 
 if ($Record) {
     $entry = foreach ($median in $medians) {
-        "        '{0}' = @{{ Seconds = {1}; Megabytes = {2} }}" -f $median.Key, $median.Seconds, $median.Megabytes
+        $values = $median.Key, $median.Seconds, $median.Megabytes
+        Format-Invariant -Format "        '{0}' = @{{ Seconds = {1}; Megabytes = {2} }}" -Argument $values
     }
     Write-Information -InformationAction Continue -MessageData (
         "Baseline entry for '$Runner':`n    '$Runner' = @{`n$($entry -join "`n")`n    }")
@@ -153,7 +205,9 @@ foreach ($key in 'Margin', 'Runners') {
     }
 }
 if (-not $baselines['Runners'].ContainsKey($Runner)) {
-    $measured = ($medians | ForEach-Object { '{0} {1} s {2} MB' -f $_.Key, $_.Seconds, $_.Megabytes }) -join '; '
+    $measured = ($medians | ForEach-Object {
+            Format-Invariant -Format '{0} {1} s {2} MB' -Argument $_.Key, $_.Seconds, $_.Megabytes
+        }) -join '; '
     Write-Warning ("No performance baseline for the runner '$Runner', so nothing is gated. Measured " +
         "(median of the runs): $measured. Record one with -Record.")
     return
@@ -173,7 +227,8 @@ foreach ($median in $medians) {
         $value = $median.$measure
         $verdict = if ($value -gt $limit) { 'over' } else { 'within' }
         $values = $median.Key, $value, $measure, $verdict, $limit, $baseline[$measure], $median.Runs
-        $line = '{0}: {1} {2}, {3} the limit {4} (baseline {5}, median of {6} runs)' -f $values
+        $lineFormat = '{0}: {1} {2}, {3} the limit {4} (baseline {5}, median of {6} runs)'
+        $line = Format-Invariant -Format $lineFormat -Argument $values
         Write-Information -MessageData $line -InformationAction Continue
         if ($verdict -eq 'over') {
             $failures.Add($line)

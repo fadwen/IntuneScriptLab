@@ -33,6 +33,12 @@ BeforeAll {
         .PARAMETER Record
             Runs the gate with -Record.
 
+        .PARAMETER DefaultRunner
+            Leaves -Runner out, so that the gate works out the runner itself.
+
+        .PARAMETER Culture
+            The culture the gate runs under, such as de-DE. Default: the current one.
+
         .EXAMPLE
             Invoke-Gate -Measurement @{ Name = 'R'; Lines = 10; Seconds = 1; Megabytes = 1 } -Baseline $null
 
@@ -55,7 +61,13 @@ BeforeAll {
             [string]$Baseline,
 
             [Parameter()]
-            [switch]$Record
+            [switch]$Record,
+
+            [Parameter()]
+            [switch]$DefaultRunner,
+
+            [Parameter()]
+            [string]$Culture
         )
 
         $folder = Join-Path -Path $TestDrive -ChildPath ([guid]::NewGuid().ToString('N'))
@@ -72,11 +84,21 @@ BeforeAll {
         if ($Record) {
             $gateSplat['Record'] = $true
         }
+        if ($DefaultRunner) {
+            $gateSplat.Remove('Runner')
+        }
+        $thread = [System.Threading.Thread]::CurrentThread
+        $savedCulture = $thread.CurrentCulture
         $failure = $null
         $output = try {
+            if ($Culture) {
+                $thread.CurrentCulture = [System.Globalization.CultureInfo]::new($Culture)
+            }
             & $script:Gate @gateSplat 6>&1 3>&1
         } catch {
             $failure = $_.Exception.Message
+        } finally {
+            $thread.CurrentCulture = $savedCulture
         }
         [pscustomobject]@{
             PSTypeName = 'IntuneScriptLab.Test.GateRun'
@@ -146,6 +168,52 @@ Describe 'Build/Test-PerformanceBaseline.ps1' -Tag 'Unit', 'Build' {
         }
     }
 
+    Context 'What the gate reads' {
+        It 'passes a size the baselines do not name, and says it has none' {
+            $result = Invoke-Gate -Baseline $script:Base -Measurement @(
+                @{ Name = $script:Reader; Lines = 10000; Seconds = 4; Megabytes = 30 }
+                @{ Name = $script:Reader; Lines = 2500; Seconds = 1; Megabytes = 7 }
+            )
+
+            $result.Passed | Should-BeTrue
+            $result.Output | Should-BeLikeString '*Get-IntuneAgentLog/2500: 1 s, 7 MB, no baseline*'
+        }
+
+        It 'refuses measurements from two PowerShell versions in one file' {
+            $result = Invoke-Gate -Baseline $script:Base -Measurement @(
+                @{ Name = $script:Reader; Lines = 10000; Seconds = 4; Megabytes = 30; PowerShell = '7.6.10' }
+                @{ Name = $script:Reader; Lines = 10000; Seconds = 4; Megabytes = 30; PowerShell = '5.1.26100' }
+            )
+
+            $result.Passed | Should-BeFalse
+            $result.Failure | Should-BeLikeString '*more than one PowerShell version (5.1.26100, 7.6.10)*'
+        }
+
+        It 'names the runner by the image, the architecture and the PowerShell version' {
+            $savedImage = $env:ImageOS
+            $env:ImageOS = 'win99'
+            try {
+                $result = Invoke-Gate -Baseline $script:Base -DefaultRunner -Measurement @(
+                    @{ Name = $script:Reader; Lines = 10000; Seconds = 4; Megabytes = 30 }
+                )
+            } finally {
+                $env:ImageOS = $savedImage
+            }
+
+            $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+            $version = '{0}.{1}' -f $PSVersionTable.PSVersion.Major, $PSVersionTable.PSVersion.Minor
+            $result.Output | Should-BeLikeString "*runner 'win99/$architecture/$version'*"
+        }
+
+        It 'writes numbers with a point under a culture that writes a comma' {
+            $result = Invoke-Gate -Baseline $null -Record -Culture 'de-DE' -Measurement @(
+                @{ Name = $script:Reader; Lines = 10000; Seconds = 1.06; Megabytes = 25.7 }
+            )
+
+            $entry = "'Get-IntuneAgentLog/10000' = @{ Seconds = 1.06; Megabytes = 25.7 }"
+            $result.Output | Should-BeLikeString "*$entry*"
+        }
+    }
     Context 'A runner without baselines' {
         It 'warns, prints what it measured, and passes' {
             $result = Invoke-Gate -Baseline $null -Measurement @(
