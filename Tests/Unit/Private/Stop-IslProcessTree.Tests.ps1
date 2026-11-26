@@ -122,7 +122,7 @@ Describe 'Stop-IslProcessTree' -Tag 'Unit', 'Private' {
         }
     }
 
-    Context 'Core Functionality' {
+    Context 'Core Functionality' -Tag 'Integration' {
         It 'ends the process and the process it started' {
             $tree = @(Start-TestProcessTree)
             try {
@@ -150,7 +150,7 @@ Describe 'Stop-IslProcessTree' -Tag 'Unit', 'Private' {
         }
     }
 
-    Context 'Error Handling' {
+    Context 'Error Handling' -Tag 'Integration' {
         It 'neither fails nor warns for a process that is already gone, under an error preference of Stop' {
             $tree = @(Start-TestProcessTree)
             Get-Process -Id $tree -ErrorAction SilentlyContinue | Stop-Process -Force

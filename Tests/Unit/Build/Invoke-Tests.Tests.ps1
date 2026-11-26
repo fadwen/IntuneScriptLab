@@ -20,7 +20,7 @@ BeforeAll {
     $script:shell = (Get-Process -Id $PID).Path
 }
 
-Describe 'Invoke-Tests.ps1' -Tag 'Unit', 'Build' {
+Describe 'Invoke-Tests.ps1' -Tag 'Integration', 'Build' {
 
     Context 'Error Handling' {
         It 'fails when a filter leaves every test out' -Skip:$script:InsideRunner {

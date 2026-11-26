@@ -53,7 +53,8 @@ BeforeAll {
 
 Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
-    Context 'Current user' {
+    # Child processes for real: the module's own launch, a timeout, a process tree
+    Context 'Current user' -Tag 'Integration' {
         It 'captures the exit code, stdout and stderr of a child process' {
             $result = Invoke-Process @{
                 FilePath = $script:Cmd; Arguments = '/C echo out& echo err 1>&2& exit 3'
@@ -165,6 +166,16 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
     Context 'System' {
         BeforeEach {
+            # A clock of the test's own (TST-31): the task loop polls every 250 ms and gives up on a
+            # task that never starts after 5 seconds, which on the real clock made each test here
+            # wait that long. Start-Sleep moves the clock on instead of waiting
+            $script:Clock = [datetime]'2026-01-01T00:00:00'
+            Mock Get-Date -ModuleName IntuneScriptLab { $script:Clock }
+            Mock Start-Sleep -ModuleName IntuneScriptLab {
+                $milliseconds = [int]$PesterBoundParameters['Milliseconds']
+                $seconds = [int]$PesterBoundParameters['Seconds']
+                $script:Clock = $script:Clock.AddMilliseconds($milliseconds).AddSeconds($seconds)
+            }
             # The work folder's leaf is the run id the task name carries, so the fake task can find
             # the folder from the name alone, as the mocks see only their own parameters
             $script:WorkFolder = Join-Path ([IO.Path]::GetTempPath()) "IslTest-$([guid]::NewGuid().ToString('N'))"
@@ -261,6 +272,16 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
 
     Context 'Another account' {
         BeforeEach {
+            # A clock of the test's own (TST-31): the task loop polls every 250 ms and gives up on a
+            # task that never starts after 5 seconds, which on the real clock made each test here
+            # wait that long. Start-Sleep moves the clock on instead of waiting
+            $script:Clock = [datetime]'2026-01-01T00:00:00'
+            Mock Get-Date -ModuleName IntuneScriptLab { $script:Clock }
+            Mock Start-Sleep -ModuleName IntuneScriptLab {
+                $milliseconds = [int]$PesterBoundParameters['Milliseconds']
+                $seconds = [int]$PesterBoundParameters['Seconds']
+                $script:Clock = $script:Clock.AddMilliseconds($milliseconds).AddSeconds($seconds)
+            }
             $script:WorkFolder = Join-Path ([IO.Path]::GetTempPath()) "IslTest-$([guid]::NewGuid().ToString('N'))"
             $null = New-Item -ItemType Directory -Path $script:WorkFolder -Force
             Mock Register-ScheduledTask -ModuleName IntuneScriptLab { }
@@ -426,9 +447,9 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Mock Get-ScheduledTaskInfo -ModuleName IntuneScriptLab {
                 [pscustomobject]@{ LastTaskResult = 2147943785 }
             }
-            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
             $failure = { Invoke-Process $script:LaunchSplat } | Should-Throw
-            $stopwatch.Elapsed.TotalSeconds | Should-BeLessThan 10
+            # By the module's clock: it read the refusal, not the 30-second timeout of the run
+            ($script:Clock - [datetime]'2026-01-01T00:00:00').TotalSeconds | Should-BeLessThan 10
             $failure.Exception.Message |
                 Should-BeLikeString '*LAB\isl-user did not start: 0x80070569*Log on as a batch job*'
             $failure.FullyQualifiedErrorId | Should-BeLikeString 'ScheduledTaskNotStarted,*'
@@ -442,9 +463,12 @@ Describe 'Invoke-IslProcess' -Tag 'Unit', 'Private' {
             Mock Get-ScheduledTaskInfo -ModuleName IntuneScriptLab {
                 [pscustomobject]@{ LastTaskResult = 267011 }
             }
-            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
             $failure = { Invoke-Process $script:LaunchSplat } | Should-Throw
-            $stopwatch.Elapsed.TotalSeconds | Should-BeLessThan 15
+            # By the module's clock: about five seconds of a task sitting Ready, not the 30-second
+            # timeout of the run
+            $waited = ($script:Clock - [datetime]'2026-01-01T00:00:00').TotalSeconds
+            $waited | Should-BeGreaterThan 4
+            $waited | Should-BeLessThan 15
             $failure.Exception.Message |
                 Should-BeLikeString '*LAB\isl-user did not start: 0x00041303*never launched*Log on as a batch job*'
             Should-Invoke Unregister-ScheduledTask -ModuleName IntuneScriptLab -Exactly -Times 1

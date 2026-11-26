@@ -382,7 +382,7 @@ Describe 'Export-IntuneAgentDiagnostic' -Tag 'Unit', 'Public' {
             Test-Path -LiteralPath $zip | Should-BeFalse
         }
 
-        It 'writes no package and returns nothing when a step fails, for a script without try' {
+        It 'writes no package and returns nothing when a step fails, for a script without try' -Tag 'Integration' {
             $existing = Join-Path $TestDrive 'existing.zip'
             [System.IO.File]::WriteAllText($existing, 'not a zip')
             # A zip cannot be created below a file

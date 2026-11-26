@@ -107,7 +107,7 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
             $errors[0].Exception.Message | Should-BeLikeString "$settingsFile*Severity must be a hashtable*"
         }
 
-        It 'leaves a calling script one error for a path that is not there, and the findings of the other' {
+        It 'leaves a calling script one error for a missing path and the other''s findings' -Tag 'Integration' {
             $good = New-TestScript 'caller\Detect-Good.ps1' 'exit 2'
             $missing = Join-Path $TestDrive 'caller\missing.ps1'
 
@@ -301,7 +301,7 @@ Describe 'Test-IntuneScript' -Tag 'Unit', 'Public' {
         }
     }
 
-    Context 'The help example that gates a build' {
+    Context 'The help example that gates a build' -Tag 'Integration' {
         BeforeAll {
             # Example 3 of the help, as written there, run as a script in a new process
             $script:GateExample = @(

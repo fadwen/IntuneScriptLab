@@ -475,7 +475,7 @@ Describe 'Compare-IntuneDeployedScript' -Tag 'Unit', 'Public' {
             @($output | Where-Object { $_.Kind -ne 'Remediation' }) | Should-BeCollection @()
         }
 
-        It 'leaves a calling script one error and no result when Graph cannot be reached' {
+        It 'leaves a calling script one error and no result when Graph cannot be reached' -Tag 'Integration' {
             $run = Invoke-CallerScript -Statement @(
                 $script:GraphDown
                 "`$drift = @(Compare-IntuneDeployedScript -Path '$($script:Root)' -Kind Remediation)"

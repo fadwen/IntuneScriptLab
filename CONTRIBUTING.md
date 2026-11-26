@@ -45,6 +45,7 @@ Everything specific to this module is in `CLAUDE.md`. The ones most often trippe
                                                         # a lab account or PSScriptAnalyzer skip themselves
 ./Tests/Invoke-Tests.ps1 -TestType Performance          # the log readers on a generated log, with the limits CI holds
 ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security   # where a -Credential password goes, and the checks on input
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration  # the tests of the unit folders that start processes
 ./Build/Invoke-Analysis.ps1                             # PSScriptAnalyzer, as CI runs it
 ./Build/Build-Help.ps1 -SkipUpdate                      # after editing docs/
 ./Build/Build-RuleReference.ps1                         # after changing a rule

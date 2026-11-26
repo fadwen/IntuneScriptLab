@@ -16,7 +16,7 @@ BeforeAll {
     $script:Fact = InModuleScope IntuneScriptLab { Get-IslDeviceFact }
 }
 
-Describe 'Get-IslDeviceFact' -Tag 'Unit', 'Private' {
+Describe 'Get-IslDeviceFact' -Tag 'Integration', 'Private' {
 
     It 'names the architecture the way the requirements do' {
         @('x86', 'x64', 'arm64') | Should-ContainCollection $script:Fact.Architecture

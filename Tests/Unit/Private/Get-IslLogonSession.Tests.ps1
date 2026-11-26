@@ -147,7 +147,7 @@ Describe 'Get-IslLogonSession' -Tag 'Unit', 'Private' {
         @(Get-Session @()).Count | Should-Be 0
     }
 
-    It 'reads the real machine without error and gives every session a SID and an id' {
+    It 'reads the real machine without error and gives every session a SID and an id' -Tag 'Integration' {
         # A CI runner has no desktop session; this machine has at least the one running the tests
         $real = @(InModuleScope IntuneScriptLab { Get-IslLogonSession })
         foreach ($session in $real) {

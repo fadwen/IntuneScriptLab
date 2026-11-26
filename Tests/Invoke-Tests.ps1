@@ -19,14 +19,19 @@ script needs neither elevation nor a tenant. It runs on PowerShell 7 and on Wind
 5.1.
 
 .PARAMETER TestType
-Which suites to run. Unit is Tests/Unit and Validation/Tests/Unit. Integration is
-Tests/Integration, the suites that start real Windows PowerShell processes. All, the default,
-is both. Performance is Tests/Performance, which measures the log readers on a generated log; it
-is not part of All, and its files keep their declared order (#pester:no-shuffle).
+Which tests to run. A test that starts a process, reads the real machine or runs a script as a
+caller would is tagged Integration, wherever its file is; the rest is a unit test.
+
+Unit is the tests of Tests/Unit and Validation/Tests/Unit without the Integration tag, the ones
+that run in seconds (TST-47). Integration is every test tagged Integration: the suites of
+Tests/Integration and the tagged tests of the unit folders. All, the default, is both.
+Performance is Tests/Performance, which measures the log readers on a generated log; it is not
+part of All, and its files keep their declared order (#pester:no-shuffle).
 
 .PARAMETER Tag
 Tags of the tests to run, for example Security for the tests of credential handling and input
-validation. Left out, every test of the suites runs.
+validation. Left out, every test of the suites runs. With -TestType Unit, -Tag Integration runs
+the tagged tests of the unit folders, which the unit run otherwise leaves out.
 
 .PARAMETER ExcludeTag
 Tags of tests to leave out, for example Elevated for the tests that run as SYSTEM. Those tests
@@ -66,6 +71,11 @@ Runs every suite in a new shuffled order.
 ./Tests/Invoke-Tests.ps1 -TestType Unit -ShuffleSeed 1741705376
 
 Runs the unit suites in the order that seed gives, to repeat a failure.
+
+.EXAMPLE
+./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Integration
+
+Runs the tests of the unit folders that start processes, which the unit run leaves out.
 
 .EXAMPLE
 ./Tests/Invoke-Tests.ps1 -TestType Unit -Tag Security
@@ -153,7 +163,21 @@ $suites = @{
         (Join-Path -Path $PSScriptRoot -ChildPath 'Performance')
     )
 }
-$testPaths = if ($TestType -eq 'All') { $suites['Unit'] + $suites['Integration'] } else { $suites[$TestType] }
+# The Integration tag decides what is a unit test, not the folder: a test in Tests/Unit that starts
+# a process belongs to the integration run
+$testPaths = switch ($TestType) {
+    'All' { $suites['Unit'] + $suites['Integration'] }
+    'Integration' { $suites['Unit'] + $suites['Integration'] }
+    default { $suites[$TestType] }
+}
+$includeTags = @($Tag | Where-Object { $_ })
+$excludeTags = @($ExcludeTag | Where-Object { $_ })
+if ($TestType -eq 'Unit' -and $includeTags -notcontains 'Integration') {
+    $excludeTags += 'Integration'
+}
+if ($TestType -eq 'Integration' -and $includeTags.Count -eq 0) {
+    $includeTags = @('Integration')
+}
 
 $configuration = New-PesterConfiguration
 $configuration.Run.Path = $testPaths
@@ -163,11 +187,11 @@ $configuration.Run.ShuffleSeed = $ShuffleSeed
 $configuration.Output.Verbosity = $Output
 # Every test file uses the Pester 6 assertions, so the Pester 5 form can stay off
 $configuration.Should.DisableV5 = $true
-if ($Tag) {
-    $configuration.Filter.Tag = $Tag
+if ($includeTags.Count -gt 0) {
+    $configuration.Filter.Tag = $includeTags
 }
-if ($ExcludeTag) {
-    $configuration.Filter.ExcludeTag = $ExcludeTag
+if ($excludeTags.Count -gt 0) {
+    $configuration.Filter.ExcludeTag = $excludeTags
 }
 
 $reportFolder = $null

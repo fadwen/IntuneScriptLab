@@ -195,7 +195,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
             Should-Throw -ExceptionMessage '*neverAssignedAnywhere*'
     }
 
-    Context 'When a part of the module cannot be loaded' {
+    Context 'When a part of the module cannot be loaded' -Tag 'Integration' {
         BeforeAll {
             # Each copy is imported in a new process: a second module of this name imported here
             # would stand beside the one under test for the rest of the run
@@ -317,7 +317,7 @@ Describe 'IntuneScriptLab module contract' -Tag 'Unit', 'Contract' {
         }
     }
 
-    It 'loads on Windows PowerShell 5.1 as well as PowerShell 7' {
+    It 'loads on Windows PowerShell 5.1 as well as PowerShell 7' -Tag 'Integration' {
         # The rules reference PowerShell 7 AST types by name only; a hard type reference would
         # break import on 5.1, which is where many admins will run this.
         $manifest = Test-ModuleManifest -Path $script:ManifestPath
