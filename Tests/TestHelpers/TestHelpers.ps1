@@ -439,3 +439,100 @@ function Invoke-CallerScript {
         ExitCode = $process.ExitCode
     }
 }
+
+function Test-ParameterMandatory {
+    <#
+    .SYNOPSIS
+        Tests whether a command's parameter is mandatory in any of its parameter sets.
+
+    .DESCRIPTION
+        Reads the parameter's Parameter attributes only. Reading Mandatory across all of a
+        parameter's attributes fails under strict mode, because a validation or alias attribute has
+        no such property, and so does reading the attributes of a parameter the command does not
+        have; this returns $false for that instead.
+
+    .PARAMETER Command
+        The command, as Get-Command returns it.
+
+    .PARAMETER Name
+        The name of the parameter.
+
+    .EXAMPLE
+        Test-ParameterMandatory -Command (Get-Command Invoke-IntuneDetectionTest) -Name 'Path'
+
+        Returns $true: -Path is mandatory.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.Boolean. Whether the parameter is mandatory in a parameter set.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [System.Management.Automation.CommandInfo]$Command,
+
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    $parameter = $null
+    if ($Command.Parameters.ContainsKey($Name)) {
+        $parameter = $Command.Parameters[$Name]
+    }
+    $mandatory = @(
+        if ($null -ne $parameter) {
+            $parameter.Attributes | Where-Object {
+                $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory
+            }
+        }
+    )
+    $mandatory.Count -gt 0
+}
+
+
+function Get-ParameterValidValue {
+    <#
+    .SYNOPSIS
+        Gets the values a command's parameter accepts, from its ValidateSet attribute.
+
+    .DESCRIPTION
+        Reads the ValidateSet attribute of the parameter only. Reading ValidValues across all of a
+        parameter's attributes fails under strict mode, because the other attributes have no such
+        property. Returns nothing for a parameter without a ValidateSet.
+
+    .PARAMETER Command
+        The command, as Get-Command returns it.
+
+    .PARAMETER Name
+        The name of the parameter.
+
+    .EXAMPLE
+        Get-ParameterValidValue -Command (Get-Command Invoke-IntuneDetectionTest) -Name 'Context'
+
+        Returns 'User' and 'System'.
+
+    .INPUTS
+        None.
+
+    .OUTPUTS
+        System.String. Each value the parameter accepts.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [System.Management.Automation.CommandInfo]$Command,
+
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    foreach ($attribute in $Command.Parameters[$Name].Attributes) {
+        if ($attribute -is [System.Management.Automation.ValidateSetAttribute]) {
+            $attribute.ValidValues
+        }
+    }
+}

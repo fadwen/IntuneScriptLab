@@ -58,12 +58,13 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
         Set-Content -LiteralPath (Join-Path $script:Content 'setup.exe') -Value 'binary' -Encoding ascii
         $script:Warnings = [System.Collections.Generic.List[string]]::new()
         $script:Seen = @{}
-        # Records the launch and whether the copy was there while it ran
+        # Records the launch and whether the copy was there while it ran. An argument the call left
+        # out is read from $PesterBoundParameters, where it is $null: there is no variable for it
         Mock Invoke-IslProcess -ModuleName IntuneScriptLab {
             $script:Seen['Arguments'] = $Arguments
             $script:Seen['Bitness'] = $LauncherBitness
             $script:Seen['WorkFolder'] = $WorkFolder
-            $script:Seen['Credential'] = $Credential
+            $script:Seen['Credential'] = $PesterBoundParameters['Credential']
             $script:Seen['Copied'] = Test-Path -LiteralPath (Join-Path $WorkingDirectory 'setup.exe')
             [pscustomobject]@{
                 ExitCode = 3010; TimedOut = $false; StdOut = 'done'; StdErr = ''; Duration = [timespan]::Zero
@@ -122,7 +123,8 @@ Describe 'Invoke-IslWin32ContentCommand' -Tag 'Unit', 'Private' {
         $credential = [System.Management.Automation.PSCredential]::Empty
         $null = Invoke-Content ($run + $script:Base + @{ Credential = $credential })
 
-        $script:Seen['Credential'].UserName | Should-BeNull
+        # The empty credential is not passed on: the run is the current user's own
+        $script:Seen['Credential'] | Should-BeNull
         $script:Seen['WorkFolder'] | Should-BeLikeString "$([System.IO.Path]::GetTempPath())*"
         Should-Invoke Grant-IslFolderAccess -ModuleName IntuneScriptLab -Times 0 -Exactly
     }

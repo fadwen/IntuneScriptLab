@@ -22,6 +22,7 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 
     $script:Fixtures = Join-Path $TestDrive 'Fixtures'
     $null = New-Item -ItemType Directory -Path $script:Fixtures -Force
@@ -84,10 +85,10 @@ Describe 'Test-IntuneWin32Rule' -Tag 'Unit', 'Public' {
 
         It 'limits the operations and operators' {
             $command = Get-Command Test-IntuneWin32Rule
-            $command.Parameters['FileOperation'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'FileOperation' |
                 Should-BeCollection @('Exists', 'DoesNotExist', 'Version', 'SizeInMB', 'ModifiedDate',
                     'CreatedDate')
-            $command.Parameters['RegistryOperation'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'RegistryOperation' |
                 Should-BeCollection @('Exists', 'DoesNotExist', 'String', 'Integer', 'Version')
         }
     }

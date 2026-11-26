@@ -57,9 +57,10 @@ Describe 'Assert-PassIntuneAnalysis' -Tag 'Unit', 'Public' {
 
         It 'limits MinimumSeverity and ScriptType to the analyzer values' {
             $command = Get-Command Assert-PassIntuneAnalysis
-            $command.Parameters['MinimumSeverity'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'MinimumSeverity' |
                 Should-BeCollection @('Information', 'Warning', 'Error')
-            $command.Parameters['ScriptType'].Attributes.ValidValues | Should-ContainCollection 'Win32Detection'
+            Get-ParameterValidValue -Command $command -Name 'ScriptType' |
+                Should-ContainCollection 'Win32Detection'
         }
     }
 

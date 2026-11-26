@@ -21,7 +21,7 @@ BeforeAll {
 Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
 
     Context 'Script-scope return' {
-        It 'turns return <value> into the output and exit 0 it already implied, and keeps the line endings' {
+        It 'turns return ''ok'' into the output and exit 0 it already implied, and keeps the line endings' {
             $body = "if (Test-Path C:\x) { return 'ok' }`r`nexit 1`r`n"
             $path = New-TestScript 'Remediations\A\Detect.ps1' $body -Bom
             $result = Repair-IntuneScript -Path $path
@@ -140,17 +140,19 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
                 Before = "#Requires -Version 7.0`nWrite-Output 'x'"; After = "`nWrite-Output 'x'"
             }
         ) {
-            # Each is the edit the finding's own message asks for, so the finding and its fix agree
+            # Each is the edit the finding's own message asks for, so the finding and its fix agree.
+            # Only some cases give an architecture, and a key a case leaves out is no variable at all
+            $architecture = Get-Variable -Name Architecture -ValueOnly -ErrorAction SilentlyContinue
             $folder = if ($Type -eq 'Win32Detection') { 'Win32\M' } else { 'Remediations\M' }
             $path = New-TestScript "$folder\$Name" $Before -Bom
             $repairSplat = @{ Path = $path; ScriptType = $Type; IncludeRule = $Rule }
-            if ($Architecture) { $repairSplat.Architecture = $Architecture }
+            if ($architecture) { $repairSplat.Architecture = $architecture }
             $result = Repair-IntuneScript @repairSplat
             $result.Applied | Should-Be 1
             $result.Fixes[0].RuleName | Should-Be $Rule
             [System.IO.File]::ReadAllText($path) | Should-Be $After
             $testSplat = @{ Path = $path; ScriptType = $Type; IncludeRule = $Rule }
-            if ($Architecture) { $testSplat.Architecture = $Architecture }
+            if ($architecture) { $testSplat.Architecture = $architecture }
             @(Test-IntuneScript @testSplat | Where-Object { $_.Fix }).Count | Should-Be 0
         }
 
@@ -170,7 +172,8 @@ Describe 'Repair-IntuneScript' -Tag 'Unit', 'Public' {
         ) {
             $path = New-TestScript 'Remediations\N\Remediate.ps1' $Body -Bom
             $testSplat = @{ Path = $path; ScriptType = 'Remediation'; IncludeRule = $Rule }
-            if ($Architecture) { $testSplat.Architecture = $Architecture }
+            $architecture = Get-Variable -Name Architecture -ValueOnly -ErrorAction SilentlyContinue
+            if ($architecture) { $testSplat.Architecture = $architecture }
             $findings = @(Test-IntuneScript @testSplat)
             $findings.Count | Should-BeGreaterThan 0
             @($findings | Where-Object { $_.Fix }).Count | Should-Be 0

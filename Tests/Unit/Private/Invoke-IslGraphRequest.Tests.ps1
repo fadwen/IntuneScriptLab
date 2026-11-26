@@ -14,6 +14,8 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
+    # Set either way: AfterAll reads it, and a machine with Microsoft.Graph needs no stub
+    $script:StubCreated = $false
     if (-not (Get-Command Invoke-MgGraphRequest -ErrorAction SilentlyContinue)) {
         function global:Invoke-MgGraphRequest {
             <#

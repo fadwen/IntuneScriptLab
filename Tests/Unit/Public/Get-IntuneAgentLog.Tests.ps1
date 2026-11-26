@@ -161,9 +161,9 @@ Describe 'Get-IntuneAgentLog' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'limits -Log and -Level to the known values and -Last to a positive count' {
             $command = Get-Command Get-IntuneAgentLog
-            $command.Parameters['Log'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'Log' |
                 Should-BeCollection @('Agent', 'AppWorkload', 'HealthScripts', 'AgentExecutor', 'All')
-            $command.Parameters['Level'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'Level' |
                 Should-BeCollection @('Information', 'Warning', 'Error')
             { Get-IntuneAgentLog -Path $script:Logs -Last 0 } | Should-Throw
         }

@@ -49,6 +49,8 @@ entries are carried over from the manifest's release notes.
 
 ### Changed
 
+- The test suites run under strict mode, as the module does: `Tests/Invoke-Tests.ps1` no longer
+  turns it off around the Pester run (ERR-03, #70).
 - `SECURITY.md` classifies the data the module handles and lists the threats to it by STRIDE
   category, each with the control the module has (#132).
 - The rule order, the table of in-box modules, the Windows release builds and the events of the

@@ -14,6 +14,7 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
 }
 
 Describe 'Test-IntuneWin32Requirement' -Tag 'Unit', 'Public' {
@@ -31,9 +32,9 @@ Describe 'Test-IntuneWin32Requirement' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'limits the architectures and the release names' {
             $command = Get-Command Test-IntuneWin32Requirement
-            $command.Parameters['Architecture'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'Architecture' |
                 Should-BeCollection @('x86', 'x64', 'arm64')
-            $command.Parameters['MinimumWindowsRelease'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'MinimumWindowsRelease' |
                 Should-ContainCollection 'Windows11_24H2'
         }
 

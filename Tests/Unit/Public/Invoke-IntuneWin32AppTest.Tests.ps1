@@ -66,7 +66,7 @@ Describe 'Invoke-IntuneWin32AppTest' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'needs a detection script or detection rules, the content folder and the intent command' {
             $command = Get-Command Invoke-IntuneWin32AppTest
-            $command.Parameters['ContentPath'].Attributes.Mandatory | Should-ContainCollection $true
+            Test-ParameterMandatory -Command $command -Name 'ContentPath' | Should-BeTrue
             $missingDetection = @{
                 FullyQualifiedErrorId = 'DetectionMissing,*'
                 ExceptionMessage = '*-DetectionPath*-DetectionRule*'

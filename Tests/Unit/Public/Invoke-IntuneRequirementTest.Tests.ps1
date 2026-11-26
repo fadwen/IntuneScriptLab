@@ -26,11 +26,11 @@ Describe 'Invoke-IntuneRequirementTest' -Tag 'Unit', 'Public' {
         It 'requires the path, the output type and the value; the operator defaults to Equal' {
             $command = Get-Command Invoke-IntuneRequirementTest
             foreach ($name in 'Path', 'OutputType', 'Value') {
-                $command.Parameters[$name].Attributes.Mandatory | Should-ContainCollection $true
+                Test-ParameterMandatory -Command $command -Name $name | Should-BeTrue
             }
-            $command.Parameters['OutputType'].Attributes.ValidValues |
+            Get-ParameterValidValue -Command $command -Name 'OutputType' |
                 Should-BeCollection @('String', 'DateTime', 'Integer', 'Float', 'Version', 'Boolean')
-            $command.Parameters['Operator'].Attributes.ValidValues.Count | Should-Be 6
+            @(Get-ParameterValidValue -Command $command -Name 'Operator').Count | Should-Be 6
         }
 
         It 'takes script paths from the pipeline, with the rule given once' {

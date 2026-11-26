@@ -43,8 +43,8 @@ Describe 'Invoke-IntuneRemediationTest' -Tag 'Unit', 'Public' {
     Context 'Parameter Validation' {
         It 'declares DetectionPath as mandatory and RemediationPath as optional' {
             $command = Get-Command Invoke-IntuneRemediationTest
-            $command.Parameters['DetectionPath'].Attributes.Mandatory | Should-ContainCollection $true
-            $command.Parameters['RemediationPath'].Attributes.Mandatory | Should-NotContainCollection $true
+            Test-ParameterMandatory -Command $command -Name 'DetectionPath' | Should-BeTrue
+            Test-ParameterMandatory -Command $command -Name 'RemediationPath' | Should-BeFalse
         }
 
         It 'defaults to the 32-bit host and the current user, as the portal does' {

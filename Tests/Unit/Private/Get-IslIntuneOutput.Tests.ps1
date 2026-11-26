@@ -82,7 +82,7 @@ Describe 'Get-IslIntuneOutput' -Tag 'Unit', 'Private' {
             $result.OutputTruncated | Should-BeFalse
         }
 
-        It 'keeps the last <Limit> characters of that line and flags the truncation' {
+        It 'keeps the last 2,048 characters of that line, or -Limit, and flags the truncation' {
             $result = Get-IntuneOutput -StdOut ('a' * 10 + 'b' * 2048)
             $result.Output.Length | Should-Be 2048
             $result.Output | Should-BeLikeString 'bbbb*'

@@ -14,6 +14,7 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
+    . (Join-Path $script:ModuleRoot 'Tests\TestHelpers\TestHelpers.ps1')
     $script:Cmd = Join-Path ([System.Environment]::SystemDirectory) 'cmd.exe'
 
     function Invoke-NativeCommand {
@@ -66,7 +67,7 @@ Describe 'Invoke-IslNativeCommand' -Tag 'Unit', 'Private' {
             $command = InModuleScope IntuneScriptLab { Get-Command Invoke-IslNativeCommand }
             $command | Should-HaveParameter -ParameterName FilePath -Type ([string]) -Mandatory
             $command | Should-HaveParameter -ParameterName Arguments -Type ([string])
-            $command.Parameters['Arguments'].Attributes.Mandatory | Should-NotContainCollection $true
+            Test-ParameterMandatory -Command $command -Name 'Arguments' | Should-BeFalse
         }
     }
 

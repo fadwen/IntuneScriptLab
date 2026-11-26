@@ -287,6 +287,8 @@ under Windows PowerShell 5.1 as well before pushing:
 powershell -NoProfile -File ./Tests/Invoke-Tests.ps1 -TestType Unit
 ```
 
-The script sets strict mode for itself and turns it off around the Pester run, because the suites
-and the validation kit are not written for strict mode yet. Remove that when they are. The module
-does not depend on it: it sets its own strict mode in the root module.
+The script sets strict mode, and the suites and the validation kit run under it, as the module
+runs under its own. A mock body reads an argument the call may leave out from
+`$PesterBoundParameters`: there is no variable for an argument that was not bound, and reading one
+is a strict-mode error. Read `Mandatory` and `ValidValues` through `Test-ParameterMandatory` and
+`Get-ParameterValidValue` in `Tests/TestHelpers`, not across a parameter's `Attributes`.
