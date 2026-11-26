@@ -1,6 +1,7 @@
 # Quality gates for IntuneScriptLab.
 #
-# Five jobs, because the module makes claims that can only fail on different hosts:
+# Six jobs. Five because the module makes claims that can only fail on different hosts, and one
+# that scans the repository for credentials:
 #
 #   tests     Windows, PowerShell 7. PSScriptAnalyzer at Error and Warning over the module, the
 #             kit and the tests, the 115-character line limit, then the whole Pester suite (the
@@ -45,6 +46,17 @@
 #             the help, measures the manifest against the Gallery's limits, stages the allowlist
 #             and imports the staged copy in a new process. A release that would fail at the tag
 #             fails at the pull request instead.
+#
+#   credentials Ubuntu. Every commit of every branch and tag, and the files of the checkout,
+#             scanned for credentials with gitleaks through .github/scripts/Invoke-CredentialScan.ps1,
+#             which the PowerShell standards install and keep current. A credential that was
+#             committed stays in the history after the commit that removes it. The job is here
+#             and not in a workflow of its own, so that a release cannot go out past it. It runs
+#             the configuration and the ignore file of the pull request itself, so a change can
+#             leave out the finding it adds. When they leave something out, the run writes how
+#             much under "Left out of this scan"; a run without that line left nothing out. The
+#             step runs verbose, so a passing run records the probe it found and the two scans
+#             it made. gitleaks writes REDACTED in place of each value, so the public log shows none.
 #
 # There is no Linux test job on purpose: the harness launches Windows PowerShell hosts, reads
 # the registry and registers scheduled tasks, and the rules are about what happens on a Windows
@@ -393,3 +405,40 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           ./Build/Publish-Module.ps1 -WhatIf
+
+  credentials:
+    name: 'Credential scan'
+    runs-on: ubuntu-latest
+
+    # The names of these values hold no word such as credential, key, or token. Beside a long
+    # value, a scanner takes such a name for the name of a key, and reports the hash below.
+    # The scanner is pinned by its version and by the SHA256 of its release archive for the
+    # runner, as the checksum file of that release gives it. Change the two together, and read
+    # what the new version reports in the same change: the built-in rules belong to the version.
+    env:
+      SCANNER: 'gitleaks'
+      SCANNER_VERSION: '8.30.1'
+      SCANNER_SHA256: '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb'
+
+    steps:
+      # Every commit of every branch and tag. The default is the one commit that is built, and
+      # the script refuses to scan such a checkout.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan the history and the files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scan = @{
+              Scanner = $env:SCANNER
+              Version = $env:SCANNER_VERSION
+              Sha256 = $env:SCANNER_SHA256
+              # The verbose lines name the probe, the scans, rules and places, never a value.
+              # Without them a passing run leaves nothing in the log to show that it scanned.
+              Verbose = $true
+          }
+          ./.github/scripts/Invoke-CredentialScan.ps1 @scan

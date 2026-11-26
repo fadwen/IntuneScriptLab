@@ -82,5 +82,5 @@ explains the rounds.
 - Add or update the tests that pin the behaviour, and a line in `CHANGELOG.md` under
   `[Unreleased]`.
 - The quality gates run on every pull request on PowerShell 7, Windows PowerShell 5.1, Windows on
-  ARM, and a case-sensitive filesystem for the help, and they rehearse the release as far as the
-  upload.
+  ARM, and a case-sensitive filesystem for the help, rehearse the release as far as the upload,
+  and scan every branch and tag for credentials with gitleaks.

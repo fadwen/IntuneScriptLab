@@ -11,6 +11,9 @@ entries are carried over from the manifest's release notes.
 
 ### Added
 
+- A credential scan in CI: the `credentials` job of the quality gates, which the release runs too,
+  scans every commit of every branch and tag, and the files of the checkout, with gitleaks 8.30.1
+  pinned by hash. It writes `REDACTED` in place of each value it finds (CIC-12, #127).
 - A performance gate in CI: the tests job runs the performance tests three times and fails when
   the median time of a reader at 10,000 lines is more than twice its baseline for that runner
   image, or its memory a quarter more, recorded in `Tests/Performance/Baselines.psd1` (#136).

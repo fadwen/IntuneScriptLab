@@ -17,9 +17,16 @@ week and opens a pull request when they change:
 - `.github/instructions/pester-supporting-docs/`
 - `.claude/rules/powershell-standards/`
 - the `powershell-*` skills under `.github/skills/`, `.claude/skills/` and `.agents/skills/`
+- `.github/scripts/Invoke-CredentialScan.ps1`, the credential scan
 
 **The next sync overwrites those files.** A local edit there is silently reverted, and a file the
 standards stop producing is deleted. Changes belong upstream in the standards repository.
+
+The scan's configuration, `.gitleaks.toml`, belongs to this repository, and so does the job that
+runs it: the `credentials` job of `quality-gates.yml`, where the release runs it too, rather than the
+`credential-scan.yml` the installer writes. The sync refreshes the script because the repository
+has it. It does not pass `-IncludeCredentialScan`, which would write `credential-scan.yml` again and
+run the scan twice.
 
 This file is not one of them, so it is the right place for anything specific to this module.
 [docs/StandardsDecisions.md](docs/StandardsDecisions.md) records the rules that are built later,
