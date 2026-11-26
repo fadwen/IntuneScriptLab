@@ -11,6 +11,9 @@ entries are carried over from the manifest's release notes.
 
 ### Added
 
+- A performance gate in CI: the tests job runs the performance tests three times and fails when
+  the median time of a reader at 10,000 lines is more than twice its baseline for that runner
+  image, or its memory a quarter more, recorded in `Tests/Performance/Baselines.psd1` (#136).
 - Performance tests for `Get-IntuneAgentLog` and `Get-IntuneAgentTimeline` on a generated log of
   10,000 lines, run with `Tests/Invoke-Tests.ps1 -TestType Performance` and in CI, and security
   tests, tagged `Security` and run with `-Tag Security`, that a `-Credential` password reaches the

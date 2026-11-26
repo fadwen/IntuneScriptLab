@@ -8,7 +8,9 @@
     memory it holds against a limit with room for a slow runner, and the time at four times the
     lines against six times the time of the smaller log, which a reader that grows linearly stays
     well inside and one that grows with the square of the lines does not. Every measurement is
-    written to the information stream as a MEASURE line, for the baselines of the performance gate.
+    written to the information stream as a MEASURE line and, when ISL_PERFORMANCE_RESULTS names a
+    file, as a JSON line to it, which the performance gate (Build/Test-PerformanceBaseline.ps1)
+    compares with Baselines.psd1.
 
     The readers run once on a small log before they are measured, so that the first measurement
     does not carry the one-time cost of compiling the module's script blocks and expressions. On a
