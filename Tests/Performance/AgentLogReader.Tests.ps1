@@ -8,7 +8,9 @@
     memory it holds against a limit with room for a slow runner, and the time at four times the
     lines against six times the time of the smaller log, which a reader that grows linearly stays
     well inside and one that grows with the square of the lines does not. Every measurement is
-    written to the information stream as a MEASURE line, for the baselines of the performance gate.
+    written to the information stream as a MEASURE line and, when ISL_PERFORMANCE_RESULTS names a
+    file, as a JSON line to it, which the performance gate (Build/Test-PerformanceBaseline.ps1)
+    compares with Baselines.psd1.
 
     The readers run once on a small log before they are measured, so that the first measurement
     does not carry the one-time cost of compiling the module's script blocks and expressions. On a
@@ -145,6 +147,20 @@ BeforeAll {
         $line = 'MEASURE {0} lines={1} seconds={2} megabytes={3} powershell={4}' -f $Name, $Lines,
         $measurement.Seconds, $measurement.Megabytes, $PSVersionTable.PSVersion
         Write-Information -MessageData $line -InformationAction Continue
+        # For the performance gate (Build/Test-PerformanceBaseline.ps1): one JSON line for each
+        # measurement, appended to the file the variable names
+        if ($env:ISL_PERFORMANCE_RESULTS) {
+            $record = [ordered]@{
+                Name = $Name
+                Lines = $Lines
+                Seconds = $measurement.Seconds
+                Megabytes = $measurement.Megabytes
+                PowerShell = "$($PSVersionTable.PSVersion)"
+            }
+            $json = ($record | ConvertTo-Json -Compress) + "`n"
+            $utf8 = [System.Text.UTF8Encoding]::new($false)
+            [System.IO.File]::AppendAllText($env:ISL_PERFORMANCE_RESULTS, $json, $utf8)
+        }
         $measurement
     }
 
