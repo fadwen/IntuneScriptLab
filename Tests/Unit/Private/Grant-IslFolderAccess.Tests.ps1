@@ -15,6 +15,9 @@ BeforeAll {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
     $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    # An account on no folder of the tests, granted by name. Not the account that runs them: on a
+    # hosted runner it owns its test folder, and a grant to it there also writes FullControl for it
+    $script:Stranger = 'NT AUTHORITY\LOCAL SERVICE'
 
     function Grant-Access {
         <#
@@ -212,18 +215,18 @@ Describe 'Grant-IslFolderAccess' -Tag 'Unit', 'Private' {
 
     It 'grants by the name as given when Windows does not resolve it' {
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Me.Name | ForEach-Object { $_.Text })
-        Grant-Access -Path $script:Folder -Account $script:Me.Name
-        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name -Before $before
+        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Stranger | ForEach-Object { $_.Text })
+        Grant-Access -Path $script:Folder -Account $script:Stranger
+        Assert-RunGrant -Path $script:Folder -Identity $script:Stranger -Before $before
     }
 
     It 'grants on a folder path that ends in a backslash' {
         # Before, the backslash escaped the closing quote and icacls was handed a path with the rest
         # of the arguments in it: "The filename, directory name, or volume label syntax is incorrect"
         Mock Resolve-IslAccount -ModuleName IntuneScriptLab { }
-        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Me.Name | ForEach-Object { $_.Text })
-        Grant-Access -Path "$($script:Folder)\" -Account $script:Me.Name
-        Assert-RunGrant -Path $script:Folder -Identity $script:Me.Name -Before $before
+        $before = @(Get-GrantEntry -Path $script:Folder -Identity $script:Stranger | ForEach-Object { $_.Text })
+        Grant-Access -Path "$($script:Folder)\" -Account $script:Stranger
+        Assert-RunGrant -Path $script:Folder -Identity $script:Stranger -Before $before
     }
 
     It 'names the account and the folder when icacls refuses, under error action <Preference>' -ForEach @(
