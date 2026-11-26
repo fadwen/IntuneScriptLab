@@ -14,7 +14,6 @@ BeforeAll {
     if (-not $loaded -or $loaded.ModuleBase -ne $script:ModuleRoot) {
         Import-Module (Join-Path $script:ModuleRoot 'IntuneScriptLab.psd1') -Force
     }
-    $script:Me = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     # LOCAL SERVICE, an account on no folder of the tests, granted by its name in the system's own
     # language. Not the account that runs them: on a hosted runner it owns its test folder, and a
     # grant to it there also writes FullControl for it
@@ -42,9 +41,9 @@ BeforeAll {
             The error action preference in force inside the module, Continue by default.
 
         .EXAMPLE
-            Grant-Access -Path $script:Folder -Account $script:Me.Name
+            Grant-Access -Path $script:Folder -Account $script:Stranger
 
-            Grants the current user access to the test folder.
+            Grants LOCAL SERVICE access to the test folder.
 
         .INPUTS
             None.
