@@ -53,9 +53,10 @@
 #             committed stays in the history after the commit that removes it. The job is here
 #             and not in a workflow of its own, so that a release cannot go out past it. It runs
 #             the configuration and the ignore file of the pull request itself, so a change can
-#             leave out the finding it adds; every run writes how much they leave out, under
-#             "Left out of this scan". gitleaks writes REDACTED in place of each value, so the
-#             public log shows none.
+#             leave out the finding it adds. When they leave something out, the run writes how
+#             much under "Left out of this scan"; a run without that line left nothing out. The
+#             step runs verbose, so a passing run records the probe it found and the two scans
+#             it made. gitleaks writes REDACTED in place of each value, so the public log shows none.
 #
 # There is no Linux test job on purpose: the harness launches Windows PowerShell hosts, reads
 # the registry and registers scheduled tasks, and the rules are about what happens on a Windows
@@ -436,5 +437,8 @@ jobs:
               Scanner = $env:SCANNER
               Version = $env:SCANNER_VERSION
               Sha256 = $env:SCANNER_SHA256
+              # The verbose lines name the probe, the scans, rules and places, never a value.
+              # Without them a passing run leaves nothing in the log to show that it scanned.
+              Verbose = $true
           }
           ./.github/scripts/Invoke-CredentialScan.ps1 @scan

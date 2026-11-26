@@ -38,7 +38,8 @@ permissions:
 
 jobs:
   # The same gates a pull request runs: analysis, the suites on Windows PowerShell 7 and 5.1
-  # and on ARM64, the command help gate on a case-sensitive filesystem, and the release rehearsal.
+  # and on ARM64, the command help gate on a case-sensitive filesystem, the release rehearsal,
+  # and the credential scan of every branch and tag.
   gates:
     name: 'Quality gates'
     uses: ./.github/workflows/quality-gates.yml
