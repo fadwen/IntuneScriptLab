@@ -257,6 +257,9 @@ entries are carried over from the manifest's release notes.
 
 ### Fixed
 
+- The README's list of the edits `Repair-IntuneScript` makes left out `-ErrorAction Stop` on a
+  probing cmdlet in a remediation and counted its edits wrong. It is now a list by rule, which a
+  test holds to the rules that offer an edit (#152).
 - A run as another account (`-Credential`) copied its script to a folder under
   `ProgramData\IntuneScriptLab\Runs` that inherited ProgramData's grant to every local user to add
   files, so another user of the machine could change the script that then ran as the account, or
